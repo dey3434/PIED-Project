@@ -1,15 +1,15 @@
 ### Stan models for PIAL growth using technique in Ogle et al., Ecology Letters to test for climate effects
 ## Sharmila Dey
 # 22 June 2020
-
+setwd("~/Desktop/tree ring lab")
 library(rstan)
 options(mc.cores = parallel::detectCores())
 library(parallel) 
 library(mcmcplots) ; library(lattice) ; library(MASS)
 library(lme4) ; library(nlme) ; library(splines); library(MCMCpack)
-library(ggplot2); library(reshape)
-library(tidyverse);library(caret); library(plyr); library(viridis)
-
+library(ggplot2)
+library(caret) ; library(tidyverse)
+library(bayesplot)
 
 data<-read.csv("data.clim copy.csv")
 
@@ -18,23 +18,36 @@ grow<-na.omit(data) %>%
   arrange(PLOT.x,SUBP,name) %>%
   mutate(PlotCD=as.numeric(factor(PLOT.x, levels = unique(PLOT.x))),treeCD=as.numeric(factor(name,levels=unique(name))))
 
-#grow<-grow[1:5000,] #use more than 50 rows
+split=0.20
+trainIndex <- createDataPartition(grow$name, p=split, list=FALSE)
+grow_test <- grow[trainIndex,]
+grow_train <- grow[-trainIndex,]
 
 
 
-xG<-as.matrix(cbind(grow$ppt_norm, grow$tmp_norm, grow$ppt_yr, grow$tmp_yr, grow$DIA_prev))
-##grow$ppt_norm*grow$tmp_norm,
-# grow$ppt_norm*grow$tmp_yr, grow$ppt_norm*grow$ppt_yr, grow$ppt_norm*grow$DIA_prev,
-#grow$ppt_yr*grow$tmp_yr, grow$ppt_yr*grow$tmp_norm, grow$ppt_yr*grow$DIA_prev, 
-#grow$tmp_norm*grow$tmp_yr, grow$tmp_norm*grow$DIA_prev, grow$tmp_yr*grow$DIA_prev))
-yG<-as.vector(grow$growth)
-nG<-nrow(grow)
-plot<-grow$PlotCD
-nplot<-length(unique(grow$PlotCD))
+xG<-as.matrix(cbind(grow_train$ppt_norm, grow_train$tmp_norm, grow_train$ppt_yr, grow_train$tmp_yr, grow_train$DIA_prev,
+                    grow_train$ppt_norm*grow_train$tmp_norm, grow_train$ppt_norm*grow_train$tmp_yr, 
+                    grow_train$ppt_norm*grow_train$ppt_yr, grow_train$ppt_norm*grow_train$DIA_prev,
+                    grow_train$ppt_yr*grow_train$tmp_yr, grow_train$ppt_yr*grow_train$tmp_norm, grow_train$ppt_yr*grow_train$DIA_prev, 
+                    grow_train$tmp_norm*grow_train$tmp_yr, grow_train$tmp_norm*grow_train$DIA_prev, 
+                    grow_train$tmp_yr*grow_train$DIA_prev))
+xGtest<-as.matrix(cbind(grow_test$ppt_norm, grow_test$tmp_norm, grow_test$ppt_yr, grow_test$tmp_yr, grow_test$DIA_prev,
+                                  grow_test$ppt_norm*grow_test$tmp_norm, grow_test$ppt_norm*grow_test$tmp_yr, 
+                                  grow_test$ppt_norm*grow_test$ppt_yr, grow_test$ppt_norm*grow_test$DIA_prev,
+                                  grow_test$ppt_yr*grow_test$tmp_yr, grow_test$ppt_yr*grow_test$tmp_norm, grow_test$ppt_yr*grow_test$DIA_prev, 
+                                  grow_test$tmp_norm*grow_test$tmp_yr, grow_test$tmp_norm*grow_test$DIA_prev, 
+                                  grow_test$tmp_yr*grow_test$DIA_prev))
+yG<-as.vector(grow_train$growth)
+yGtest<-as.vector(grow_test$growth)
+nG<-nrow(grow_train)
+nGtest<-nrow(grow_test)
+plot<-grow_train$PlotCD
+nplot<-length(unique(grow_train$PlotCD))
 K<-ncol(xG)
-tree<-grow$treeCD
-ntree<-length(unique(grow$treeCD))
-plotfortree<-grow %>%
+tree<-grow_train$treeCD
+treetest<-grow_test$treeCD
+ntree<-length(unique(grow_train$treeCD))
+plotfortree<-grow_train %>%
   group_by(treeCD) %>%
   summarize(Plot=mean(PlotCD))
 plotfortree<-plotfortree$Plot
@@ -46,7 +59,9 @@ cat("
     
     int<lower=0> K;         // N. predictors 
     int<lower=0> nG;        // N. observations
+    int<lower=0> nGtest;    // N. observations (ppc)
     matrix[nG,K] xG;        // Predictor matrix
+    matrix[nGtest, K] xGtest;   // Predictor matrix (ppc)
     vector[nG] yG;          // log size at time t+1 
     
     int<lower=0> nplot;         // number of plots
@@ -54,6 +69,7 @@ cat("
     
     int<lower=0> ntree;          // number of trees
     int<lower=1> tree[nG];          // index for trees
+    int<lower=1> treetest[nGtest];  //index for trees (ppc)
     int<lower=1> plotfortree[ntree];   // plot index for each tree
     }
     
@@ -116,13 +132,21 @@ cat("
     
     }
     
+    generated quantities{
+    vector[nGtest] yrep;
+    for(n in 1:nGtest){
+    yrep[n] = normal_rng(beta0_t[treetest[n]]+xGtest[n]*u_beta,sigma_y);
+    }
+
+    }
     
     ",fill=T)
 
 sink()
 
 
-pied_dat <- list(K = K, nG = nG, yG = yG, xG = xG, plot = plot, nplot = nplot, tree = tree, ntree = ntree, 
+pied_dat <- list(K = K, nG = nG, nGtest = nGtest, yG = yG, xG = xG, xGtest = xGtest, plot = plot, 
+                 nplot = nplot, tree = tree, treetest = treetest, ntree = ntree, 
                  plotfortree = plotfortree)
 #tranG = tranG, SiteForTran = SiteForTran, Ntran_totalG=Ntran_totalG)
 #indG = indG, TranForInd = TranForInd, Nind_totalG = Nind_totalG)
@@ -134,6 +158,9 @@ fit_grow <- stan(file = 'pied_grow.stan', data = pied_dat,
 
 summary<-summary(fit_grow)
 summary
+
+plotdata<-as.data.frame(fit_grow)
+ppc_dens_overlay(yG, as.matrix(select(plotdata,"yrep[1]":"yrep[8780]")))
 
 mcmcplot(As.mcmc.list(fit_grow))
 
