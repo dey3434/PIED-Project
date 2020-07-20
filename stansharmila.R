@@ -2,6 +2,7 @@
 ## Sharmila Dey
 # 22 June 2020
 setwd("~/Desktop/tree ring lab")
+load("./pied_grow_coef2.rda")
 library(rstan)
 options(mc.cores = parallel::detectCores())
 library(parallel) 
@@ -10,13 +11,16 @@ library(lme4) ; library(nlme) ; library(splines); library(MCMCpack)
 library(ggplot2)
 library(caret) ; library(tidyverse)
 library(bayesplot)
+library(here)
+library(gifski)
 
 data<-read.csv("data.clim copy.csv")
 
 grow<-na.omit(data) %>% 
-  mutate_at(scale, .vars = vars(ppt_norm,ppt_yr,tmp_norm,tmp_yr,growth,solrad_an)) %>%
+  mutate_at(scale, .vars = vars(ppt_norm,ppt_yr,tmp_norm,tmp_yr,solrad_an)) %>%
   arrange(PLOT.x,SUBP,name) %>%
-  mutate(PlotCD=as.numeric(factor(PLOT.x, levels = unique(PLOT.x))),treeCD=as.numeric(factor(name,levels=unique(name))))
+  mutate(PlotCD=as.numeric(factor(PLOT.x, levels = unique(PLOT.x))),treeCD=as.numeric(factor(name,levels=unique(name))),
+         growth2=ifelse(growth==0,0.001,growth),loggrowth=log(growth2))
 
 split=0.20
 trainIndex <- createDataPartition(grow$name, p=split, list=FALSE)
@@ -37,8 +41,8 @@ xGtest<-as.matrix(cbind(grow_test$ppt_norm, grow_test$tmp_norm, grow_test$ppt_yr
                                   grow_test$ppt_yr*grow_test$tmp_yr, grow_test$ppt_yr*grow_test$tmp_norm, grow_test$ppt_yr*grow_test$DIA_prev, 
                                   grow_test$tmp_norm*grow_test$tmp_yr, grow_test$tmp_norm*grow_test$DIA_prev, 
                                   grow_test$tmp_yr*grow_test$DIA_prev))
-yG<-as.vector(grow_train$growth)
-yGtest<-as.vector(grow_test$growth)
+yG<-as.vector(grow_train$loggrowth)
+yGtest<-as.vector(grow_test$loggrowth)
 nG<-nrow(grow_train)
 nGtest<-nrow(grow_test)
 plot<-grow_train$PlotCD
@@ -128,14 +132,19 @@ cat("
     mG[n] = beta0_t[tree[n]]+xG[n]*u_beta;
     }
     
-    yG ~ normal(mG,sigma_y);
-    
+    //yG ~ normal(mG,sigma_y);
+    yG ~ gamma(mG,sigma_y);
+
     }
     
     generated quantities{
     vector[nGtest] yrep;
+    //for(n in 1:nGtest){
+    //yrep[n] = normal_rng(beta0_t[treetest[n]]+xGtest[n]*u_beta,sigma_y);
+    //}
+
     for(n in 1:nGtest){
-    yrep[n] = normal_rng(beta0_t[treetest[n]]+xGtest[n]*u_beta,sigma_y);
+    yrep[n] = gamma_rng(beta0_t[treetest[n]]+xGtest[n]*u_beta,sigma_y);
     }
 
     }
@@ -159,16 +168,79 @@ fit_grow <- stan(file = 'pied_grow.stan', data = pied_dat,
 summary<-summary(fit_grow)
 summary
 
-plotdata<-as.data.frame(fit_grow)
-ppc_dens_overlay(yG, as.matrix(select(plotdata,"yrep[1]":"yrep[8780]")))
+plotdata<-select(as.data.frame(fit_grow),"yrep[1]":"yrep[8780]")
+ppc_dens_overlay(yGtest, as.matrix(plotdata))
+
+## Subset posterior predictive plot by size
+size_q<-quantile(grow$DIA_prev)
+sizeq1<-which(grow_test$DIA_prev<=size_q[2])
+sizeq2<-which(grow_test$DIA_prev>size_q[2] & grow_test$DIA_prev<=size_q[3])
+sizeq3<-which(grow_test$DIA_prev>size_q[3] &grow_test$DIA_prev<=size_q[4])
+sizeq4<-which(grow_test$DIA_prev>size_q[4])
+
+ppc_dens_overlay(yGtest[sizeq1], as.matrix(plotdata)[,sizeq1])
+ppc_dens_overlay(yGtest[sizeq2], as.matrix(plotdata)[,sizeq2])
+ppc_dens_overlay(yGtest[sizeq3], as.matrix(plotdata)[,sizeq3])
+ppc_dens_overlay(yGtest[sizeq4], as.matrix(plotdata)[,sizeq4])
+
+## Subset posterior predicitve plot by ppt_norm
+ppt_norm_q<-quantile(grow$ppt_norm)
+ppt_normq1<-which(grow_test$ppt_norm<=ppt_norm_q[2])
+ppt_normq2<-which(grow_test$ppt_norm>ppt_norm_q[2] & grow_test$ppt_norm<=ppt_norm_q[3])
+ppt_normq3<-which(grow_test$ppt_norm>ppt_norm_q[3] &grow_test$ppt_norm<=ppt_norm_q[4])
+ppt_normq4<-which(grow_test$ppt_norm>ppt_norm_q[4])
+
+ppc_dens_overlay(yGtest[ppt_normq1], as.matrix(plotdata)[,ppt_normq1])
+ppc_dens_overlay(yGtest[ppt_normq2], as.matrix(plotdata)[,ppt_normq2])
+ppc_dens_overlay(yGtest[ppt_normq3], as.matrix(plotdata)[,ppt_normq3])
+ppc_dens_overlay(yGtest[ppt_normq4], as.matrix(plotdata)[,ppt_normq4])
+
+## Subset posterior predicitve plot by ppt_norm
+tmp_norm_q<-quantile(grow$tmp_norm)
+tmp_normq1<-which(grow_test$tmp_norm<=tmp_norm_q[2])
+tmp_normq2<-which(grow_test$tmp_norm>tmp_norm_q[2] & grow_test$tmp_norm<=tmp_norm_q[3])
+tmp_normq3<-which(grow_test$tmp_norm>tmp_norm_q[3] &grow_test$tmp_norm<=tmp_norm_q[4])
+tmp_normq4<-which(grow_test$tmp_norm>tmp_norm_q[4])
+
+ppc_dens_overlay(yGtest[tmp_normq1], as.matrix(plotdata)[,tmp_normq1])
+ppc_dens_overlay(yGtest[tmp_normq2], as.matrix(plotdata)[,tmp_normq2])
+ppc_dens_overlay(yGtest[tmp_normq3], as.matrix(plotdata)[,tmp_normq3])
+ppc_dens_overlay(yGtest[tmp_normq4], as.matrix(plotdata)[,tmp_normq4])
+
+
+##generating a plotting function
+make_plot <- function() {
+  for (i in min(grow_test$year):max(grow_test$year)) {
+    year<-which(grow_test$year == i)
+    p = ppc_dens_overlay(yGtest[year], as.matrix(plotdata)[,year]) + 
+      theme(
+        plot.title = element_text(size = rel(2.5))
+      ) +
+      ggtitle(
+        paste(i)
+      )
+    print(p)
+  }
+}
+
+if (!file.exists(here::here("images", "ppc_year-animation.gif"))) {
+  
+  gifski::save_gif(
+    make_plot(),
+    gif_file = here::here("images", "ppc_year-animation.gif"), 
+    progress = FALSE,
+    delay = 0.5, 
+    height = 360, width = 640, units = "px"
+  )
+}
 
 mcmcplot(As.mcmc.list(fit_grow))
 
 write.csv(summary$summary,"./piedsummarylong.csv")
 
-pied_grow_coef<-summary$summary
-pied_grow_coef
-save(pied_grow_coef, grow, file="./pied_grow_coef.rda")
+pied_grow_coef2<-summary$summary
+pied_grow_coef2
+save(pied_grow_coef2, grow, file="./pied_grow_coef2.rda")
 
 save(pied_grow_coef, grow, file="./pied_grow_coef1.rda")
 
