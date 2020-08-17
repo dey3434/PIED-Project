@@ -218,14 +218,14 @@ make_plot <- function() {
         plot.title = element_text(size = rel(2.5), legend.text = element_text(size = 16), 
                                   axis.text.x = element_text(size = 12),
                                   legend.key.size = unit(1.2, "lines")
-      ) + xlim(-6.91, 3.96) +
-      ggtitle(
-        paste(i)
-      )
-    print(p)
+        ) + xlim(-6.91, 3.96) +
+          ggtitle(
+            paste(i)
+          ))
+        print(p)
   }
 }
-        
+
 
 if (!file.exists(here::here("images", "ppc_year-animation.gif"))) {
   
@@ -237,7 +237,7 @@ if (!file.exists(here::here("images", "ppc_year-animation.gif"))) {
     height = 360, width = 640, units = "px"
   )
 }
-        
+
 ##density function for climate
 make_ppt_plot <- function() {
   for (i in min(grow_test$year):max(grow_test$year)) {
@@ -247,13 +247,14 @@ make_ppt_plot <- function() {
         plot.title = element_text(size = rel(2.5), legend.text = element_text(size = 16), 
                                   axis.text.x = element_text(size = 12),
                                   legend.key.size = unit(1.2, "lines")
-      ) + xlim(min(grow_train$ppt_yr), max(grow_train$ppt_yr)) +
-      ggtitle(
-        paste(i)
-      )
-    print(p)
+        )) + xlim(min(grow_train$ppt_yr), max(grow_train$ppt_yr)) +
+          ggtitle(
+            paste(i)
+          )
+        print(p)
   }
 }
+
 
 if (!file.exists(here::here("images", "ppt_year-animation.gif"))) {
   
