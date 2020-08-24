@@ -169,6 +169,11 @@ summary<-summary(fit_grow)
 summary
 
 plotdata<-select(as.data.frame(fit_grow),"yrep[1]":"yrep[8780]")
+plotdatainterval<-select(as.data.frame(fit_grow), "u_beta[1]":"u_beta[15]")
+colnames(plotdatainterval) <- c("u_beta_ppt_norm", "u_beta_tmp_norm", "u_beta_ppt_yr", "u_beta_tmp_yr", "u_beta_DIA_prev",
+ "u_beta_ppt_norm_tmp_norm", "u_beta_ppt_norm_tmp_yr", "u_beta_ppt_norm_ppt_yr", "u_beta_ppt_norm_DIA_prev",
+ "u_beta_ppt_yr_tmp_yr", "u_beta_ppt_yr_tmp_norm", "u_beta_ppt_yr_DIA_prev", "u_beta_tmp_norm_tmp_yr", "u_beta_tmp_norm_DIA_prev", 
+ "u_beta_tmp_yr_DIA_prev")
 ppc_dens_overlay(yGtest, as.matrix(plotdata))
 
 ## Subset posterior predictive plot by size
@@ -294,6 +299,18 @@ if (!file.exists(here::here("images", "tmp_year-animation.gif"))) {
   )
 }        
 
+#MCMC Intervals Plots
+mcmc_intervals(plotdatainterval, prob = 0.5)
+
+#MCMC Area Plot
+color_scheme_set("purple")
+mcmc_areas(plotdatainterval, prob = 0.8)
+
+#MCMC Traces
+color_scheme_set("mix-blue-red")
+mcmc_trace(plotdatainterval,
+           facet_args = list(nrow = 2))
+#pars = c("alpha", "sigma")
 
 mcmcplot(As.mcmc.list(fit_grow))
 
