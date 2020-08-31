@@ -14,50 +14,53 @@ library(bayesplot)
 library(here)
 library(gifski)
 
-data<-read.csv("data.clim copy.csv")
+data<-read.csv("data.clim copy.csv") #Bring in ring-widths and climate data
 
+#make data object for stan
 grow<-na.omit(data) %>% 
-  mutate_at(scale, .vars = vars(ppt_norm,ppt_yr,tmp_norm,tmp_yr,solrad_an)) %>%
-  arrange(PLOT.x,SUBP,name) %>%
+  mutate_at(scale, .vars = vars(ppt_norm,ppt_yr,tmp_norm,tmp_yr,solrad_an)) %>%  #standardizing covariates
+  arrange(PLOT.x,SUBP,name) %>% #ordering by plot, subplot, tree
   mutate(PlotCD=as.numeric(factor(PLOT.x, levels = unique(PLOT.x))),treeCD=as.numeric(factor(name,levels=unique(name))),
-         growth2=ifelse(growth==0,0.001,growth),loggrowth=log(growth2))
+         growth2=ifelse(growth==0,0.001,growth),loggrowth=log(growth2))   #assigning plot and tree indicies, log transformation of ring-widths
 
-split=0.20
-trainIndex <- createDataPartition(grow$name, p=split, list=FALSE)
+split=0.20  #setting aside testing data
+trainIndex <- createDataPartition(grow$name, p=split, list=FALSE)  #20% of trees
 grow_test <- grow[trainIndex,]
 grow_train <- grow[-trainIndex,]
 
 
-
+#create training design matrix
 xG<-as.matrix(cbind(grow_train$ppt_norm, grow_train$tmp_norm, grow_train$ppt_yr, grow_train$tmp_yr, grow_train$DIA_prev,
                     grow_train$ppt_norm*grow_train$tmp_norm, grow_train$ppt_norm*grow_train$tmp_yr, 
                     grow_train$ppt_norm*grow_train$ppt_yr, grow_train$ppt_norm*grow_train$DIA_prev,
                     grow_train$ppt_yr*grow_train$tmp_yr, grow_train$ppt_yr*grow_train$tmp_norm, grow_train$ppt_yr*grow_train$DIA_prev, 
                     grow_train$tmp_norm*grow_train$tmp_yr, grow_train$tmp_norm*grow_train$DIA_prev, 
                     grow_train$tmp_yr*grow_train$DIA_prev))
+#create testing design matrix
 xGtest<-as.matrix(cbind(grow_test$ppt_norm, grow_test$tmp_norm, grow_test$ppt_yr, grow_test$tmp_yr, grow_test$DIA_prev,
                                   grow_test$ppt_norm*grow_test$tmp_norm, grow_test$ppt_norm*grow_test$tmp_yr, 
                                   grow_test$ppt_norm*grow_test$ppt_yr, grow_test$ppt_norm*grow_test$DIA_prev,
                                   grow_test$ppt_yr*grow_test$tmp_yr, grow_test$ppt_yr*grow_test$tmp_norm, grow_test$ppt_yr*grow_test$DIA_prev, 
                                   grow_test$tmp_norm*grow_test$tmp_yr, grow_test$tmp_norm*grow_test$DIA_prev, 
                                   grow_test$tmp_yr*grow_test$DIA_prev))
-yG<-as.vector(grow_train$loggrowth)
-yGtest<-as.vector(grow_test$loggrowth)
-nG<-nrow(grow_train)
-nGtest<-nrow(grow_test)
-plot<-grow_train$PlotCD
-nplot<-length(unique(grow_train$PlotCD))
-K<-ncol(xG)
-tree<-grow_train$treeCD
-treetest<-grow_test$treeCD
-ntree<-length(unique(grow_train$treeCD))
-plotfortree<-grow_train %>%
+yG<-as.vector(grow_train$loggrowth)   #create training response vector
+yGtest<-as.vector(grow_test$loggrowth)   #create testing response vector
+nG<-nrow(grow_train)   #number of training data points
+nGtest<-nrow(grow_test)   #number of testing data points
+plot<-grow_train$PlotCD   #create plot identifier
+nplot<-length(unique(grow_train$PlotCD))   #how many plots
+K<-ncol(xG)   #number of predictors
+tree<-grow_train$treeCD   #create tree identifier in train dataset
+treetest<-grow_test$treeCD   #create tree identifier in test dataset
+ntree<-length(unique(grow_train$treeCD))   #number of trees in training dataset
+plotfortree<-grow_train %>%   #plot code for each tree
   group_by(treeCD) %>%
   summarize(Plot=mean(PlotCD))
-plotfortree<-plotfortree$Plot
+plotfortree<-plotfortree$Plot   #create vector of plot code
 
 
-sink("pied_grow.stan")
+sink("pied_grow.stan")   #create stan file
+#put code in stan file
 cat("
     data {
     
