@@ -1,8 +1,8 @@
 ### Stan models for PIAL growth using technique in Ogle et al., Ecology Letters to test for climate effects
 ## Sharmila Dey
 # 22 June 2020
-setwd("/home/rstudio/PIED-Project")
-load("/home/rstudio/pied_grow_coef2.rda")
+setwd("/home/rstudio")
+load("/home/rstudio/data/pied_grow_coef2.rda")
 readRDS("log_normal_fg_7_24_20.RDS")
 library(rstan)
 options(mc.cores = parallel::detectCores())
