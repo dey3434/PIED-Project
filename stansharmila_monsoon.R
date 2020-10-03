@@ -1,7 +1,7 @@
 ### Stan models for PIAL growth using technique in Ogle et al., Ecology Letters to test for climate effects
 ## Sharmila Dey
 # 22 June 2020
-setwd("/home/rstudio/PIED-Project")
+setwd("/home/rstudio")
 load("/home/rstudio/data/pied_grow_coef2.rda")
 fit_grow <- readRDS("log_normal_monsoon_ppt.RDS")
 library(rstan)
@@ -16,7 +16,7 @@ library(here)
 library(gifski)
 library(maps)
 
-newclimate<-read.csv("pied_all_tmean_ppt.csv")
+newclimate <- read.csv("data/pied_all_tmean_ppt.csv")
 
 grow.new <- merge(grow, newclimate, by.x = c("LON", "LAT", "name", "year"), by.y = c("lon", "lat", "name", "year"))
 
@@ -366,7 +366,7 @@ ci.ppt_norm.df <- data.frame(ppt_norm = ppt_norm, median = ci.ppt_norm[2,], ci.l
 ggplot() + 
   geom_ribbon(data = ci.ppt_norm.df, aes(x = ppt_norm, ymin = ci.low, ymax = ci.high), alpha = 0.75, fill = "cadetblue2") + 
   geom_line(data = ci.ppt_norm.df, aes(x = ppt_norm, y = median), color = "indianred2") + mytheme + ylab("Predicted Growth") + ylim(0, 2) + 
-  geom_rug(data = unique(grow_train[,c("LAT", "LON", "ppt_norm", "tmp_norm")]), aes(x = ppt_norm, color = ppt_norm))
+  geom_rug(data = unique(grow_train[,c("LAT", "LON", "ppt_norm", "tmp_norm")]), aes(x = ppt_norm, color = tmp_norm))
 
 
 #effect of tmp_norm
@@ -397,7 +397,7 @@ ci.tmp_norm.df <- data.frame(tmp_norm = tmp_norm, median = ci.tmp_norm[2,], ci.l
 ggplot() + 
   geom_ribbon(data = ci.tmp_norm.df, aes(x = tmp_norm, ymin = ci.low, ymax = ci.high), alpha = 0.75, fill = "cadetblue2") + 
   geom_line(data = ci.tmp_norm.df, aes(x = tmp_norm, y = median), color = "indianred2") + mytheme + ylab("Predicted Growth") + ylim(0, 2) + 
-  geom_rug(data = unique(grow_train[,c("LAT", "LON", "ppt_norm", "tmp_norm")]), aes(x = tmp_norm, color = tmp_norm))
+  geom_rug(data = unique(grow_train[,c("LAT", "LON", "ppt_norm", "tmp_norm")]), aes(x = tmp_norm, color = ppt_norm))
 
 
 #effect of Precip_JulAug
@@ -428,7 +428,7 @@ ci.Precip_JulAug.df <- data.frame(Precip_JulAug = Precip_JulAug, median = ci.Pre
 ggplot() + 
   geom_ribbon(data = ci.Precip_JulAug.df, aes(x = Precip_JulAug, ymin = ci.low, ymax = ci.high), alpha = 0.75, fill = "cadetblue2") + 
   geom_line(data = ci.Precip_JulAug.df, aes(x = Precip_JulAug, y = median), color = "indianred2") + mytheme + ylab("Predicted Growth") + ylim(0, 2) + 
-  geom_rug(data = unique(grow_train[,c("LAT", "LON", "Precip_JulAug", "tmp_norm")]), aes(x = Precip_JulAug, color = tmp_norm))
+  geom_rug(data = unique(grow_train[,c("LAT", "LON", "Precip_JulAug", "ppt_norm")]), aes(x = Precip_JulAug, color = ppt_norm))
 
 
 #effect of tmp_yr
@@ -459,7 +459,7 @@ ci.tmp_yr.df <- data.frame(tmp_yr = tmp_yr, median = ci.tmp_yr[2,], ci.low = ci.
 ggplot() + 
   geom_ribbon(data = ci.tmp_yr.df, aes(x = tmp_yr, ymin = ci.low, ymax = ci.high), alpha = 0.75, fill = "cadetblue2") + 
   geom_line(data = ci.tmp_yr.df, aes(x = tmp_yr, y = median), color = "indianred2") + mytheme + ylab("Predicted Growth") + ylim(0, 2) + 
-  geom_rug(data = unique(grow_train[,c("LAT", "LON", "tmp_yr", "ppt_norm")]), aes(x = tmp_yr, color = ppt_norm))
+  geom_rug(data = unique(grow_train[,c("LAT", "LON", "tmp_yr", "tmp_norm")]), aes(x = tmp_yr, color = tmp_norm))
 
 
 #effect of DIA_prev
@@ -1078,7 +1078,7 @@ merged.response.samples$ci.group <- as.character(merged.response.samples$ci.grou
 #color by group
 ggplot(data = merged.response.samples, aes(x = tmp_yr, y = median, color = ci.group)) + geom_ribbon(aes(x = tmp_yr, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
   geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
-#color by LATLONbin
+ #color by LATLONbin
 ggplot(data = merged.response.samples, aes(x = tmp_yr, y = median, color = LATLONbin, group = ci.group)) + geom_ribbon(aes(x = tmp_yr, ymin = ci.low, ymax = ci.high, fill = LATLONbin, group = ci.group),color = NA, alpha = 0.5) + 
   geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
 #color by tmp_norm
@@ -1108,40 +1108,95 @@ get.ind.tmp.response<- function(j){
   tree.subset <- ind.samples[j,]
   tree.grow <- grow.monsoon %>% filter(LATLONbin == tree.subset$LATLONbin & treeCD == tree.subset$treeCD)
   
-  Precip_JulAugrng <- range(grow_train$Precip_JulAug,na.rm = TRUE) #setting range for tmp_normrng
+  Precip_JulAugrng <- range(tree.grow$Precip_JulAug,na.rm = TRUE) #setting range for Precip_JulAugrng
   Precip_JulAug <- seq(Precip_JulAugrng[1], Precip_JulAugrng[2], by = 0.1)
-  x <- mean(grow_train$DIA_prev)
-  ppt_norm <- mean(grow_train$ppt_norm)
-  tmp_norm <- mean(grow_train$tmp_norm)
-  tmp_yr <- mean(grow_train$tmp_yr)
-  tmp_yr_range <- quantile(grow_train$tmp_yr, c(0.2, 0.8))
-  growthpredictionpptyr_hightmp <- growthpredictionpptyr_lowtmp <- growthpredictionpptyr_midtmp <- matrix(NA, length(plotdatainterval$u_beta_Precip_JulAug), length(Precip_JulAug)) 
+  size <- mean(tree.grow$DIA_prev)
+  ppt_norm <- mean(tree.grow$ppt_norm)
+  tmp_norm <- mean(tree.grow$tmp_norm)
+  tmp_yr <- mean(tree.grow$tmp_yr)
+  tmp_yr_range <- quantile(tree.grow$tmp_yr, c(0.2, 0.8))
+  growthpredictionPrecipJulAug_midtmpyr <- matrix(NA, length(plotdatainterval$u_beta_Precip_JulAug), length(Precip_JulAug)) 
   
   for(i in 1:length(plotdatainterval$u_beta_Precip_JulAug)){
-    growthpredictionpptyr_midtmp[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+    growthpredictionPrecipJulAug_midtmpyr[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
       plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
-      plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
+      plotdatainterval[i,"u_beta_DIA_prev"]*size + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
       plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
-      plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*x+
+      plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size+
       plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
-      plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
-      plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x
-    }
-  Precip_JulAug_prediction_trmid <- exp(growthpredictionpptyr_midtmp)
-  ci.Precip_JulAugmid <- apply(Precip_JulAug_prediction_trmid, 2, quantile, c(0.025, 0.5, 0.975))
-  ci.Precip_JulAugmid.df <- data.frame(Precip_JulAug = Precip_JulAug, median = ci.Precip_JulAugmid[2,], ci.low = ci.Precip_JulAugmid[1,], ci.high = ci.Precip_JulAugmid[3,], ci.group = "midtmp_yr")
-  Precip_JulAug_tmp_yrint <- rbind(ci.Precip_JulAugmid.df)
+      plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
+      plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size
+  }
+  PrecipJulAug_prediction_trtmpyr <- exp(growthpredictionPrecipJulAug_midtmpyr)
+  ci.PrecipJulAug_tmpyrmid <- apply(PrecipJulAug_prediction_trtmpyr, 2, quantile, c(0.025, 0.5, 0.975))
+  ci.PrecipJulAug_tmpyrmid.df <- data.frame(Precip_JulAug = Precip_JulAug, tmp_yr = tmp_yr, median = ci.PrecipJulAug_tmpyrmid[2,], ci.low = ci.PrecipJulAug_tmpyrmid[1,], ci.high = ci.PrecipJulAug_tmpyrmid[3,], ci.group = tree.subset$treeCD)
+  PrecipJulAug_tmpyrint <- rbind(ci.PrecipJulAug_tmpyrmid.df)
   print(ind.samples[j,])
-  Precip_JulAug_tmp_yrint  
+  PrecipJulAug_tmpyrint  
 }
-tmp_yr_tree_response <- list()
-tmp_yr_tree_response <- lapply(1:length(ind.samples$treeCD), FUN = get.ind.tmp.response)
-tmp_yr_tree_response.df <- do.call(rbind, tmp_yr_tree_response)
-merged.response.samples <- merge(tmp_yr_tree_response.df, ind.samples, by.x = "ci.group", by.y = "treeCD")
+#get.ind.tmp.response(i = 6)
+Precip_JulAug_tree_response <- list()
+Precip_JulAug_tree_response <- lapply(1:length(ind.samples$treeCD), FUN = get.ind.tmp.response)
+Precip_JulAug_tree_response.df <- do.call(rbind, Precip_JulAug_tree_response)
+merged.response.samples <- merge(Precip_JulAug_tree_response.df, ind.samples, by.x = "ci.group", by.y = "treeCD")
 merged.response.samples$ci.group <- as.character(merged.response.samples$ci.group)
 #color by group
 ggplot(data = merged.response.samples, aes(x = Precip_JulAug, y = median, color = ci.group)) + geom_ribbon(aes(x = Precip_JulAug, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
-  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2) 
+  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
+#color by LATLONbin
+ggplot(data = merged.response.samples, aes(x = Precip_JulAug, y = median, color = LATLONbin, group = ci.group)) + geom_ribbon(aes(x = Precip_JulAug, ymin = ci.low, ymax = ci.high, fill = LATLONbin, group = ci.group),color = NA, alpha = 0.5) + 
+  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
+#color by tmp_norm
+ggplot(data = merged.response.samples, aes(x = Precip_JulAug, y = median, color = tmp_yr, group = ci.group)) + #geom_ribbon(aes(x = tmp_yr, ymin = ci.low, ymax = ci.high, fill = tmp_norm, group = ci.group),color = NA, alpha = 0.5) + 
+  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
+
+  
+
+#Precip_JulAug and tmp_norm
+grow.monsoon$LONbin <- ifelse(grow.monsoon$LON > -111, "-111 to -109", "-114 to -111")
+grow.monsoon$LATbin <- ifelse(grow.monsoon$LAT > 35, "35 to 37", "32 to 35")
+grow.monsoon$LATLONbin <- paste(grow.monsoon$LONbin, grow.monsoon$LATbin)
+ind.samples <- unique(grow.monsoon[,c("LATLONbin", "treeCD")]) %>% group_by(LATLONbin) %>% sample_n(7)
+
+get.ind.tmp.response<- function(j){
+  tree.subset <- ind.samples[j,]
+  tree.grow <- grow.monsoon %>% filter(LATLONbin == tree.subset$LATLONbin & treeCD == tree.subset$treeCD)
+  
+  Precip_JulAugrng <- range(tree.grow$Precip_JulAug,na.rm = TRUE) #setting range for Precip_JulAugrng
+  Precip_JulAug <- seq(Precip_JulAugrng[1], Precip_JulAugrng[2], by = 0.1)
+  size <- mean(tree.grow$DIA_prev)
+  ppt_norm <- mean(tree.grow$ppt_norm)
+  tmp_norm <- mean(tree.grow$tmp_norm)
+  tmp_yr <- mean(tree.grow$tmp_yr)
+  tmp_norm_range <- quantile(tree.grow$tmp_norm, c(0.2, 0.8))
+  growthpredictionPrecipJulAug_midtnorm <- matrix(NA, length(plotdatainterval$u_beta_Precip_JulAug), length(Precip_JulAug)) 
+  
+  for(i in 1:length(plotdatainterval$u_beta_Precip_JulAug)){
+    growthpredictionPrecipJulAug_midtnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+      plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+      plotdatainterval[i,"u_beta_DIA_prev"]*size + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
+      plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
+      plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size+
+      plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
+      plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
+      plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size
+  }
+  PrecipJulAug_prediction_trtnorm <- exp(growthpredictionPrecipJulAug_midtnorm)
+  ci.PrecipJulAug_tnormmid <- apply(PrecipJulAug_prediction_trtnorm, 2, quantile, c(0.025, 0.5, 0.975))
+  ci.PrecipJulAug_tnormmid.df <- data.frame(Precip_JulAug = Precip_JulAug, tmp_norm = tmp_norm, median = ci.PrecipJulAug_tnormmid[2,], ci.low = ci.PrecipJulAug_tnormmid[1,], ci.high = ci.PrecipJulAug_tnormmid[3,], ci.group = tree.subset$treeCD)
+  PrecipJulAug_tnormint <- rbind(ci.PrecipJulAug_tnormmid.df)
+  print(ind.samples[j,])
+  PrecipJulAug_tnormint  
+}
+#get.ind.tmp.response(i = 6)
+Precip_JulAug_tree_response <- list()
+Precip_JulAug_tree_response <- lapply(1:length(ind.samples$treeCD), FUN = get.ind.tmp.response)
+Precip_JulAug_tree_response.df <- do.call(rbind, Precip_JulAug_tree_response)
+merged.response.samples <- merge(Precip_JulAug_tree_response.df, ind.samples, by.x = "ci.group", by.y = "treeCD")
+merged.response.samples$ci.group <- as.character(merged.response.samples$ci.group)
+#color by group
+ggplot(data = merged.response.samples, aes(x = Precip_JulAug, y = median, color = ci.group)) + geom_ribbon(aes(x = Precip_JulAug, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
+  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
 #color by LATLONbin
 ggplot(data = merged.response.samples, aes(x = Precip_JulAug, y = median, color = LATLONbin, group = ci.group)) + geom_ribbon(aes(x = Precip_JulAug, ymin = ci.low, ymax = ci.high, fill = LATLONbin, group = ci.group),color = NA, alpha = 0.5) + 
   geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
@@ -1149,35 +1204,59 @@ ggplot(data = merged.response.samples, aes(x = Precip_JulAug, y = median, color 
 ggplot(data = merged.response.samples, aes(x = Precip_JulAug, y = median, color = tmp_norm, group = ci.group)) + #geom_ribbon(aes(x = tmp_yr, ymin = ci.low, ymax = ci.high, fill = tmp_norm, group = ci.group),color = NA, alpha = 0.5) + 
   geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
 
+
+
+#ppt_norm and tmp_yr
+grow.monsoon$LONbin <- ifelse(grow.monsoon$LON > -111, "-111 to -109", "-114 to -111")
+grow.monsoon$LATbin <- ifelse(grow.monsoon$LAT > 35, "35 to 37", "32 to 35")
+grow.monsoon$LATLONbin <- paste(grow.monsoon$LONbin, grow.monsoon$LATbin)
+ind.samples <- unique(grow.monsoon[,c("LATLONbin", "treeCD")]) %>% group_by(LATLONbin) %>% sample_n(7)
+
+get.ind.tmp.response<- function(j){
+  tree.subset <- ind.samples[j,]
+  tree.grow <- grow.monsoon %>% filter(LATLONbin == tree.subset$LATLONbin & treeCD == tree.subset$treeCD)
   
-
-#Precip_JulAug and tmp_norm
-Precip_JulAugrng <- range(grow_train$Precip_JulAug,na.rm = TRUE) #setting range for tmp_normrng
-Precip_JulAug <- seq(Precip_JulAugrng[1], Precip_JulAugrng[2], by = 0.1)
-x <- mean(grow_train$DIA_prev)
-ppt_norm <- mean(grow_train$ppt_norm)
-tmp_norm <- mean(grow_train$tmp_norm)
-tmp_yr <- mean(grow_train$tmp_yr)
-tmp_norm_range <- quantile(grow_train$tmp_norm, c(0.2, 0.8))
-growthpredictionpptyr_hightnorm <- growthpredictionpptyr_lowtnorm <- growthpredictionpptyr_midtnorm <- matrix(NA, length(plotdatainterval$u_beta_Precip_JulAug), length(Precip_JulAug)) 
-
-for(i in 1:length(plotdatainterval$u_beta_Precip_JulAug)){
-  growthpredictionpptyr_midtnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
-    plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
-    plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
-    plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*x+
-    plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
-    plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
-    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x
+  ppt_normrng <- range(tree.grow$ppt_norm,na.rm = TRUE) #setting range for Precip_JulAugrng
+  ppt_norm <- seq(ppt_normrng[1], ppt_normrng[2], by = 0.1)
+  size <- mean(tree.grow$DIA_prev)
+  Precip_JulAug <- mean(tree.grow$Precip_JulAug)
+  tmp_norm <- mean(tree.grow$tmp_norm)
+  tmp_yr <- mean(tree.grow$tmp_yr)
+  tmp_yr_range <- quantile(tree.grow$tmp_yr, c(0.2, 0.8))
+  growthpredictionpnorm_midtmpyr <- matrix(NA, length(plotdatainterval$u_beta_ppt_norm), length(ppt_norm)) 
+  
+  for(i in 1:length(plotdatainterval$u_beta_ppt_norm)){
+    growthpredictionpnorm_midtmpyr[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+      plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+      plotdatainterval[i,"u_beta_DIA_prev"]*size + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
+      plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
+      plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size+
+      plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
+      plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
+      plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size
   }
-Precip_JulAug_prediction_trtmid <- exp(growthpredictionpptyr_midtnorm)
-ci.Precip_JulAugtmid <- apply(Precip_JulAug_prediction_trtmid, 2, quantile, c(0.025, 0.5, 0.975))
-ci.Precip_JulAugtmid.df <- data.frame(Precip_JulAug = Precip_JulAug, median = ci.Precip_JulAugtmid[2,], ci.low = ci.Precip_JulAugtmid[1,], ci.high = ci.Precip_JulAugtmid[3,], ci.group = "midtmp_norm")
-Precip_JulAug_tmp_normint <- rbind(ci.Precip_JulAugthigh.df, ci.Precip_JulAugtmid.df, ci.Precip_JulAugtlow.df)
-ggplot(data = Precip_JulAug_tmp_normint.df, aes(x = Precip_JulAug, y = median, color = ci.group)) + #geom_ribbon(aes(x = Precip_JulAug, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
+  pnorm_prediction_trtmpyr <- exp(growthpredictionpnorm_midtmpyr)
+  ci.pnorm_tmpyrmid <- apply(pnorm_prediction_trtmpyr, 2, quantile, c(0.025, 0.5, 0.975))
+  ci.pnorm_tmpyrmid.df <- data.frame(ppt_norm = ppt_norm, tmp_yr = tmp_yr, median = ci.pnorm_tmpyrmid[2,], ci.low = ci.pnorm_tmpyrmid[1,], ci.high = ci.pnorm_tmpyrmid[3,], ci.group = tree.subset$treeCD)
+  pnorm_tmpyrint <- rbind(ci.pnorm_tmpyrmid.df)
+  print(ind.samples[j,])
+  pnorm_tmpyrint  
+}
+#get.ind.tmp.response(i = 6)
+pnorm_tree_response <- list()
+pnorm_tree_response <- lapply(1:length(ind.samples$treeCD), FUN = get.ind.tmp.response)
+pnorm_tree_response.df <- do.call(rbind, pnorm_tree_response)
+merged.response.samples <- merge(pnorm_tree_response.df, ind.samples, by.x = "ci.group", by.y = "treeCD")
+merged.response.samples$ci.group <- as.character(merged.response.samples$ci.group)
+#color by group
+ggplot(data = merged.response.samples, aes(x = ppt_norm, y = median, color = ci.group)) + geom_ribbon(aes(x = ppt_norm, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
   geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
-
+#color by LATLONbin
+ggplot(data = merged.response.samples, aes(x = ppt_norm, y = median, color = LATLONbin, group = ci.group)) + geom_ribbon(aes(x = ppt_norm, ymin = ci.low, ymax = ci.high, fill = LATLONbin, group = ci.group),color = NA, alpha = 0.5) + 
+  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
+#color by tmp_norm
+ggplot(data = merged.response.samples, aes(x = Precip_JulAug, y = median, color = tmp_norm, group = ci.group)) + #geom_ribbon(aes(x = tmp_yr, ymin = ci.low, ymax = ci.high, fill = tmp_norm, group = ci.group),color = NA, alpha = 0.5) + 
+  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
 
 
 
