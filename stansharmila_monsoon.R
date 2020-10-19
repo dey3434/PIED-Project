@@ -181,6 +181,18 @@ colnames(plotdatainterval) <- c("u_beta_ppt_norm", "u_beta_tmp_norm", "u_beta_Pr
                                 "u_beta_tmp_norm_DIA_prev", "u_beta_tmp_yr_DIA_prev")
 ppc_dens_overlay(yGtest, as.matrix(plotdata))
 
+ext_fit <- rstan::extract(fit_grow)
+yrep <- ext_fit$yrep
+#yrep <- exp(yrep)
+mean.pred <- apply(ext_fit$yrep, 2, median)
+p.o.df <- data.frame(predicted = exp(mean.pred), observed = exp(grow_test$loggrowth), error = (exp(mean.pred) - exp(grow_test$loggrowth)))
+meansqrd <- (mean(p.o.df$error))^2
+ggplot(p.o.df, aes(predicted, observed)) + geom_point(alpha = 0.1) + geom_abline(aes(intercept = 0, slope = 1), color = "red", linetype = "dotted") +
+  ylim(0, 10) + xlim(0,10)
+
+
+
+
 ## Subset posterior predictive plot by size
 size_q<-quantile(grow$DIA_prev)
 sizeq1<-which(grow_test$DIA_prev<=size_q[2])
