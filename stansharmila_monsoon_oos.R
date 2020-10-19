@@ -16,15 +16,20 @@ library(here)
 library(gifski)
 library(maps)
 
-newclimate <- read.csv("data/pied_all_tmean_ppt.csv")
 
-grow.new <- merge(grow, newclimate, by.x = c("LON", "LAT", "name", "year"), by.y = c("lon", "lat", "name", "year"))
+PIED.all <- read.csv("data/pied_all_growth_v3.csv")
+full.ppt.tmean.norms <- read.csv("data/pied_all_tmean_ppt_v3.csv")
+grow.new <- merge(PIED.all, full.ppt.tmean.norms, by.x = c("name", "year", "LON", "LAT"), by.y = c("name", "year", "lon", "lat"))
+
+#grow.new <- read.csv("data/pied_all_tmean_ppt_v3.csv")
+
+#grow.new <- merge(grow, newclimate, by.x = c("LON", "LAT", "name", "year"), by.y = c("lon", "lat", "name", "year"))
 
 grow.monsoon<-na.omit(grow.new) %>% 
-  mutate_at(scale, .vars = vars(Precip_JulAug, Precip_DecJanFeb, Tmean_JulAug, Tmean_DecJanFeb)) #%>%
-  #arrange(PLOT.x,SUBP,name) %>%
-  #mutate(PlotCD=as.numeric(factor(PLOT.x, levels = unique(PLOT.x))),treeCD=as.numeric(factor(name,levels=unique(name))),
-         #growth2=ifelse(growth==0,0.001,growth),loggrowth=log(growth2))
+  mutate_at(scale, .vars = vars(Precip_JulAug, tmp_norm, ppt_norm, tmp_yr)) %>%
+  arrange(PLOT,SUBP,name) %>%
+  mutate(PlotCD=as.numeric(factor(PLOT, levels = unique(PLOT))),treeCD=as.numeric(factor(name,levels=unique(name))),
+         growth2=ifelse(growth==0,0.001,growth),loggrowth=log(growth2))
 
 split=0.20
 trainIndex <- createDataPartition(grow.monsoon$name, p=split, list=FALSE)
@@ -169,17 +174,27 @@ pied_dat <- list(K = K, nG = nG, nGtest = nGtest, yG = yG, xG = xG, xGtest = xGt
 
 fit_grow <- stan(file = 'pied_grow.stan', data = pied_dat, 
                  iter = 5000, warmup = 1000, chains = 3)
-saveRDS(fit_grow, file = "log_normal_monsoon_ppt.RDS")
+saveRDS(fit_grow, file = "log_normal_monsoonoos_pptoos.RDS")
 summary<-summary(fit_grow)
 summary
 
-plotdata<-select(as.data.frame(fit_grow),"yrep[1]":"yrep[8780]")
+plotdata<-select(as.data.frame(fit_grow),"yrep[1]":"yrep[8741]")
 plotdatainterval<-select(as.data.frame(fit_grow), "u_beta[1]":"u_beta[15]")
 colnames(plotdatainterval) <- c("u_beta_ppt_norm", "u_beta_tmp_norm", "u_beta_Precip_JulAug", "u_beta_tmp_yr", "u_beta_DIA_prev",
                                 "u_beta_ppt_norm_tmp_norm", "u_beta_ppt_norm_tmp_yr", "u_beta_ppt_norm_Precip_JulAug", "u_beta_ppt_norm_DIA_prev",
                                 "u_beta_Precip_JulAug_tmp_yr", "u_beta_Precip_JulAug_tmp_norm", "u_beta_Precip_JulAug_DIA_prev", "u_beta_tmp_norm_tmp_yr", 
                                 "u_beta_tmp_norm_DIA_prev", "u_beta_tmp_yr_DIA_prev")
 ppc_dens_overlay(yGtest, as.matrix(plotdata))
+
+ext_fit <- rstan::extract(fit_grow)
+yrep <- ext_fit$yrep
+#yrep <- exp(yrep)
+mean.pred <- apply(ext_fit$yrep, 2, median)
+p.o.df <- data.frame(predicted = exp(mean.pred), observed = exp(grow_test$loggrowth), error = (exp(mean.pred) - exp(grow_test$loggrowth)))
+meansqrd <- (mean(p.o.df$error))^2
+ggplot(p.o.df, aes(predicted, observed)) + geom_point(alpha = 0.1) + geom_abline(aes(intercept = 0, slope = 1), color = "red", linetype = "dotted") +
+  ylim(0, 10) + xlim(0,10)
+
 
 ## Subset posterior predictive plot by size
 size_q<-quantile(grow$DIA_prev)
@@ -366,7 +381,7 @@ ci.ppt_norm.df <- data.frame(ppt_norm = ppt_norm, median = ci.ppt_norm[2,], ci.l
 ggplot() + 
   geom_ribbon(data = ci.ppt_norm.df, aes(x = ppt_norm, ymin = ci.low, ymax = ci.high), alpha = 0.75, fill = "cadetblue2") + 
   geom_line(data = ci.ppt_norm.df, aes(x = ppt_norm, y = median), color = "indianred2") + mytheme + ylab("Predicted Growth") + ylim(0, 2) + 
-  geom_rug(data = unique(grow_train[,c("LAT", "LON", "ppt_norm", "tmp_norm")]), aes(x = ppt_norm, color = tmp_norm))
+  geom_rug(data = unique(grow_train[,c("LAT", "LON", "ppt_norm", "tmp_norm")]), aes(x = ppt_norm, color = ppt_norm))
 
 
 #effect of tmp_norm
@@ -397,7 +412,7 @@ ci.tmp_norm.df <- data.frame(tmp_norm = tmp_norm, median = ci.tmp_norm[2,], ci.l
 ggplot() + 
   geom_ribbon(data = ci.tmp_norm.df, aes(x = tmp_norm, ymin = ci.low, ymax = ci.high), alpha = 0.75, fill = "cadetblue2") + 
   geom_line(data = ci.tmp_norm.df, aes(x = tmp_norm, y = median), color = "indianred2") + mytheme + ylab("Predicted Growth") + ylim(0, 2) + 
-  geom_rug(data = unique(grow_train[,c("LAT", "LON", "ppt_norm", "tmp_norm")]), aes(x = tmp_norm, color = ppt_norm))
+  geom_rug(data = unique(grow_train[,c("LAT", "LON", "ppt_norm", "tmp_norm")]), aes(x = tmp_norm, color = tmp_norm))
 
 
 #effect of Precip_JulAug
@@ -428,7 +443,7 @@ ci.Precip_JulAug.df <- data.frame(Precip_JulAug = Precip_JulAug, median = ci.Pre
 ggplot() + 
   geom_ribbon(data = ci.Precip_JulAug.df, aes(x = Precip_JulAug, ymin = ci.low, ymax = ci.high), alpha = 0.75, fill = "cadetblue2") + 
   geom_line(data = ci.Precip_JulAug.df, aes(x = Precip_JulAug, y = median), color = "indianred2") + mytheme + ylab("Predicted Growth") + ylim(0, 2) + 
-  geom_rug(data = unique(grow_train[,c("LAT", "LON", "Precip_JulAug", "ppt_norm")]), aes(x = Precip_JulAug, color = ppt_norm))
+  geom_rug(data = unique(grow_train[,c("LAT", "LON", "Precip_JulAug", "tmp_norm")]), aes(x = Precip_JulAug, color = tmp_norm))
 
 
 #effect of tmp_yr
@@ -459,7 +474,7 @@ ci.tmp_yr.df <- data.frame(tmp_yr = tmp_yr, median = ci.tmp_yr[2,], ci.low = ci.
 ggplot() + 
   geom_ribbon(data = ci.tmp_yr.df, aes(x = tmp_yr, ymin = ci.low, ymax = ci.high), alpha = 0.75, fill = "cadetblue2") + 
   geom_line(data = ci.tmp_yr.df, aes(x = tmp_yr, y = median), color = "indianred2") + mytheme + ylab("Predicted Growth") + ylim(0, 2) + 
-  geom_rug(data = unique(grow_train[,c("LAT", "LON", "tmp_yr", "tmp_norm")]), aes(x = tmp_yr, color = tmp_norm))
+  geom_rug(data = unique(grow_train[,c("LAT", "LON", "tmp_yr", "ppt_norm")]), aes(x = tmp_yr, color = ppt_norm))
 
 
 #effect of DIA_prev
@@ -501,10 +516,10 @@ ppt_norm <- mean(grow_train$ppt_norm)
 tmp_norm <- mean(grow_train$tmp_norm)
 tmp_yr <- mean(grow_train$tmp_yr)
 tmp_yr_range <- quantile(grow_train$tmp_yr, c(0.2, 0.8))
-growthpredictionpptyr_hightmp <- growthpredictionpptyr_lowtmp <- growthpredictionpptyr_midtmp <- matrix(NA, length(plotdatainterval$u_beta_Precip_JulAug), length(Precip_JulAug)) 
+growthpredictionPrecipJulAug_hightmpyr <- growthpredictionPrecipJulAug_lowtmpyr <- growthpredictionPrecipJulAug_midtmpyr <- matrix(NA, length(plotdatainterval$u_beta_Precip_JulAug), length(Precip_JulAug)) 
 
 for(i in 1:length(plotdatainterval$u_beta_Precip_JulAug)){
-  growthpredictionpptyr_hightmp[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+  growthpredictionPrecipJulAug_hightmpyr[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr_range[2] +
     plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr_range[2] + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
@@ -513,7 +528,7 @@ for(i in 1:length(plotdatainterval$u_beta_Precip_JulAug)){
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr_range[2] + 
     plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr_range[2]*x
   
-  growthpredictionpptyr_midtmp[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+  growthpredictionPrecipJulAug_midtmpyr[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
@@ -522,7 +537,7 @@ for(i in 1:length(plotdatainterval$u_beta_Precip_JulAug)){
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
     plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x
   
-  growthpredictionpptyr_lowtmp[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+  growthpredictionPrecipJulAug_lowtmpyr[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr_range[1] +
     plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr_range[1] + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
@@ -531,9 +546,9 @@ for(i in 1:length(plotdatainterval$u_beta_Precip_JulAug)){
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr_range[1] + 
     plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr_range[1]*x
 }
-Precip_JulAug_prediction_trlow <- exp(growthpredictionpptyr_lowtmp)
-Precip_JulAug_prediction_trmid <- exp(growthpredictionpptyr_midtmp)
-Precip_JulAug_prediction_trhigh <- exp(growthpredictionpptyr_hightmp)
+Precip_JulAug_prediction_trlow <- exp(growthpredictionPrecipJulAug_lowtmpyr)
+Precip_JulAug_prediction_trmid <- exp(growthpredictionPrecipJulAug_midtmpyr)
+Precip_JulAug_prediction_trhigh <- exp(growthpredictionPrecipJulAug_hightmpyr)
 ci.Precip_JulAughigh <- apply(Precip_JulAug_prediction_trhigh, 2, quantile, c(0.025,0.5,0.975)) #confidence intervals
 ci.Precip_JulAugmid <- apply(Precip_JulAug_prediction_trmid, 2, quantile, c(0.025, 0.5, 0.975))
 ci.Precip_JulAuglow <- apply(Precip_JulAug_prediction_trlow, 2, quantile, c(0.025, 0.5, 0.975))
@@ -541,10 +556,8 @@ ci.Precip_JulAughigh.df <- data.frame(Precip_JulAug = Precip_JulAug, median = ci
 ci.Precip_JulAugmid.df <- data.frame(Precip_JulAug = Precip_JulAug, median = ci.Precip_JulAugmid[2,], ci.low = ci.Precip_JulAugmid[1,], ci.high = ci.Precip_JulAugmid[3,], ci.group = "midtmp_yr")
 ci.Precip_JulAuglow.df <- data.frame(Precip_JulAug = Precip_JulAug, median = ci.Precip_JulAuglow[2,], ci.low = ci.Precip_JulAuglow[1,], ci.high = ci.Precip_JulAuglow[3,], ci.group = "lowtmp_yr")
 Precip_JulAug_tmp_yrint <- rbind(ci.Precip_JulAughigh.df, ci.Precip_JulAugmid.df, ci.Precip_JulAuglow.df)
-ggplot() + 
-  geom_ribbon(data = Precip_JulAug_tmp_yrint, aes(x = Precip_JulAug, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
-  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2) + 
-  geom_rug(data = unique(grow_train[,c("LAT", "LON", "Precip_JulAug", "tmp_yr", "ppt_norm")]), aes(x = Precip_JulAug, color = ppt_norm))
+ggplot(data = Precip_JulAug_tmp_yrint, aes(x = Precip_JulAug, y = median, color = ci.group)) + geom_ribbon(aes(x = Precip_JulAug, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
+  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
 
 
 
@@ -555,11 +568,11 @@ x <- mean(grow_train$DIA_prev)
 ppt_norm <- mean(grow_train$ppt_norm)
 tmp_norm <- mean(grow_train$tmp_norm)
 tmp_yr <- mean(grow_train$tmp_yr)
-ppt_norm_range <- quantile(grow_train$ppt_norm, c(0.2, 0.8))
-growthpredictionpptyr_highpnorm <- growthpredictionpptyr_lowpnorm <- growthpredictionpptyr_midpnorm <- matrix(NA, length(plotdatainterval$u_beta_Precip_JulAug), length(Precip_JulAug)) 
+ppt_norm_range <- quantile(grow_train$tmp_yr, c(0.2, 0.8))
+growthpredictionPrecipJulAug_highpnorm <- growthpredictionPrecipJulAug_lowpnorm <- growthpredictionPrecipJulAug_midpnorm <- matrix(NA, length(plotdatainterval$u_beta_Precip_JulAug), length(Precip_JulAug)) 
 
 for(i in 1:length(plotdatainterval$u_beta_Precip_JulAug)){
-  growthpredictionpptyr_highpnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm_range[2] + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+  growthpredictionPrecipJulAug_highpnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm_range[2] + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm_range[2]*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm_range[2]*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm_range[2]*Precip_JulAug +
@@ -568,7 +581,7 @@ for(i in 1:length(plotdatainterval$u_beta_Precip_JulAug)){
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
     plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x
   
-  growthpredictionpptyr_midpnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+  growthpredictionPrecipJulAug_midpnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
@@ -577,28 +590,27 @@ for(i in 1:length(plotdatainterval$u_beta_Precip_JulAug)){
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
     plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x
   
-  growthpredictionpptyr_lowpnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm_range[1] + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+  growthpredictionPrecipJulAug_lowpnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm_range[1] + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm_range[1]*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm_range[1]*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm_range[1]*Precip_JulAug +
-    plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm_range[1]*x+
+    plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm_range[1]*x
     plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
     plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x
 }
-Precip_JulAug_prediction_trplow <- exp(growthpredictionpptyr_lowpnorm)
-Precip_JulAug_prediction_trpmid <- exp(growthpredictionpptyr_midpnorm)
-Precip_JulAug_prediction_trphigh <- exp(growthpredictionpptyr_highpnorm)
-ci.Precip_JulAugphigh <- apply(Precip_JulAug_prediction_trphigh, 2, quantile, c(0.025,0.5,0.975)) #confidence intervals
-ci.Precip_JulAugpmid <- apply(Precip_JulAug_prediction_trpmid, 2, quantile, c(0.025, 0.5, 0.975))
-ci.Precip_JulAugplow <- apply(Precip_JulAug_prediction_trplow, 2, quantile, c(0.025, 0.5, 0.975))
-ci.Precip_JulAugphigh.df <- data.frame(Precip_JulAug = Precip_JulAug, median = ci.Precip_JulAugphigh[2,], ci.low = ci.Precip_JulAugphigh[1,], ci.high = ci.Precip_JulAugphigh[3,], ci.group = "highppt_norm")
-ci.Precip_JulAugpmid.df <- data.frame(Precip_JulAug = Precip_JulAug, median = ci.Precip_JulAugpmid[2,], ci.low = ci.Precip_JulAugpmid[1,], ci.high = ci.Precip_JulAugpmid[3,], ci.group = "midppt_norm")
-ci.Precip_JulAugplow.df <- data.frame(Precip_JulAug = Precip_JulAug, median = ci.Precip_JulAugplow[2,], ci.low = ci.Precip_JulAugplow[1,], ci.high = ci.Precip_JulAugplow[3,], ci.group = "lowppt_norm")
-Precip_JulAug_ppt_normint <- rbind(ci.Precip_JulAugphigh.df, ci.Precip_JulAugpmid.df, ci.Precip_JulAugplow.df)
+Precip_JulAug_prediction_trlow <- exp(growthpredictionPrecipJulAug_lowpnorm)
+Precip_JulAug_prediction_trmid <- exp(growthpredictionPrecipJulAug_midpnorm)
+Precip_JulAug_prediction_trhigh <- exp(growthpredictionPrecipJulAug_highpnorm)
+ci.Precip_JulAughigh <- apply(Precip_JulAug_prediction_trhigh, 2, quantile, c(0.025,0.5,0.975)) #confidence intervals
+ci.Precip_JulAugmid <- apply(Precip_JulAug_prediction_trmid, 2, quantile, c(0.025, 0.5, 0.975))
+ci.Precip_JulAuglow <- apply(Precip_JulAug_prediction_trlow, 2, quantile, c(0.025, 0.5, 0.975))
+ci.Precip_JulAughigh.df <- data.frame(Precip_JulAug = Precip_JulAug, median = ci.Precip_JulAughigh[2,], ci.low = ci.Precip_JulAughigh[1,], ci.high = ci.Precip_JulAughigh[3,], ci.group = "highpnorm")
+ci.Precip_JulAugmid.df <- data.frame(Precip_JulAug = Precip_JulAug, median = ci.Precip_JulAugmid[2,], ci.low = ci.Precip_JulAugmid[1,], ci.high = ci.Precip_JulAugmid[3,], ci.group = "midpnorm")
+ci.Precip_JulAuglow.df <- data.frame(Precip_JulAug = Precip_JulAug, median = ci.Precip_JulAuglow[2,], ci.low = ci.Precip_JulAuglow[1,], ci.high = ci.Precip_JulAuglow[3,], ci.group = "lowpnorm")
+Precip_JulAug_ppt_normint <- rbind(ci.Precip_JulAughigh.df, ci.Precip_JulAugmid.df, ci.Precip_JulAuglow.df)
 ggplot(data = Precip_JulAug_ppt_normint, aes(x = Precip_JulAug, y = median, color = ci.group)) + geom_ribbon(aes(x = Precip_JulAug, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
-  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2) + geom_rug(data = unique(grow_train[,c("LAT", "LON", "DIA_prev", "tmp_norm")]), aes(x = size, color = tmp_norm))
-
+  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
 
 
 #Precip_JulAug and tmp_norm interaction
@@ -609,10 +621,10 @@ ppt_norm <- mean(grow_train$ppt_norm)
 tmp_norm <- mean(grow_train$tmp_norm)
 tmp_yr <- mean(grow_train$tmp_yr)
 tmp_norm_range <- quantile(grow_train$tmp_norm, c(0.2, 0.8))
-growthpredictionpptyr_hightnorm <- growthpredictionpptyr_lowtnorm <- growthpredictionpptyr_midtnorm <- matrix(NA, length(plotdatainterval$u_beta_Precip_JulAug), length(Precip_JulAug)) 
+growthpredictionPrecipJulAug_hightnorm <- growthpredictionPrecipJulAug_lowtnorm <- growthpredictionPrecipJulAug_midtnorm <- matrix(NA, length(plotdatainterval$u_beta_Precip_JulAug), length(Precip_JulAug)) 
 
 for(i in 1:length(plotdatainterval$u_beta_Precip_JulAug)){
-  growthpredictionpptyr_hightnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm_range[2] +
+  growthpredictionPrecipJulAug_hightnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm_range[2] +
     plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm_range[2] +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
@@ -621,7 +633,7 @@ for(i in 1:length(plotdatainterval$u_beta_Precip_JulAug)){
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm_range[2]*tmp_yr + 
     plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm_range[2]*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x
   
-  growthpredictionpptyr_midtnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+  growthpredictionPrecipJulAug_midtnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
@@ -630,7 +642,7 @@ for(i in 1:length(plotdatainterval$u_beta_Precip_JulAug)){
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
     plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x
   
-  growthpredictionpptyr_lowtnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm_range[1] +
+  growthpredictionPrecipJulAug_lowtnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm_range[1] +
     plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm_range[1] +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
@@ -639,9 +651,9 @@ for(i in 1:length(plotdatainterval$u_beta_Precip_JulAug)){
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm_range[1]*tmp_yr + 
     plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm_range[1]*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x
 }
-Precip_JulAug_prediction_trtlow <- exp(growthpredictionpptyr_lowtnorm)
-Precip_JulAug_prediction_trtmid <- exp(growthpredictionpptyr_midtnorm)
-Precip_JulAug_prediction_trthigh <- exp(growthpredictionpptyr_hightnorm)
+Precip_JulAug_prediction_trtlow <- exp(growthpredictionPrecipJulAug_lowtnorm)
+Precip_JulAug_prediction_trtmid <- exp(growthpredictionPrecipJulAug_midtnorm)
+Precip_JulAug_prediction_trthigh <- exp(growthpredictionPrecipJulAug_hightnorm)
 ci.Precip_JulAugthigh <- apply(Precip_JulAug_prediction_trthigh, 2, quantile, c(0.025,0.5,0.975)) #confidence intervals
 ci.Precip_JulAugtmid <- apply(Precip_JulAug_prediction_trtmid, 2, quantile, c(0.025, 0.5, 0.975))
 ci.Precip_JulAugtlow <- apply(Precip_JulAug_prediction_trtlow, 2, quantile, c(0.025, 0.5, 0.975))
@@ -649,10 +661,8 @@ ci.Precip_JulAugthigh.df <- data.frame(Precip_JulAug = Precip_JulAug, median = c
 ci.Precip_JulAugtmid.df <- data.frame(Precip_JulAug = Precip_JulAug, median = ci.Precip_JulAugtmid[2,], ci.low = ci.Precip_JulAugtmid[1,], ci.high = ci.Precip_JulAugtmid[3,], ci.group = "midtmp_norm")
 ci.Precip_JulAugtlow.df <- data.frame(Precip_JulAug = Precip_JulAug, median = ci.Precip_JulAugtlow[2,], ci.low = ci.Precip_JulAugtlow[1,], ci.high = ci.Precip_JulAugtlow[3,], ci.group = "lowtmp_norm")
 Precip_JulAug_tmp_normint <- rbind(ci.Precip_JulAugthigh.df, ci.Precip_JulAugtmid.df, ci.Precip_JulAugtlow.df)
-ggplot() + 
-  geom_ribbon(data = Precip_JulAug_tmp_normint, aes(x = Precip_JulAug, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
-  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2) + 
-  geom_rug(data = unique(grow_train[,c("LAT", "LON", "Precip_JulAug", "tmp_norm", "ppt_norm")]), aes(x = Precip_JulAug, color = ppt_norm))
+ggplot(data = Precip_JulAug_tmp_normint, aes(x = Precip_JulAug, y = median, color = ci.group)) + geom_ribbon(aes(x = Precip_JulAug, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
+  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
 
 
 
@@ -665,10 +675,10 @@ ppt_norm <- mean(grow_train$ppt_norm)
 tmp_norm <- mean(grow_train$tmp_norm)
 tmp_yr <- mean(grow_train$tmp_yr)
 size_range <- quantile(grow_train$DIA_prev, c(0.2, 0.8))
-growthpredictionpptyr_highsize <- growthpredictionpptyr_lowsize <- growthpredictionpptyr_midsize <- matrix(NA, length(plotdatainterval$u_beta_Precip_JulAug), length(Precip_JulAug)) 
+growthpredictionPrecipJulAug_highsize <- growthpredictionPrecipJulAug_lowsize <- growthpredictionPrecipJulAug_midsize <- matrix(NA, length(plotdatainterval$u_beta_Precip_JulAug), length(Precip_JulAug)) 
 
 for(i in 1:length(plotdatainterval$u_beta_Precip_JulAug)){
-  growthpredictionpptyr_highsize[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+  growthpredictionPrecipJulAug_highsize[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*size_range[2] + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
@@ -677,7 +687,7 @@ for(i in 1:length(plotdatainterval$u_beta_Precip_JulAug)){
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size_range[2] + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
     plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size_range[2] + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size_range[2]
   
-  growthpredictionpptyr_midsize[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+  growthpredictionPrecipJulAug_midsize[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*size + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
@@ -686,7 +696,7 @@ for(i in 1:length(plotdatainterval$u_beta_Precip_JulAug)){
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
     plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size
   
-  growthpredictionpptyr_lowsize[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+  growthpredictionPrecipJulAug_lowsize[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*size_range[1] + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
@@ -695,9 +705,9 @@ for(i in 1:length(plotdatainterval$u_beta_Precip_JulAug)){
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size_range[1] + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
     plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size_range[1] + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size_range[1]
 }
-Precip_JulAug_prediction_trsizelow <- exp(growthpredictionpptyr_lowsize)
-Precip_JulAug_prediction_trsizemid <- exp(growthpredictionpptyr_midsize)
-Precip_JulAug_prediction_trsizehigh <- exp(growthpredictionpptyr_highsize)
+Precip_JulAug_prediction_trsizelow <- exp(growthpredictionPrecipJulAug_lowsize)
+Precip_JulAug_prediction_trsizemid <- exp(growthpredictionPrecipJulAug_midsize)
+Precip_JulAug_prediction_trsizehigh <- exp(growthpredictionPrecipJulAug_highsize)
 ci.Precip_JulAugsizehigh <- apply(Precip_JulAug_prediction_trsizehigh, 2, quantile, c(0.025,0.5,0.975)) #confidence intervals
 ci.Precip_JulAugsizemid <- apply(Precip_JulAug_prediction_trsizemid, 2, quantile, c(0.025, 0.5, 0.975))
 ci.Precip_JulAugsizelow <- apply(Precip_JulAug_prediction_trsizelow, 2, quantile, c(0.025, 0.5, 0.975))
@@ -758,10 +768,8 @@ ci.tmp_yrpnormhigh.df <- data.frame(tmp_yr = tmp_yr, median = ci.tmp_yrpnormhigh
 ci.tmp_yrpnormmid.df <- data.frame(tmp_yr = tmp_yr, median = ci.tmp_yrpnormmid[2,], ci.low = ci.tmp_yrpnormmid[1,], ci.high = ci.tmp_yrpnormmid[3,], ci.group = "midpnorm")
 ci.tmp_yrpnormlow.df <- data.frame(tmp_yr = tmp_yr, median = ci.tmp_yrpnormlow[2,], ci.low = ci.tmp_yrpnormlow[1,], ci.high = ci.tmp_yrpnormlow[3,], ci.group = "lowpnorm")
 tmp_yr_pnormint <- rbind(ci.tmp_yrpnormhigh.df, ci.tmp_yrpnormmid.df, ci.tmp_yrpnormlow.df)
-ggplot() + 
-  geom_ribbon(data = tmp_yr_pnormint, aes(x = tmp_yr, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
-  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2) + 
-  geom_rug(data = unique(grow_train[,c("LAT", "LON", "tmp_yr", "tmp_norm")]), aes(x = Precip_JulAug, color = tmp_norm))
+ggplot(data = tmp_yr_pnormint, aes(x = tmp_yr, y = median, color = ci.group)) + geom_ribbon(aes(x = tmp_yr, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
+  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
 
 
 
@@ -814,10 +822,8 @@ ci.tmp_yrtnormhigh.df <- data.frame(tmp_yr = tmp_yr, median = ci.tmp_yrtnormhigh
 ci.tmp_yrtnormmid.df <- data.frame(tmp_yr = tmp_yr, median = ci.tmp_yrtnormmid[2,], ci.low = ci.tmp_yrtnormmid[1,], ci.high = ci.tmp_yrtnormmid[3,], ci.group = "midtnorm")
 ci.tmp_yrtnormlow.df <- data.frame(tmp_yr = tmp_yr, median = ci.tmp_yrtnormlow[2,], ci.low = ci.tmp_yrtnormlow[1,], ci.high = ci.tmp_yrtnormlow[3,], ci.group = "lowtnorm")
 tmp_yr_tnormint <- rbind(ci.tmp_yrtnormhigh.df, ci.tmp_yrtnormmid.df, ci.tmp_yrtnormlow.df)
-ggplot() + 
-  geom_ribbon(data = tmp_yr_tnormint, aes(x = tmp_yr, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
-  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2) + 
-  geom_rug(data = unique(grow_train[,c("LAT", "LON", "tmp_yr", "tmp_norm")]), aes(x = Precip_JulAug, color = tmp_norm))
+ggplot(data = tmp_yr_tnormint, aes(x = tmp_yr, y = median, color = ci.group)) + geom_ribbon(aes(x = tmp_yr, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
+  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
 
 
 
@@ -928,27 +934,27 @@ ggplot(data = pnorm_tnormint, aes(x = ppt_norm, y = median, color = ci.group)) +
 
 
 #ppt_norm and size interaction
-ppt_normrng <- range(grow_train$ppt_norm,na.rm = TRUE) #setting range for tmp_normrng
+ppt_normrng <- range(grow_train$ppt_norm,na.rm = TRUE) 
 ppt_norm <- seq(ppt_normrng[1], ppt_normrng[2], by = 0.50)
 size <- mean(grow_train$DIA_prev)
-Precip_JulAug <- mean(grow_train$Precip_JulAug)
-tmp_norm <- mean(grow_train$tmp_norm)
 tmp_yr <- mean(grow_train$tmp_yr)
-size_range <- quantile(grow_train$DIA_prev, c(0.2, 0.8))
-growthpredictionpnorm_highsize <- growthpredictionpnorm_lowsize <- growthpredictionpnorm_midsize <- matrix(NA, length(plotdatainterval$u_beta_ppt_norm), length(ppt_norm)) 
+tmp_norm <- mean(grow_train$tmp_norm)
+Precip_JulAug <- mean(grow_train$Precip_JulAug)
+tmp_norm_range <- quantile(grow_train$tmp_norm, c(0.2, 0.8))
+growthpredictionpnorm_hightnorm <- growthpredictionpnorm_lowtnorm <- growthpredictionpnorm_midtnorm <- matrix(NA, length(plotdatainterval$u_beta_ppt_norm), length(ppt_norm)) 
 
 for(i in 1:length(plotdatainterval$u_beta_ppt_norm)){
-  growthpredictionpnorm_highsize[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+  growthpredictionpnorm_hightnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*size_range[2] + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
-    plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size_range[2]+
-    plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
+    plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size_range[2] +
+    plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm_range[2] +
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size_range[2] + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
     plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size_range[2] + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size_range[2]
   
-  growthpredictionpnorm_midsize[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-    plotdata#interval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+  growthpredictionpnorm_midtnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*size + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
     plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size+
@@ -956,28 +962,27 @@ for(i in 1:length(plotdatainterval$u_beta_ppt_norm)){
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
     plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size
   
-  growthpredictionpnorm_lowsize[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+  growthpredictionpnorm_lowtnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*size_range[1] + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
-    plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size_range[1]+
-    plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
+    plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size_range[1] +
+    plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm_range[2] +
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size_range[1] + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
     plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size_range[1] + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size_range[1]
 }
-pnorm_prediction_trlowsize <- exp(growthpredictionpnorm_lowsize)
-pnorm_prediction_trmidsize <- exp(growthpredictionpnorm_midsize)
-pnorm_prediction_trhighsize <- exp(growthpredictionpnorm_highsize)
-ci.pnormhigh <- apply(pnorm_prediction_trhighsize, 2, quantile, c(0.025,0.5,0.975)) #confidence intervals
-ci.pnormmid <- apply(pnorm_prediction_trmidsize, 2, quantile, c(0.025, 0.5, 0.975))
-ci.pnormlow <- apply(pnorm_prediction_trlowsize, 2, quantile, c(0.025, 0.5, 0.975))
-ci.pnormhigh.df <- data.frame(ppt_norm = ppt_norm, median = ci.pnormhigh[2,], ci.low = ci.pnormhigh[1,], ci.high = ci.pnormhigh[3,], ci.group = "highsize")
-ci.pnormmid.df <- data.frame(ppt_norm = ppt_norm, median = ci.pnormmid[2,], ci.low = ci.pnormmid[1,], ci.high = ci.pnormmid[3,], ci.group = "midsize")
-ci.pnormlow.df <- data.frame(ppt_norm = ppt_norm, median = ci.pnormlow[2,], ci.low = ci.pnormlow[1,], ci.high = ci.pnormlow[3,], ci.group = "lowsize")
-pnorm_sizeint <- rbind(ci.pnormhigh.df, ci.pnormmid.df, ci.pnormlow.df)
-ggplot(data = pnorm_sizeint, aes(x = ppt_norm, y = median, color = ci.group)) + geom_ribbon(aes(x = ppt_norm, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
+pnorm_prediction_trtnormlow <- exp(growthpredictionpnorm_lowtnorm)
+pnorm_prediction_trtnormmid <- exp(growthpredictionpnorm_midtnorm)
+pnorm_prediction_trtnormhigh <- exp(growthpredictionpnorm_hightnorm)
+ci.pnorm_tnormhigh <- apply(pnorm_prediction_trtnormhigh, 2, quantile, c(0.025,0.5,0.975)) #confidence intervals
+ci.pnorm_tnormmid <- apply(pnorm_prediction_trtnormmid, 2, quantile, c(0.025, 0.5, 0.975))
+ci.pnorm_tnormlow <- apply(pnorm_prediction_trtnormlow, 2, quantile, c(0.025, 0.5, 0.975))
+ci.pnorm_tnormhigh.df <- data.frame(ppt_norm = ppt_norm, median = ci.pnorm_tnormhigh[2,], ci.low = ci.pnorm_tnormhigh[1,], ci.high = ci.pnorm_tnormhigh[3,], ci.group = "highsize")
+ci.pnorm_tnormmid.df <- data.frame(ppt_norm = ppt_norm, median = ci.pnorm_tnormmid[2,], ci.low = ci.pnorm_tnormmid[1,], ci.high = ci.pnorm_tnormmid[3,], ci.group = "midsize")
+ci.pnorm_tnormlow.df <- data.frame(ppt_norm = ppt_norm, median = ci.pnorm_tnormlow[2,], ci.low = ci.pnorm_tnormlow[1,], ci.high = ci.pnorm_tnormlow[3,], ci.group = "lowsize")
+pnorm_tnormint <- rbind(ci.pnorm_tnormhigh.df, ci.pnorm_tnormmid.df, ci.pnorm_tnormlow.df)
+ggplot(data = pnorm_tnormint, aes(x = ppt_norm, y = median, color = ci.group)) + geom_ribbon(aes(x = ppt_norm, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
   geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
-
 
 
 #tmp_norm and size interaction
