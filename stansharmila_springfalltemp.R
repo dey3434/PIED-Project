@@ -21,7 +21,7 @@ full.ppt.tmean.norms <- read.csv("data/pied_all_tmean_ppt_v3.csv")
 grow.new <- merge(PIED.all, full.ppt.tmean.norms, by.x = c("name", "year", "LON", "LAT"), by.y = c("name", "year", "lon", "lat"))
 
 grow.monsoon<-na.omit(grow.new) %>% 
-  mutate_at(scale, .vars = vars(Precip_JulAug, Precip_NovDecJanFebMar, tmp_norm, ppt_norm, tmp_yr)) %>%
+  mutate_at(scale, .vars = vars(Precip_JulAug, Precip_NovDecJanFebMar, Tmean_AprMayJun, Tmean_SepOct, tmp_norm, ppt_norm)) %>%
   arrange(PLOT,SUBP,name) %>%
   mutate(PlotCD=as.numeric(factor(PLOT, levels = unique(PLOT))),treeCD=as.numeric(factor(name,levels=unique(name))),
          growth2=ifelse(growth==0,0.001,growth),loggrowth=log(growth2))
@@ -39,12 +39,12 @@ xG<-as.matrix(cbind(grow_train$ppt_norm, grow_train$tmp_norm, grow_train$Precip_
                     grow_train$ppt_norm*grow_train$DIA_prev, grow_train$ppt_norm*grow_train$Precip_NovDecJanFebMar,
                     grow_train$ppt_norm*grow_train$Tmean_AprMayJun, grow_train$ppt_norm*grow_train$Tmean_SepOct,
                     grow_train$tmp_norm*grow_train$DIA_prev, grow_train$tmp_norm*grow_train$Precip_JulAug,
-                    grow_train$tmp_norm*grow_train$Precip_NovDecJanFeb, grow_train$tmp_norm*grow_train$Tmean_AprMayJun,
+                    grow_train$tmp_norm*grow_train$Precip_NovDecJanFebMar, grow_train$tmp_norm*grow_train$Tmean_AprMayJun,
                     grow_train$tmp_norm*grow_train$Tmean_SepOct, grow_train$DIA_prev*grow_train$Precip_JulAug,
-                    grow_train$DIA_prev*grow_train$Precip_NovDecJanFeb, grow_train$DIA_prev*grow_train$Tmean_AprMayJun,
-                    grow_train$DIA_prev*grow_train$Tmean_SepOct, grow_train$Precip_JulAug*grow_train$Precip_NovDecJanFeb,
+                    grow_train$DIA_prev*grow_train$Precip_NovDecJanFebMar, grow_train$DIA_prev*grow_train$Tmean_AprMayJun,
+                    grow_train$DIA_prev*grow_train$Tmean_SepOct, grow_train$Precip_JulAug*grow_train$Precip_NovDecJanFebMar,
                     grow_train$Precip_JulAug*grow_train$Tmean_AprMayJun, grow_train$Precip_JulAug*grow_train$Tmean_SepOct,
-                    grow_train$Precip_NovDecJanFeb*grow_train$Tmean_AprMayJun, grow_train$Precip_NovDecJanFeb*grow_train$Tmean_SepOct,
+                    grow_train$Precip_NovDecJanFebMar*grow_train$Tmean_AprMayJun, grow_train$Precip_NovDecJanFebMar*grow_train$Tmean_SepOct,
                     grow_train$Tmean_AprMayJun*grow_train$Tmean_SepOct))
 xGtest<-as.matrix(cbind(grow_test$ppt_norm, grow_test$tmp_norm, grow_test$Precip_JulAug, grow_test$Precip_NovDecJanFebMar, 
                         grow_test$Tmean_AprMayJun, grow_test$Tmean_SepOct, grow_test$DIA_prev,
@@ -52,12 +52,12 @@ xGtest<-as.matrix(cbind(grow_test$ppt_norm, grow_test$tmp_norm, grow_test$Precip
                         grow_test$ppt_norm*grow_test$DIA_prev, grow_test$ppt_norm*grow_test$Precip_NovDecJanFebMar,
                         grow_test$ppt_norm*grow_test$Tmean_AprMayJun, grow_test$ppt_norm*grow_test$Tmean_SepOct,
                         grow_test$tmp_norm*grow_test$DIA_prev, grow_test$tmp_norm*grow_test$Precip_JulAug,
-                        grow_test$tmp_norm*grow_test$Precip_NovDecJanFeb, grow_test$tmp_norm*grow_test$Tmean_AprMayJun,
+                        grow_test$tmp_norm*grow_test$Precip_NovDecJanFebMar, grow_test$tmp_norm*grow_test$Tmean_AprMayJun,
                         grow_test$tmp_norm*grow_test$Tmean_SepOct, grow_test$DIA_prev*grow_test$Precip_JulAug,
-                        grow_test$DIA_prev*grow_test$Precip_NovDecJanFeb, grow_test$DIA_prev*grow_test$Tmean_AprMayJun,
-                        grow_test$DIA_prev*grow_test$Tmean_SepOct, grow_test$Precip_JulAug*grow_test$Precip_NovDecJanFeb,
+                        grow_test$DIA_prev*grow_test$Precip_NovDecJanFebMar, grow_test$DIA_prev*grow_test$Tmean_AprMayJun,
+                        grow_test$DIA_prev*grow_test$Tmean_SepOct, grow_test$Precip_JulAug*grow_test$Precip_NovDecJanFebMar,
                         grow_test$Precip_JulAug*grow_test$Tmean_AprMayJun, grow_test$Precip_JulAug*grow_test$Tmean_SepOct,
-                        grow_test$Precip_NovDecJanFeb*grow_test$Tmean_AprMayJun, grow_test$Precip_NovDecJanFeb*grow_test$Tmean_SepOct,
+                        grow_test$Precip_NovDecJanFebMar*grow_test$Tmean_AprMayJun, grow_test$Precip_NovDecJanFebMar*grow_test$Tmean_SepOct,
                         grow_test$Tmean_AprMayJun*grow_test$Tmean_SepOct))
 yG<-as.vector(grow_train$loggrowth)
 yGtest<-as.vector(grow_test$loggrowth)
