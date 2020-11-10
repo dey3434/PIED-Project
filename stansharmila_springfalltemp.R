@@ -184,7 +184,7 @@ pied_dat <- list(K = K, nG = nG, nGtest = nGtest, yG = yG, xG = xG, xGtest = xGt
 fit_grow <- stan(file = 'pied_grow.stan', data = pied_dat, 
                  iter = 5000, warmup = 1000, chains = 3)
 #saveRDS(fit_grow, file = "log_normal_fg_7_24_20.RDS")
-saveRDS(fit_grow, file = "ppt_tmp_monsoon_winter.RDS")
+saveRDS(fit_grow, file = "ppt_tmp_springfall.RDS")
 summary<-summary(fit_grow)
 summary
 
@@ -383,11 +383,11 @@ ppt_norm <- seq(ppt_normrng[1], ppt_normrng[2], by = 0.25)
 x <- mean(grow_train$DIA_prev)
 tmp_norm <- mean(grow_train$tmp_norm)
 Precip_JulAug <- mean(grow_train$Precip_JulAug)
-Precip_DecJanFeb <- mean(grow_train$Precip_DecJanFeb)
+Precip_NovDecJanFebMar <- mean(grow_train$Precip_NovDecJanFebMar)
 Tmean_AprMayJun <- mean(grow_train$Tmean_AprMayJun)
-Tmean_NovDecJanFebMar <- mean(grow_train$Tmean_NovDecJanFebMar)
+Tmean_SepOct <- mean(grow_train$Tmean_SepOct)
 growthpredictionpptnorm <- matrix(NA, length(plotdatainterval$u_beta_ppt_norm), length(ppt_norm))
-pfun_plotdatainterval<-function(x,tmp_norm,ppt_norm,Precip_JulAug,Precip_DecJanFeb,Tmean_AprMayJun,Tmean_NovDecJanFebMar){
+pfun_plotdatainterval<-function(x,tmp_norm,ppt_norm,Precip_JulAug,Precip_NovDecJanFebMar,Tmean_AprMayJun,Tmean_SepOct){
   for(i in 1:length(plotdatainterval$u_beta_ppt_norm)){
     growthpredictionpptnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
       plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
@@ -410,8 +410,8 @@ pfun_plotdatainterval<-function(x,tmp_norm,ppt_norm,Precip_JulAug,Precip_DecJanF
   }
   growthpredictionpptnorm
 }
-ppt_norm_prediction <- pfun_plotdatainterval(x = x, tmp_norm = tmp_norm, ppt_norm = ppt_norm, Precip_JulAug = Precip_JulAug, Precip_DecJanFeb = Precip_DecJanFeb, 
-                                             Tmean_AprMayJun = Tmean_AprMayJun, Tmean_NovDecJanFebMar = Tmean_NovDecJanFebMar)
+ppt_norm_prediction <- pfun_plotdatainterval(x = x, tmp_norm = tmp_norm, ppt_norm = ppt_norm, Precip_JulAug = Precip_JulAug, 
+                                             Precip_NovDecJanFebMar = Precip_NovDecJanFebMar, Tmean_AprMayJun = Tmean_AprMayJun, Tmean_SepOct = Tmean_SepOct)
 ppt_norm_prediction_tr <- exp(ppt_norm_prediction)
 ci.ppt_norm <- apply(ppt_norm_prediction_tr, 2, quantile, c(0.025,0.5,0.975)) #confidence intervals
 ci.ppt_norm.df <- data.frame(ppt_norm = ppt_norm, median = ci.ppt_norm[2,], ci.low = ci.ppt_norm[1,], ci.high = ci.ppt_norm[3,])
@@ -427,11 +427,11 @@ tmp_norm <- seq(tmp_normrng[1], tmp_normrng[2], by = 0.35)
 x <- mean(grow_train$DIA_prev)
 ppt_norm <- mean(grow_train$ppt_norm)
 Precip_JulAug <- mean(grow_train$Precip_JulAug)
-Precip_DecJanFeb <- mean(grow_train$Precip_DecJanFeb)
-Tmean_JulAug <- mean(grow_train$Tmean_JulAug)
-Tmean_DecJanFeb <- mean(grow_train$Tmean_DecJanFeb)
+Precip_NovDecJanFebMar <- mean(grow_train$Precip_NovDecJanFebMar)
+Tmean_AprMayJun <- mean(grow_train$Tmean_AprMayJun)
+Tmean_SepOct <- mean(grow_train$Tmean_SepOct)
 growthpredictiontmpnorm <- matrix(NA, length(plotdatainterval$u_beta_tmp_norm), length(tmp_norm))
-tfun_plotdatainterval<-function(x,tmp_norm,ppt_norm,Precip_JulAug,Precip_DecJanFeb,Tmean_AprMayJun,Tmean_NovDecJanFebMar){
+tfun_plotdatainterval<-function(x,tmp_norm,ppt_norm,Precip_JulAug,Precip_NovDecJanFebMar,Tmean_AprMayJun,Tmean_SepOct){
   for(i in 1:length(plotdatainterval$u_beta_tmp_norm)){
     growthpredictiontmpnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
       plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
@@ -454,8 +454,8 @@ tfun_plotdatainterval<-function(x,tmp_norm,ppt_norm,Precip_JulAug,Precip_DecJanF
   }
   growthpredictiontmpnorm
 }
-tmp_norm_prediction <- tfun_plotdatainterval(x = x, tmp_norm = tmp_norm, ppt_norm = ppt_norm, Precip_JulAug = Precip_JulAug, Precip_DecJanFeb = Precip_DecJanFeb, 
-                                             Tmean_AprMayJun = Tmean_AprMayJun, Tmean_NovDecJanFebMar = Tmean_NovDecJanFebMar)
+tmp_norm_prediction <- tfun_plotdatainterval(x = x, tmp_norm = tmp_norm, ppt_norm = ppt_norm, Precip_JulAug = Precip_JulAug, 
+                                             Precip_NovDecJanFebMar = Precip_NovDecJanFebMar, Tmean_AprMayJun = Tmean_AprMayJun, Tmean_SepOct = Tmean_SepOct)
 tmp_norm_prediction_tr <- exp(tmp_norm_prediction)
 ci.tmp_norm <- apply(tmp_norm_prediction_tr, 2, quantile, c(0.025,0.5,0.975)) #confidence intervals
 ci.tmp_norm.df <- data.frame(tmp_norm = tmp_norm, median = ci.tmp_norm[2,], ci.low = ci.tmp_norm[1,], ci.high = ci.tmp_norm[3,])
@@ -471,34 +471,35 @@ Precip_JulAug <- seq(Precip_JulAugrng[1], Precip_JulAugrng[2], by = 0.50)
 x <- mean(grow_train$DIA_prev)
 ppt_norm <- mean(grow_train$ppt_norm)
 tmp_norm <- mean(grow_train$tmp_norm)
-Precip_DecJanFeb <- mean(grow_train$Precip_DecJanFeb)
-Tmean_JulAug <- mean(grow_train$Tmean_JulAug)
-Tmean_DecJanFeb <- mean(grow_train$Tmean_DecJanFeb)
+Precip_NovDecJanFebMar <- mean(grow_train$Precip_NovDecJanFebMar)
+Tmean_AprMayJun <- mean(grow_train$Tmean_AprMayJun)
+Tmean_SepOct <- mean(grow_train$Tmean_SepOct)
 growthpredictionPrecipJulAug <- matrix(NA, length(plotdatainterval$u_beta_Precip_JulAug), length(Precip_JulAug))
-pjafun_plotdatainterval<-function(x,tmp_norm,ppt_norm,Precip_JulAug,Precip_DecJanFeb,Tmean_JulAug,Tmean_DecJanFeb){
+pjafun_plotdatainterval<-function(x,tmp_norm,ppt_norm,Precip_JulAug,Precip_NovDecJanFebMar,Tmean_AprMayJun,Tmean_SepOct){
   for(i in 1:length(plotdatainterval$u_beta_Precip_JulAug)){
     growthpredictionPrecipJulAug[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-      plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_DecJanFeb"]*Precip_DecJanFeb +
-      plotdatainterval[i,"u_beta_Tmean_JulAug"]*Tmean_JulAug + plotdatainterval[i,"u_beta_Tmean_DecJanFeb"]*Tmean_DecJanFeb +
+      plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+      plotdatainterval[i,"u_beta_Tmean_AprMayJun"]*Tmean_AprMayJun + plotdatainterval[i,"u_beta_Tmean_SepOct"]*Tmean_SepOct +
       plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
       plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug + plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*x +
-      plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm + plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x+
-      plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_Precip_DecJanFeb_ppt_norm"]*Precip_DecJanFeb*ppt_norm +
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_tmp_norm"]*Precip_DecJanFeb*tmp_norm + 
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_Precip_JulAug"]*Precip_DecJanFeb*Precip_JulAug +
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_Tmean_JulAug"]*Precip_DecJanFeb*Tmean_JulAug + 
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_Tmean_DecJanFeb"]*Precip_DecJanFeb*Tmean_DecJanFeb + 
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_DIA_prev"]*Precip_DecJanFeb*x + plotdatainterval[i,"u_beta_Tmean_JulAug_ppt_norm"]*Tmean_JulAug*ppt_norm +
-      plotdatainterval[i,"u_beta_Tmean_JulAug_tmp_norm"]*Tmean_JulAug*tmp_norm + plotdatainterval[i,"u_beta_Tmean_JulAug_Precip_JulAug"]*Tmean_JulAug*Precip_JulAug + 
-      plotdatainterval[i,"u_beta_Tmean_JulAug_Tmean_DecJanFeb"]*Tmean_JulAug*Tmean_DecJanFeb +
-      plotdatainterval[i,"u_beta_Tmean_JulAug_DIA_prev"]*Tmean_JulAug*x + plotdatainterval[i,"u_beta_Tmean_DecJanFeb_ppt_norm"]*Tmean_DecJanFeb*ppt_norm + 
-      plotdatainterval[i,"u_beta_Tmean_DecJanFeb_tmp_norm"]*Tmean_DecJanFeb*tmp_norm + 
-      plotdatainterval[i,"u_beta_Tmean_DecJanFeb_Precip_JulAug"]*Tmean_DecJanFeb*Precip_JulAug + 
-      plotdatainterval[i,"u_beta_Tmean_DecJanFeb_DIA_prev"]*Tmean_DecJanFeb*x
+      plotdatainterval[i,"u_beta_ppt_norm_Precip_NovDecJanFebMar"]*ppt_norm*Precip_NovDecJanFebMar + 
+      plotdatainterval[i,"u_beta_ppt_norm_Tmean_AprMayJun"]*ppt_norm*Tmean_AprMayJun +  plotdatainterval[i,"u_beta_ppt_norm_Tmean_SepOct"]*ppt_norm*Tmean_SepOct +
+      plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_norm_Precip_JulAug"]*tmp_norm*Precip_JulAug +
+      plotdatainterval[i,"u_beta_tmp_norm_Precip_NovDecJanFebMar"]*tmp_norm*Precip_NovDecJanFebMar + 
+      plotdatainterval[i,"u_beta_tmp_norm_Tmean_AprMayJun"]*tmp_norm*Tmean_AprMayJun + plotdatainterval[i,"u_beta_tmp_norm_Tmean_SepOct"]*tmp_norm*Tmean_SepOct + 
+      plotdatainterval[i,"u_beta_DIA_prev_Precip_JulAug"]*x*Precip_JulAug + plotdatainterval[i,"u_beta_DIA_prev_Precip_NovDecJanFebMar"]*x*Precip_NovDecJanFebMar + 
+      plotdatainterval[i,"u_beta_DIA_prev_Tmean_AprMayJun"]*x*Tmean_AprMayJun + plotdatainterval[i,"u_beta_DIA_prev_Tmean_SepOct"]*x*Tmean_SepOct + 
+      plotdatainterval[i,"u_beta_Precip_JulAug_Precip_NovDecJanFebMar"]*Precip_JulAug*Precip_NovDecJanFebMar +
+      plotdatainterval[i,"u_beta_Precip_JulAug_Tmean_AprMayJun"]*Precip_JulAug*Tmean_AprMayJun + 
+      plotdatainterval[i,"u_beta_Precip_JulAug_Tmean_SepOct"]*Precip_JulAug*Tmean_SepOct + 
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Tmean_AprMayJun"]*Precip_NovDecJanFebMar*Tmean_AprMayJun +  
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Tmean_SepOct"]*Precip_NovDecJanFebMar*Tmean_SepOct + 
+      plotdatainterval[i,"u_beta_Tmean_AprMayJun_Tmean_SepOct"]*Tmean_AprMayJun*Tmean_SepOct
   }
   growthpredictionPrecipJulAug
 }
-PrecipJulAug_prediction <- pjafun_plotdatainterval(x = x, tmp_norm = tmp_norm, ppt_norm = ppt_norm, Precip_JulAug = Precip_JulAug, Precip_DecJanFeb = Precip_DecJanFeb, Tmean_JulAug = Tmean_JulAug, Tmean_DecJanFeb = Tmean_DecJanFeb)
+PrecipJulAug_prediction <- pjafun_plotdatainterval(x = x, tmp_norm = tmp_norm, ppt_norm = ppt_norm, Precip_JulAug = Precip_JulAug, 
+                                                   Precip_NovDecJanFebMar = Precip_NovDecJanFebMar, Tmean_AprMayJun = Tmean_AprMayJun, Tmean_SepOct = Tmean_SepOct)
 PrecipJulAug_prediction_tr <- exp(PrecipJulAug_prediction)
 ci.Precip_JulAug <- apply(PrecipJulAug_prediction_tr, 2, quantile, c(0.025,0.5,0.975)) #confidence intervals
 ci.Precip_JulAug.df <- data.frame(Precip_JulAug = Precip_JulAug, median = ci.Precip_JulAug[2,], ci.low = ci.Precip_JulAug[1,], ci.high = ci.Precip_JulAug[3,])
@@ -508,58 +509,59 @@ ggplot() +
   geom_rug(data = unique(grow_train[,c("LAT", "LON", "ppt_norm", "Precip_JulAug")]), aes(x = Precip_JulAug, color = ppt_norm))
 
 
-#effect of Precip_DecJanFeb
-Precip_DecJanFebrng <- range(grow_train$Precip_DecJanFeb,na.rm = TRUE) #setting range for tmp_normrng
-Precip_DecJanFeb <- seq(Precip_DecJanFebrng[1], Precip_DecJanFebrng[2], by = 0.50)
+#effect of Precip_NovDecJanFebMar
+Precip_NovDecJanFebMarrng <- range(grow_train$Precip_NovDecJanFebMar,na.rm = TRUE) #setting range for tmp_normrng
+Precip_NovDecJanFebMar <- seq(Precip_NovDecJanFebMarrng[1], Precip_NovDecJanFebMarrng[2], by = 0.50)
 x <- mean(grow_train$DIA_prev)
 ppt_norm <- mean(grow_train$ppt_norm)
 tmp_norm <- mean(grow_train$tmp_norm)
 Precip_JulAug <- mean(grow_train$Precip_JulAug)
-Tmean_JulAug <- mean(grow_train$Tmean_JulAug)
-Tmean_DecJanFeb <- mean(grow_train$Tmean_DecJanFeb)
-growthpredictionPrecipDecJanFeb <- matrix(NA, length(plotdatainterval$u_beta_Precip_DecJanFeb), length(Precip_DecJanFeb))
-pdjffun_plotdatainterval<-function(x,tmp_norm,ppt_norm,Precip_JulAug,Precip_DecJanFeb,Tmean_JulAug,Tmean_DecJanFeb){
-  for(i in 1:length(plotdatainterval$u_beta_Precip_DecJanFeb)){
-    growthpredictionPrecipDecJanFeb[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-      plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_DecJanFeb"]*Precip_DecJanFeb +
-      plotdatainterval[i,"u_beta_Tmean_JulAug"]*Tmean_JulAug + plotdatainterval[i,"u_beta_Tmean_DecJanFeb"]*Tmean_DecJanFeb +
+Tmean_AprMayJun <- mean(grow_train$Tmean_AprMayJun)
+Tmean_SepOct <- mean(grow_train$Tmean_SepOct)
+growthpredictionPrecipNovDecJanFebMar <- matrix(NA, length(plotdatainterval$u_beta_Precip_NovDecJanFebMar), length(Precip_NovDecJanFebMar))
+pndjfmfun_plotdatainterval<-function(x,tmp_norm,ppt_norm,Precip_JulAug,Precip_NovDecJanFebMar,Tmean_AprMayJun,Tmean_SepOct){
+  for(i in 1:length(plotdatainterval$u_beta_Precip_NovDecJanFebMar)){
+    growthpredictionPrecipNovDecJanFebMar[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+      plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+      plotdatainterval[i,"u_beta_Tmean_AprMayJun"]*Tmean_AprMayJun + plotdatainterval[i,"u_beta_Tmean_SepOct"]*Tmean_SepOct +
       plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
       plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug + plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*x +
-      plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm + plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x+
-      plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_Precip_DecJanFeb_ppt_norm"]*Precip_DecJanFeb*ppt_norm +
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_tmp_norm"]*Precip_DecJanFeb*tmp_norm + 
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_Precip_JulAug"]*Precip_DecJanFeb*Precip_JulAug +
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_Tmean_JulAug"]*Precip_DecJanFeb*Tmean_JulAug + 
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_Tmean_DecJanFeb"]*Precip_DecJanFeb*Tmean_DecJanFeb + 
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_DIA_prev"]*Precip_DecJanFeb*x + plotdatainterval[i,"u_beta_Tmean_JulAug_ppt_norm"]*Tmean_JulAug*ppt_norm +
-      plotdatainterval[i,"u_beta_Tmean_JulAug_tmp_norm"]*Tmean_JulAug*tmp_norm + plotdatainterval[i,"u_beta_Tmean_JulAug_Precip_JulAug"]*Tmean_JulAug*Precip_JulAug + 
-      plotdatainterval[i,"u_beta_Tmean_JulAug_Tmean_DecJanFeb"]*Tmean_JulAug*Tmean_DecJanFeb +
-      plotdatainterval[i,"u_beta_Tmean_JulAug_DIA_prev"]*Tmean_JulAug*x + plotdatainterval[i,"u_beta_Tmean_DecJanFeb_ppt_norm"]*Tmean_DecJanFeb*ppt_norm + 
-      plotdatainterval[i,"u_beta_Tmean_DecJanFeb_tmp_norm"]*Tmean_DecJanFeb*tmp_norm + 
-      plotdatainterval[i,"u_beta_Tmean_DecJanFeb_Precip_JulAug"]*Tmean_DecJanFeb*Precip_JulAug + 
-      plotdatainterval[i,"u_beta_Tmean_DecJanFeb_DIA_prev"]*Tmean_DecJanFeb*x
+      plotdatainterval[i,"u_beta_ppt_norm_Precip_NovDecJanFebMar"]*ppt_norm*Precip_NovDecJanFebMar + 
+      plotdatainterval[i,"u_beta_ppt_norm_Tmean_AprMayJun"]*ppt_norm*Tmean_AprMayJun +  plotdatainterval[i,"u_beta_ppt_norm_Tmean_SepOct"]*ppt_norm*Tmean_SepOct +
+      plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_norm_Precip_JulAug"]*tmp_norm*Precip_JulAug +
+      plotdatainterval[i,"u_beta_tmp_norm_Precip_NovDecJanFebMar"]*tmp_norm*Precip_NovDecJanFebMar + 
+      plotdatainterval[i,"u_beta_tmp_norm_Tmean_AprMayJun"]*tmp_norm*Tmean_AprMayJun + plotdatainterval[i,"u_beta_tmp_norm_Tmean_SepOct"]*tmp_norm*Tmean_SepOct + 
+      plotdatainterval[i,"u_beta_DIA_prev_Precip_JulAug"]*x*Precip_JulAug + plotdatainterval[i,"u_beta_DIA_prev_Precip_NovDecJanFebMar"]*x*Precip_NovDecJanFebMar + 
+      plotdatainterval[i,"u_beta_DIA_prev_Tmean_AprMayJun"]*x*Tmean_AprMayJun + plotdatainterval[i,"u_beta_DIA_prev_Tmean_SepOct"]*x*Tmean_SepOct + 
+      plotdatainterval[i,"u_beta_Precip_JulAug_Precip_NovDecJanFebMar"]*Precip_JulAug*Precip_NovDecJanFebMar +
+      plotdatainterval[i,"u_beta_Precip_JulAug_Tmean_AprMayJun"]*Precip_JulAug*Tmean_AprMayJun + 
+      plotdatainterval[i,"u_beta_Precip_JulAug_Tmean_SepOct"]*Precip_JulAug*Tmean_SepOct + 
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Tmean_AprMayJun"]*Precip_NovDecJanFebMar*Tmean_AprMayJun +  
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Tmean_SepOct"]*Precip_NovDecJanFebMar*Tmean_SepOct + 
+      plotdatainterval[i,"u_beta_Tmean_AprMayJun_Tmean_SepOct"]*Tmean_AprMayJun*Tmean_SepOct
   }
-  growthpredictionPrecipDecJanFeb
+  growthpredictionPrecipNovDecJanFebMar
 }
-PrecipDecJanFeb_prediction <- pdjffun_plotdatainterval(x = x, tmp_norm = tmp_norm, ppt_norm = ppt_norm, Precip_JulAug = Precip_JulAug, Precip_DecJanFeb = Precip_DecJanFeb, Tmean_JulAug = Tmean_JulAug, Tmean_DecJanFeb = Tmean_DecJanFeb)
-PrecipDecJanFeb_prediction_tr <- exp(PrecipDecJanFeb_prediction)
-ci.Precip_DecJanFeb <- apply(PrecipDecJanFeb_prediction_tr, 2, quantile, c(0.025,0.5,0.975)) #confidence intervals
-ci.Precip_DecJanFeb.df <- data.frame(Precip_DecJanFeb = Precip_DecJanFeb, median = ci.Precip_DecJanFeb[2,], ci.low = ci.Precip_DecJanFeb[1,], ci.high = ci.Precip_DecJanFeb[3,])
+PrecipNovDecJanFebMar_prediction <- pdjffun_plotdatainterval(x = x, tmp_norm = tmp_norm, ppt_norm = ppt_norm, Precip_JulAug = Precip_JulAug, 
+                                                             Precip_NovDecJanFebMar = Precip_NovDecJanFebMar, Tmean_AprMayJun = Tmean_AprMayJun, Tmean_SepOct = Tmean_SepOct)
+PrecipNovDecJanFebMar_prediction_tr <- exp(PrecipDecJanFeb_prediction)
+ci.Precip_NovDecJanFebMar <- apply(PrecipDecJanFeb_prediction_tr, 2, quantile, c(0.025,0.5,0.975)) #confidence intervals
+ci.Precip_NovDecJanFebMar.df <- data.frame(Precip_DecJanFeb = Precip_DecJanFeb, median = ci.Precip_DecJanFeb[2,], ci.low = ci.Precip_DecJanFeb[1,], ci.high = ci.Precip_DecJanFeb[3,])
 ggplot() + 
   geom_ribbon(data = ci.Precip_DecJanFeb.df, aes(x = Precip_DecJanFeb, ymin = ci.low, ymax = ci.high), alpha = 0.75, fill = "cadetblue2") + 
   geom_line(data = ci.Precip_DecJanFeb.df, aes(x = Precip_DecJanFeb, y = median), color = "indianred2") + mytheme + ylab("Predicted Growth") + ylim(0, 2) + 
   geom_rug(data = unique(grow_train[,c("LAT", "LON", "ppt_norm", "Precip_DecJanFeb")]), aes(x = Precip_DecJanFeb, color = ppt_norm))
 
 #effect of Tmean_JulAug
-Tmean_JulAugrng <- range(grow_train$Tmean_JulAug,na.rm = TRUE) #setting range for tmp_normrng
-Tmean_JulAug <- seq(Tmean_JulAugrng[1], Tmean_JulAugrng[2], by = 0.3)
+Tmean_AprMayJunrng <- range(grow_train$Tmean_AprMayJun,na.rm = TRUE) #setting range for tmp_normrng
+Tmean_AprMayJun <- seq(Tmean_AprMayJunrng[1], Tmean_AprMayJunrng[2], by = 0.3)
 x <- mean(grow_train$DIA_prev)
 ppt_norm <- mean(grow_train$ppt_norm)
 tmp_norm <- mean(grow_train$tmp_norm)
 Precip_JulAug <- mean(grow_train$Precip_JulAug)
-Precip_DecJanFeb <- mean(grow_train$Precip_DecJanFeb)
-Tmean_DecJanFeb <- mean(grow_train$Tmean_DecJanFeb)
-growthpredictionTmeanJulAug <- matrix(NA, length(plotdatainterval$u_beta_Tmean_JulAug), length(Tmean_JulAug))
+Precip_NovDecJanFeb <- mean(grow_train$Precip_DecJanFeb)
+Tmean_SepOct <- mean(grow_train$Tmean_SepOct)
+growthpredictionTmeanJulAug <- matrix(NA, length(plotdatainterval$u_beta_Tmean_AprMayJun), length(Tmean_AprMayJun))
 tjafun_plotdatainterval<-function(x,tmp_norm,ppt_norm,Precip_JulAug,Precip_DecJanFeb,Tmean_JulAug,Tmean_DecJanFeb){
   for(i in 1:length(plotdatainterval$u_beta_Tmean_JulAug)){
     growthpredictionTmeanJulAug[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
