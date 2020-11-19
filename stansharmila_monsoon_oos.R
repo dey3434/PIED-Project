@@ -3,7 +3,7 @@
 # 22 June 2020
 setwd("/home/rstudio")
 load("/home/rstudio/data/pied_grow_coef2.rda")
-fit_grow <- readRDS("log_normal_monsoon_ppt.RDS")
+fit_grow <- readRDS(url("https://de.cyverse.org/dl/d/888FD6F6-DAEA-46AE-BDF4-036A708990CC/log_normal_monsoonoos_pptoos.RDS"))
 library(rstan)
 options(mc.cores = parallel::detectCores())
 library(parallel) 
@@ -26,7 +26,7 @@ grow.new <- merge(PIED.all, full.ppt.tmean.norms, by.x = c("name", "year", "LON"
 #grow.new <- merge(grow, newclimate, by.x = c("LON", "LAT", "name", "year"), by.y = c("lon", "lat", "name", "year"))
 
 grow.monsoon<-na.omit(grow.new) %>% 
-  mutate_at(scale, .vars = vars(Precip_JulAug, tmp_norm, ppt_norm, tmp_yr)) %>%
+  mutate_at(scale, .vars = vars(Precip_JulAug, Precip_NovDecJanFebMar, tmp_norm, ppt_norm, tmp_yr)) %>%
   arrange(PLOT,SUBP,name) %>%
   mutate(PlotCD=as.numeric(factor(PLOT, levels = unique(PLOT))),treeCD=as.numeric(factor(name,levels=unique(name))),
          growth2=ifelse(growth==0,0.001,growth),loggrowth=log(growth2))
@@ -38,18 +38,24 @@ grow_train <- grow.monsoon[-trainIndex,]
 
 
 
-xG<-as.matrix(cbind(grow_train$ppt_norm, grow_train$tmp_norm, grow_train$Precip_JulAug, grow_train$tmp_yr, grow_train$DIA_prev,
+xG<-as.matrix(cbind(grow_train$ppt_norm, grow_train$tmp_norm, grow_train$Precip_JulAug, grow_train$Precip_NovDecJanFebMar,
+                    grow_train$tmp_yr, grow_train$DIA_prev,
                     grow_train$ppt_norm*grow_train$tmp_norm, grow_train$ppt_norm*grow_train$tmp_yr, 
                     grow_train$ppt_norm*grow_train$Precip_JulAug, grow_train$ppt_norm*grow_train$DIA_prev,
                     grow_train$Precip_JulAug*grow_train$tmp_yr, grow_train$Precip_JulAug*grow_train$tmp_norm, grow_train$Precip_JulAug*grow_train$DIA_prev, 
                     grow_train$tmp_norm*grow_train$tmp_yr, grow_train$tmp_norm*grow_train$DIA_prev, 
-                    grow_train$tmp_yr*grow_train$DIA_prev))
-xGtest<-as.matrix(cbind(grow_test$ppt_norm, grow_test$tmp_norm, grow_test$Precip_JulAug, grow_test$tmp_yr, grow_test$DIA_prev,
+                    grow_train$tmp_yr*grow_train$DIA_prev, grow_train$Precip_NovDecJanFebMar*grow_train$ppt_norm,
+                    grow_train$Precip_NovDecJanFebMar*grow_train$tmp_norm, grow_train$Precip_NovDecJanFebMar*grow_train$Precip_JulAug,
+                    grow_train$Precip_NovDecJanFebMar*grow_train$tmp_yr, grow_train$Precip_NovDecJanFebMar*grow_train$DIA_prev))
+xGtest<-as.matrix(cbind(grow_test$ppt_norm, grow_test$tmp_norm, grow_test$Precip_JulAug, grow_test$Precip_NovDecJanFebMar,
+                        grow_test$tmp_yr, grow_test$DIA_prev,
                         grow_test$ppt_norm*grow_test$tmp_norm, grow_test$ppt_norm*grow_test$tmp_yr, 
                         grow_test$ppt_norm*grow_test$Precip_JulAug, grow_test$ppt_norm*grow_test$DIA_prev,
                         grow_test$Precip_JulAug*grow_test$tmp_yr, grow_test$Precip_JulAug*grow_test$tmp_norm, grow_test$Precip_JulAug*grow_test$DIA_prev, 
                         grow_test$tmp_norm*grow_test$tmp_yr, grow_test$tmp_norm*grow_test$DIA_prev, 
-                        grow_test$tmp_yr*grow_test$DIA_prev))
+                        grow_test$tmp_yr*grow_test$DIA_prev, grow_test$Precip_NovDecJanFebMar*grow_test$ppt_norm,
+                        grow_test$Precip_NovDecJanFebMar*grow_test$tmp_norm, grow_test$Precip_NovDecJanFebMar*grow_test$Precip_JulAug,
+                        grow_test$Precip_NovDecJanFebMar*grow_test$tmp_yr, grow_test$Precip_NovDecJanFebMar*grow_test$DIA_prev))
 yG<-as.vector(grow_train$loggrowth)
 yGtest<-as.vector(grow_test$loggrowth)
 nG<-nrow(grow_train)
@@ -179,11 +185,16 @@ summary<-summary(fit_grow)
 summary
 
 plotdata<-select(as.data.frame(fit_grow),"yrep[1]":"yrep[8741]")
-plotdatainterval<-select(as.data.frame(fit_grow), "u_beta[1]":"u_beta[15]")
-colnames(plotdatainterval) <- c("u_beta_ppt_norm", "u_beta_tmp_norm", "u_beta_Precip_JulAug", "u_beta_tmp_yr", "u_beta_DIA_prev",
-                                "u_beta_ppt_norm_tmp_norm", "u_beta_ppt_norm_tmp_yr", "u_beta_ppt_norm_Precip_JulAug", "u_beta_ppt_norm_DIA_prev",
-                                "u_beta_Precip_JulAug_tmp_yr", "u_beta_Precip_JulAug_tmp_norm", "u_beta_Precip_JulAug_DIA_prev", "u_beta_tmp_norm_tmp_yr", 
-                                "u_beta_tmp_norm_DIA_prev", "u_beta_tmp_yr_DIA_prev")
+plotdatainterval<-select(as.data.frame(fit_grow), "u_beta[1]":"u_beta[21]")
+colnames(plotdatainterval) <- c("u_beta_ppt_norm", "u_beta_tmp_norm", "u_beta_Precip_JulAug", "u_beta_Precip_NovDecJanFebMar",
+                                "u_beta_tmp_yr", "u_beta_DIA_prev",
+                                "u_beta_ppt_norm_tmp_norm", "u_beta_ppt_norm_tmp_yr", 
+                                "u_beta_ppt_norm_Precip_JulAug", "u_beta_ppt_norm_DIA_prev",
+                                "u_beta_Precip_JulAug_tmp_yr", "u_beta_Precip_JulAug_tmp_norm", "u_beta_Precip_JulAug_DIA_prev", 
+                                "u_beta_tmp_norm_tmp_yr", "u_beta_tmp_norm_DIA_prev", 
+                                "u_beta_tmp_yr_DIA_prev", "u_beta_Precip_NovDecJanFebMar_ppt_norm",
+                                "u_beta_Precip_NovDecJanFebMar_tmp_norm", "u_beta_Precip_NovDecJanFebMar_Precip_JulAug",
+                                "u_beta_Precip_NovDecJanFebMar_tmp_yr", "u_beta_Precip_NovDecJanFebMar_DIA_prev")
 ppc_dens_overlay(yGtest, as.matrix(plotdata))
 
 ext_fit <- rstan::extract(fit_grow)
@@ -359,29 +370,36 @@ ppt_norm <- seq(ppt_normrng[1], ppt_normrng[2], by = 0.25)
 x <- mean(grow_train$DIA_prev)
 tmp_norm <- mean(grow_train$tmp_norm)
 Precip_JulAug <- mean(grow_train$Precip_JulAug)
+Precip_NovDecJanFebMar <- mean(grow_train$Precip_NovDecJanFebMar)
 tmp_yr <- mean(grow_train$tmp_yr)
 growthpredictionpptnorm <- matrix(NA, length(plotdatainterval$u_beta_ppt_norm), length(ppt_norm))
-pfun_plotdatainterval<-function(x,tmp_norm,ppt_norm,Precip_JulAug,tmp_yr){
+pfun_plotdatainterval<-function(x,tmp_norm,ppt_norm,Precip_JulAug,Precip_NovDecJanFebMar,tmp_yr){
   for(i in 1:length(plotdatainterval$u_beta_ppt_norm)){
     growthpredictionpptnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-      plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+      plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+      plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
       plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
       plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
       plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*x+
       plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
       plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
-      plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x
+      plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x +
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*x
   }
   growthpredictionpptnorm
 }
-ppt_norm_prediction <- pfun_plotdatainterval(x = x, tmp_norm = tmp_norm, ppt_norm = ppt_norm, Precip_JulAug = Precip_JulAug, tmp_yr = tmp_yr)
+ppt_norm_prediction <- pfun_plotdatainterval(x = x, tmp_norm = tmp_norm, ppt_norm = ppt_norm, Precip_JulAug = Precip_JulAug, Precip_NovDecJanFebMar = Precip_NovDecJanFebMar, tmp_yr = tmp_yr)
 ppt_norm_prediction_tr <- exp(ppt_norm_prediction)
 ci.ppt_norm <- apply(ppt_norm_prediction_tr, 2, quantile, c(0.025,0.5,0.975)) #confidence intervals
 ci.ppt_norm.df <- data.frame(ppt_norm = ppt_norm, median = ci.ppt_norm[2,], ci.low = ci.ppt_norm[1,], ci.high = ci.ppt_norm[3,])
 ggplot() + 
   geom_ribbon(data = ci.ppt_norm.df, aes(x = ppt_norm, ymin = ci.low, ymax = ci.high), alpha = 0.75, fill = "cadetblue2") + 
   geom_line(data = ci.ppt_norm.df, aes(x = ppt_norm, y = median), color = "indianred2") + mytheme + ylab("Predicted Growth") + ylim(0, 2) + 
-  geom_rug(data = unique(grow_train[,c("LAT", "LON", "ppt_norm", "tmp_norm")]), aes(x = ppt_norm, color = ppt_norm))
+  geom_rug(data = unique(grow_train[,c("LAT", "LON", "ppt_norm", "tmp_norm")]), aes(x = ppt_norm, color = tmp_norm))
 
 
 #effect of tmp_norm
@@ -390,29 +408,36 @@ tmp_norm <- seq(tmp_normrng[1], tmp_normrng[2], by = 0.35)
 x <- mean(grow_train$DIA_prev)
 ppt_norm <- mean(grow_train$ppt_norm)
 Precip_JulAug <- mean(grow_train$Precip_JulAug)
+Precip_NovDecJanFebMar <- mean(grow_train$Precip_NovDecJanFebMar)
 tmp_yr <- mean(grow_train$tmp_yr)
 growthpredictiontmpnorm <- matrix(NA, length(plotdatainterval$u_beta_tmp_norm), length(tmp_norm))
-tfun_plotdatainterval<-function(x,tmp_norm,ppt_norm,Precip_JulAug,tmp_yr){
+tfun_plotdatainterval<-function(x,tmp_norm,ppt_norm,Precip_JulAug,Precip_NovDecJanFebMar,tmp_yr){
   for(i in 1:length(plotdatainterval$u_beta_tmp_norm)){
     growthpredictiontmpnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-      plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+      plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+      plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
       plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
       plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
       plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*x+
       plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
       plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
-      plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x
+      plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x +
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*x
   }
   growthpredictiontmpnorm
 }
-tmp_norm_prediction <- tfun_plotdatainterval(x = x, tmp_norm = tmp_norm, ppt_norm = ppt_norm, Precip_JulAug = Precip_JulAug, tmp_yr = tmp_yr)
+tmp_norm_prediction <- tfun_plotdatainterval(x = x, tmp_norm = tmp_norm, ppt_norm = ppt_norm, Precip_JulAug = Precip_JulAug, Precip_NovDecJanFebMar = Precip_NovDecJanFebMar, tmp_yr = tmp_yr)
 tmp_norm_prediction_tr <- exp(tmp_norm_prediction)
 ci.tmp_norm <- apply(tmp_norm_prediction_tr, 2, quantile, c(0.025,0.5,0.975)) #confidence intervals
 ci.tmp_norm.df <- data.frame(tmp_norm = tmp_norm, median = ci.tmp_norm[2,], ci.low = ci.tmp_norm[1,], ci.high = ci.tmp_norm[3,])
 ggplot() + 
   geom_ribbon(data = ci.tmp_norm.df, aes(x = tmp_norm, ymin = ci.low, ymax = ci.high), alpha = 0.75, fill = "cadetblue2") + 
   geom_line(data = ci.tmp_norm.df, aes(x = tmp_norm, y = median), color = "indianred2") + mytheme + ylab("Predicted Growth") + ylim(0, 2) + 
-  geom_rug(data = unique(grow_train[,c("LAT", "LON", "ppt_norm", "tmp_norm")]), aes(x = tmp_norm, color = tmp_norm))
+  geom_rug(data = unique(grow_train[,c("LAT", "LON", "ppt_norm", "tmp_norm")]), aes(x = tmp_norm, color = ppt_norm))
 
 
 #effect of Precip_JulAug
@@ -421,29 +446,76 @@ Precip_JulAug <- seq(Precip_JulAugrng[1], Precip_JulAugrng[2], by = 0.50)
 x <- mean(grow_train$DIA_prev)
 ppt_norm <- mean(grow_train$ppt_norm)
 tmp_norm <- mean(grow_train$tmp_norm)
+Precip_NovDecJanFebMar <- mean(grow_train$Precip_NovDecJanFebMar)
 tmp_yr <- mean(grow_train$tmp_yr)
 growthpredictionpptyr <- matrix(NA, length(plotdatainterval$u_beta_Precip_JulAug), length(Precip_JulAug))
-pyfun_plotdatainterval<-function(x,tmp_norm,ppt_norm,Precip_JulAug,tmp_yr){
+pyfun_plotdatainterval<-function(x,tmp_norm,ppt_norm,Precip_JulAug,Precip_NovDecJanFebMar,tmp_yr){
   for(i in 1:length(plotdatainterval$u_beta_Precip_JulAug)){
     growthpredictionpptyr[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-      plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+      plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+      plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
       plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
       plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
       plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*x+
       plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
       plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
-      plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x
+      plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x +
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*x
   }
   growthpredictionpptyr
 }
-Precip_JulAug_prediction <- pyfun_plotdatainterval(x = x, tmp_norm = tmp_norm, ppt_norm = ppt_norm, Precip_JulAug = Precip_JulAug, tmp_yr = tmp_yr)
+Precip_JulAug_prediction <- pyfun_plotdatainterval(x = x, tmp_norm = tmp_norm, ppt_norm = ppt_norm, Precip_JulAug = Precip_JulAug, Precip_NovDecJanFebMar = Precip_NovDecJanFebMar, tmp_yr = tmp_yr)
 Precip_JulAug_prediction_tr <- exp(Precip_JulAug_prediction)
 ci.Precip_JulAug <- apply(Precip_JulAug_prediction_tr, 2, quantile, c(0.025,0.5,0.975)) #confidence intervals
 ci.Precip_JulAug.df <- data.frame(Precip_JulAug = Precip_JulAug, median = ci.Precip_JulAug[2,], ci.low = ci.Precip_JulAug[1,], ci.high = ci.Precip_JulAug[3,])
 ggplot() + 
   geom_ribbon(data = ci.Precip_JulAug.df, aes(x = Precip_JulAug, ymin = ci.low, ymax = ci.high), alpha = 0.75, fill = "cadetblue2") + 
   geom_line(data = ci.Precip_JulAug.df, aes(x = Precip_JulAug, y = median), color = "indianred2") + mytheme + ylab("Predicted Growth") + ylim(0, 2) + 
-  geom_rug(data = unique(grow_train[,c("LAT", "LON", "Precip_JulAug", "tmp_norm")]), aes(x = Precip_JulAug, color = tmp_norm))
+  geom_rug(data = unique(grow_train[,c("LAT", "LON", "Precip_JulAug", "ppt_norm")]), aes(x = Precip_JulAug, color = ppt_norm))
+
+
+
+#effect of Precip_NovDecJanFebMar
+Precip_NovDecJanFebMarrng <- range(grow_train$Precip_NovDecJanFebMar,na.rm = TRUE) #setting range for tmp_normrng
+Precip_NovDecJanFebMar <- seq(Precip_NovDecJanFebMarrng[1], Precip_NovDecJanFebMarrng[2], by = 0.50)
+x <- mean(grow_train$DIA_prev)
+ppt_norm <- mean(grow_train$ppt_norm)
+tmp_norm <- mean(grow_train$tmp_norm)
+Precip_JulAug <- mean(grow_train$Precip_JulAug)
+tmp_yr <- mean(grow_train$tmp_yr)
+growthpredictionpndjfm <- matrix(NA, length(plotdatainterval$u_beta_Precip_NovDecJanFebMar), length(Precip_NovDecJanFebMar))
+pndjfmfun_plotdatainterval<-function(x,tmp_norm,ppt_norm,Precip_JulAug,Precip_NovDecJanFebMar,tmp_yr){
+  for(i in 1:length(plotdatainterval$u_beta_Precip_NovDecJanFebMar)){
+    growthpredictionpndjfm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+      plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+      plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+      plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
+      plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
+      plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*x+
+      plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
+      plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
+      plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x +
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*x
+  }
+  growthpredictionpndjfm
+}
+Precip_NovDecJanFebMar_prediction <- pndjfmfun_plotdatainterval(x = x, tmp_norm = tmp_norm, ppt_norm = ppt_norm, Precip_JulAug = Precip_JulAug, Precip_NovDecJanFebMar = Precip_NovDecJanFebMar, tmp_yr = tmp_yr)
+Precip_NovDecJanFebMar_prediction_tr <- exp(Precip_NovDecJanFebMar_prediction)
+ci.Precip_NovDecJanFebMar <- apply(Precip_NovDecJanFebMar_prediction_tr, 2, quantile, c(0.025,0.5,0.975)) #confidence intervals
+ci.Precip_NovDecJanFebMar.df <- data.frame(Precip_NovDecJanFebMar = Precip_NovDecJanFebMar, median = ci.Precip_NovDecJanFebMar[2,], ci.low = ci.Precip_NovDecJanFebMar[1,], ci.high = ci.Precip_NovDecJanFebMar[3,])
+ggplot() + 
+  geom_ribbon(data = ci.Precip_NovDecJanFebMar.df, aes(x = Precip_NovDecJanFebMar, ymin = ci.low, ymax = ci.high), alpha = 0.75, fill = "cadetblue2") + 
+  geom_line(data = ci.Precip_NovDecJanFebMar.df, aes(x = Precip_NovDecJanFebMar, y = median), color = "indianred2") + mytheme + ylab("Predicted Growth") + ylim(0, 2) + 
+  geom_rug(data = unique(grow_train[,c("LAT", "LON", "Precip_NovDecJanFebMar", "tmp_norm")]), aes(x = Precip_NovDecJanFebMar, color = tmp_norm))
+
 
 
 #effect of tmp_yr
@@ -452,29 +524,36 @@ tmp_yr <- seq(tmp_yrrng[1], tmp_yrrng[2], by = 0.3)
 x <- mean(grow_train$DIA_prev)
 ppt_norm <- mean(grow_train$ppt_norm)
 Precip_JulAug <- mean(grow_train$Precip_JulAug)
+Precip_NovDecJanFebMar <- mean(grow_train$Precip_NovDecJanFebMar)
 tmp_norm <- mean(grow_train$tmp_norm)
 growthpredictiontmpyr <- matrix(NA, length(plotdatainterval$u_beta_tmp_yr), length(tmp_yr))
-tyfun_plotdatainterval<-function(x,tmp_norm,ppt_norm,Precip_JulAug,tmp_yr){
+tyfun_plotdatainterval<-function(x,tmp_norm,ppt_norm,Precip_JulAug,Precip_NovDecJanFebMar,tmp_yr){
   for(i in 1:length(plotdatainterval$u_beta_tmp_yr)){
     growthpredictiontmpyr[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-      plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+      plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+      plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
       plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
       plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
       plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*x+
       plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
       plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
-      plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x
+      plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x +
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*x
   }
   growthpredictiontmpyr
 }
-tmp_yr_prediction <- tyfun_plotdatainterval(x = x, tmp_norm = tmp_norm, ppt_norm = ppt_norm, Precip_JulAug = Precip_JulAug, tmp_yr = tmp_yr)
+tmp_yr_prediction <- tyfun_plotdatainterval(x = x, tmp_norm = tmp_norm, ppt_norm = ppt_norm, Precip_JulAug = Precip_JulAug, Precip_NovDecJanFebMar = Precip_NovDecJanFebMar, tmp_yr = tmp_yr)
 tmp_yr_prediction_tr <- exp(tmp_yr_prediction)
 ci.tmp_yr <- apply(tmp_yr_prediction_tr, 2, quantile, c(0.025,0.5,0.975)) #confidence intervals
 ci.tmp_yr.df <- data.frame(tmp_yr = tmp_yr, median = ci.tmp_yr[2,], ci.low = ci.tmp_yr[1,], ci.high = ci.tmp_yr[3,])
 ggplot() + 
   geom_ribbon(data = ci.tmp_yr.df, aes(x = tmp_yr, ymin = ci.low, ymax = ci.high), alpha = 0.75, fill = "cadetblue2") + 
   geom_line(data = ci.tmp_yr.df, aes(x = tmp_yr, y = median), color = "indianred2") + mytheme + ylab("Predicted Growth") + ylim(0, 2) + 
-  geom_rug(data = unique(grow_train[,c("LAT", "LON", "tmp_yr", "ppt_norm")]), aes(x = tmp_yr, color = ppt_norm))
+  geom_rug(data = unique(grow_train[,c("LAT", "LON", "tmp_yr", "tmp_norm")]), aes(x = tmp_yr, color = tmp_norm))
 
 
 #effect of DIA_prev
@@ -483,22 +562,29 @@ size <- seq(sizerng[1], sizerng[2], by = 9)
 tmp_yr <- mean(grow_train$tmp_yr)
 ppt_norm <- mean(grow_train$ppt_norm)
 Precip_JulAug <- mean(grow_train$Precip_JulAug)
+Precip_NovDecJanFebMar <- mean(grow_train$Precip_NovDecJanFebMar)
 tmp_norm <- mean(grow_train$tmp_norm)
 growthpredictionsize <- matrix(NA, length(plotdatainterval$u_beta_DIA_prev), length(size))
-sizefun_plotdatainterval<-function(size,tmp_norm,ppt_norm,Precip_JulAug,tmp_yr){
+sizefun_plotdatainterval<-function(size,tmp_norm,ppt_norm,Precip_JulAug,Precip_NovDecJanFebmar,tmp_yr){
   for(i in 1:length(plotdatainterval$u_beta_tmp_yr)){
-    growthpredictionsize[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-      plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    growthpredictionsize[i,] <-  plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+      plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+      plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
       plotdatainterval[i,"u_beta_DIA_prev"]*size + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
       plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
       plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size+
       plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
       plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
-      plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size
+      plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size +
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*size
   }
   growthpredictionsize
 }
-size_prediction <- sizefun_plotdatainterval(size = size, tmp_norm = tmp_norm, ppt_norm = ppt_norm, Precip_JulAug = Precip_JulAug, tmp_yr = tmp_yr)
+size_prediction <- sizefun_plotdatainterval(size = size, tmp_norm = tmp_norm, ppt_norm = ppt_norm, Precip_JulAug = Precip_JulAug, Precip_NovDecJanFebmar = Precip_NovDecJanFebmar, tmp_yr = tmp_yr)
 size_prediction_tr <- exp(size_prediction)
 ci.size <- apply(size_prediction_tr, 2, quantile, c(0.025,0.5,0.975)) #confidence intervals
 ci.size.df <- data.frame(size = size, median = ci.size[2,], ci.low = ci.size[1,], ci.high = ci.size[3,])
@@ -511,6 +597,7 @@ ggplot() +
 #Precip_JulAug and tmp_yr interaction
 Precip_JulAugrng <- range(grow_train$Precip_JulAug,na.rm = TRUE) #setting range for tmp_normrng
 Precip_JulAug <- seq(Precip_JulAugrng[1], Precip_JulAugrng[2], by = 0.50)
+Precip_NovDecJanFebMar <- mean(grow_train$Precip_NovDecJanFebMar)
 x <- mean(grow_train$DIA_prev)
 ppt_norm <- mean(grow_train$ppt_norm)
 tmp_norm <- mean(grow_train$tmp_norm)
@@ -520,31 +607,49 @@ growthpredictionPrecipJulAug_hightmpyr <- growthpredictionPrecipJulAug_lowtmpyr 
 
 for(i in 1:length(plotdatainterval$u_beta_Precip_JulAug)){
   growthpredictionPrecipJulAug_hightmpyr[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr_range[2] +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr_range[2] +
     plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr_range[2] + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
     plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*x+
     plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr_range[2] + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr_range[2] + 
-    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr_range[2]*x
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr_range[2]*x +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr_range[2] + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*x
   
   growthpredictionPrecipJulAug_midtmpyr[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
     plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*x+
     plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
-    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*x
   
   growthpredictionPrecipJulAug_lowtmpyr[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr_range[1] +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr_range[1] +
     plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr_range[1] + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
     plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*x+
     plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr_range[1] + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr_range[1] + 
-    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr_range[1]*x
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr_range[1]*x +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr_range[1] + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*x
 }
 Precip_JulAug_prediction_trlow <- exp(growthpredictionPrecipJulAug_lowtmpyr)
 Precip_JulAug_prediction_trmid <- exp(growthpredictionPrecipJulAug_midtmpyr)
@@ -564,6 +669,7 @@ ggplot(data = Precip_JulAug_tmp_yrint, aes(x = Precip_JulAug, y = median, color 
 #Precip_JulAug and ppt_norm interaction
 Precip_JulAugrng <- range(grow_train$Precip_JulAug,na.rm = TRUE) #setting range for tmp_normrng
 Precip_JulAug <- seq(Precip_JulAugrng[1], Precip_JulAugrng[2], by = 0.50)
+Precip_NovDecJanFebMar <- mean(grow_train$Precip_NovDecJanFebMar)
 x <- mean(grow_train$DIA_prev)
 ppt_norm <- mean(grow_train$ppt_norm)
 tmp_norm <- mean(grow_train$tmp_norm)
@@ -573,31 +679,49 @@ growthpredictionPrecipJulAug_highpnorm <- growthpredictionPrecipJulAug_lowpnorm 
 
 for(i in 1:length(plotdatainterval$u_beta_Precip_JulAug)){
   growthpredictionPrecipJulAug_highpnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm_range[2] + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm_range[2]*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm_range[2]*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm_range[2]*Precip_JulAug +
     plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm_range[2]*x+
     plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
-    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm_range[2] + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*x
   
   growthpredictionPrecipJulAug_midpnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
     plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*x+
     plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
-    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*x
   
   growthpredictionPrecipJulAug_lowpnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm_range[1] + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm_range[1]*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm_range[1]*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm_range[1]*Precip_JulAug +
-    plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm_range[1]*x
+    plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm_range[1]*x+
     plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
-    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm_range[1] + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*x
 }
 Precip_JulAug_prediction_trlow <- exp(growthpredictionPrecipJulAug_lowpnorm)
 Precip_JulAug_prediction_trmid <- exp(growthpredictionPrecipJulAug_midpnorm)
@@ -616,6 +740,7 @@ ggplot(data = Precip_JulAug_ppt_normint, aes(x = Precip_JulAug, y = median, colo
 #Precip_JulAug and tmp_norm interaction
 Precip_JulAugrng <- range(grow_train$Precip_JulAug,na.rm = TRUE) #setting range for tmp_normrng
 Precip_JulAug <- seq(Precip_JulAugrng[1], Precip_JulAugrng[2], by = 0.50)
+Precip_NovDecJanFebMar <- mean(grow_train$Precip_NovDecJanFebMar)
 x <- mean(grow_train$DIA_prev)
 ppt_norm <- mean(grow_train$ppt_norm)
 tmp_norm <- mean(grow_train$tmp_norm)
@@ -625,31 +750,49 @@ growthpredictionPrecipJulAug_hightnorm <- growthpredictionPrecipJulAug_lowtnorm 
 
 for(i in 1:length(plotdatainterval$u_beta_Precip_JulAug)){
   growthpredictionPrecipJulAug_hightnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm_range[2] +
-    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm_range[2] +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
     plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*x+
     plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm_range[2] +
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm_range[2]*tmp_yr + 
-    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm_range[2]*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm_range[2]*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm_range[2] + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*x
   
   growthpredictionPrecipJulAug_midtnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
     plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*x+
     plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
-    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*x
   
   growthpredictionPrecipJulAug_lowtnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm_range[1] +
-    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm_range[1] +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
     plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*x+
     plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm_range[1] +
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm_range[1]*tmp_yr + 
-    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm_range[1]*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm_range[1]*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm_range[1] + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*x
 }
 Precip_JulAug_prediction_trtlow <- exp(growthpredictionPrecipJulAug_lowtnorm)
 Precip_JulAug_prediction_trtmid <- exp(growthpredictionPrecipJulAug_midtnorm)
@@ -666,10 +809,81 @@ ggplot(data = Precip_JulAug_tmp_normint, aes(x = Precip_JulAug, y = median, colo
 
 
 
+#Precip_JulAug and Precip_NovDecJanFebMar interaction
+Precip_JulAugrng <- range(grow_train$Precip_JulAug,na.rm = TRUE) #setting range for tmp_normrng
+Precip_JulAug <- seq(Precip_JulAugrng[1], Precip_JulAugrng[2], by = 0.50)
+Precip_NovDecJanFebMar <- mean(grow_train$Precip_NovDecJanFebMar)
+x <- mean(grow_train$DIA_prev)
+ppt_norm <- mean(grow_train$ppt_norm)
+tmp_norm <- mean(grow_train$tmp_norm)
+tmp_yr <- mean(grow_train$tmp_yr)
+Precip_NovDecJanFebMar_range <- quantile(grow_train$Precip_NovDecJanFebMar, c(0.2, 0.8))
+growthpredictionPrecipJulAug_highPrecipNovDecJanFebMar <- growthpredictionPrecipJulAug_lowPrecipNovDecJanFebMar <- growthpredictionPrecipJulAug_midPrecipNovDecJanFebMar <- matrix(NA, length(plotdatainterval$u_beta_Precip_JulAug), length(Precip_JulAug)) 
+
+for(i in 1:length(plotdatainterval$u_beta_Precip_JulAug)){
+  growthpredictionPrecipJulAug_highPrecipNovDecJanFebMar[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar_range[2] +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
+    plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
+    plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*x+
+    plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
+    plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar_range[2]*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar_range[2]*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar_range[2]*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar_range[2]*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar_range[2]*x
+  
+  growthpredictionPrecipJulAug_midPrecipNovDecJanFebMar[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
+    plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
+    plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*x+
+    plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
+    plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*x
+  
+  growthpredictionPrecipJulAug_lowPrecipNovDecJanFebMar[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar_range[1] +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
+    plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
+    plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*x+
+    plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
+    plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar_range[1]*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar_range[1]*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar_range[1]*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar_range[1]*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar_range[1]*x
+}
+Precip_JulAug_prediction_trtlow <- exp(growthpredictionPrecipJulAug_lowPrecipNovDecJanFebMar)
+Precip_JulAug_prediction_trtmid <- exp(growthpredictionPrecipJulAug_midPrecipNovDecJanFebMar)
+Precip_JulAug_prediction_trthigh <- exp(growthpredictionPrecipJulAug_highPrecipNovDecJanFebMar)
+ci.Precip_JulAugthigh <- apply(Precip_JulAug_prediction_trthigh, 2, quantile, c(0.025,0.5,0.975)) #confidence intervals
+ci.Precip_JulAugtmid <- apply(Precip_JulAug_prediction_trtmid, 2, quantile, c(0.025, 0.5, 0.975))
+ci.Precip_JulAugtlow <- apply(Precip_JulAug_prediction_trtlow, 2, quantile, c(0.025, 0.5, 0.975))
+ci.Precip_JulAugthigh.df <- data.frame(Precip_JulAug = Precip_JulAug, median = ci.Precip_JulAugthigh[2,], ci.low = ci.Precip_JulAugthigh[1,], ci.high = ci.Precip_JulAugthigh[3,], ci.group = "highPrecip_NovDecJanFebMar")
+ci.Precip_JulAugtmid.df <- data.frame(Precip_JulAug = Precip_JulAug, median = ci.Precip_JulAugtmid[2,], ci.low = ci.Precip_JulAugtmid[1,], ci.high = ci.Precip_JulAugtmid[3,], ci.group = "midPrecip_NovDecJanFebMar")
+ci.Precip_JulAugtlow.df <- data.frame(Precip_JulAug = Precip_JulAug, median = ci.Precip_JulAugtlow[2,], ci.low = ci.Precip_JulAugtlow[1,], ci.high = ci.Precip_JulAugtlow[3,], ci.group = "lowPrecip_NovDecJanFebMar")
+Precip_JulAug_PrecipNovDecJanFebMarint <- rbind(ci.Precip_JulAugthigh.df, ci.Precip_JulAugtmid.df, ci.Precip_JulAugtlow.df)
+ggplot(data = Precip_JulAug_PrecipNovDecJanFebMarint, aes(x = Precip_JulAug, y = median, color = ci.group)) + geom_ribbon(aes(x = Precip_JulAug, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
+  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
+
 
 #Precip_JulAug and size interaction
 Precip_JulAugrng <- range(grow_train$Precip_JulAug,na.rm = TRUE) #setting range for tmp_normrng
 Precip_JulAug <- seq(Precip_JulAugrng[1], Precip_JulAugrng[2], by = 0.50)
+Precip_NovDecJanFebMar <- mean(grow_train$Precip_NovDecJanFebMar)
 size <- mean(grow_train$DIA_prev)
 ppt_norm <- mean(grow_train$ppt_norm)
 tmp_norm <- mean(grow_train$tmp_norm)
@@ -679,31 +893,49 @@ growthpredictionPrecipJulAug_highsize <- growthpredictionPrecipJulAug_lowsize <-
 
 for(i in 1:length(plotdatainterval$u_beta_Precip_JulAug)){
   growthpredictionPrecipJulAug_highsize[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*size_range[2] + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
     plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size_range[2]+
     plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size_range[2] + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
-    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size_range[2] + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size_range[2]
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size_range[2] + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size_range[2] +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*size_range[2]
   
   growthpredictionPrecipJulAug_midsize[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
-    plotdatainterval[i,"u_beta_DIA_prev"]*size + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
-    plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size+
+    plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*x+
     plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
-    plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
-    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size
+    plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*x
   
   growthpredictionPrecipJulAug_lowsize[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*size_range[1] + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
     plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size_range[1]+
     plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size_range[1] + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
-    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size_range[1] + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size_range[1]
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size_range[1] + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size_range[1] +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*size_range[1]
 }
 Precip_JulAug_prediction_trsizelow <- exp(growthpredictionPrecipJulAug_lowsize)
 Precip_JulAug_prediction_trsizemid <- exp(growthpredictionPrecipJulAug_midsize)
@@ -727,36 +959,55 @@ size <- mean(grow_train$DIA_prev)
 ppt_norm <- mean(grow_train$ppt_norm)
 tmp_norm <- mean(grow_train$tmp_norm)
 Precip_JulAug <- mean(grow_train$Precip_JulAug)
+Precip_NovDecJanFebMar <- mean(grow_train$Precip_NovDecJanFebMar)
 ppt_norm_range <- quantile(grow_train$ppt_norm, c(0.2, 0.8))
 growthpredictiontmpyr_highpnorm <- growthpredictiontmpyr_lowpnorm <- growthpredictiontmpyr_midpnorm <- matrix(NA, length(plotdatainterval$u_beta_tmp_yr), length(tmp_yr)) 
 
 for(i in 1:length(plotdatainterval$u_beta_tmp_yr)){
   growthpredictiontmpyr_highpnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm_range[2] + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*size + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm_range[2]*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm_range[2]*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm_range[2]*Precip_JulAug +
     plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm_range[2]*size+
     plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
-    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm_range[2] + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*size
   
   growthpredictiontmpyr_midpnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*size + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
     plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size+
     plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
-    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*size
   
   growthpredictiontmpyr_lowpnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm_range[1] + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*size + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm_range[1]*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm_range[1]*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm_range[1]*Precip_JulAug +
     plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm_range[1]*size+
     plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
-    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm_range[1] + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*size
 }
 tmp_yr_prediction_trpnormlow <- exp(growthpredictiontmpyr_lowpnorm)
 tmp_yr_prediction_trpnormmid <- exp(growthpredictiontmpyr_midpnorm)
@@ -781,36 +1032,55 @@ size <- mean(grow_train$DIA_prev)
 ppt_norm <- mean(grow_train$ppt_norm)
 tmp_norm <- mean(grow_train$tmp_norm)
 Precip_JulAug <- mean(grow_train$Precip_JulAug)
+Precip_NovDecJanFebMar <- mean(grow_train$Precip_NovDecJanFebMar)
 tmp_norm_range <- quantile(grow_train$tmp_norm, c(0.2, 0.8))
 growthpredictiontmpyr_hightnorm <- growthpredictiontmpyr_lowtnorm <- growthpredictiontmpyr_midtnorm <- matrix(NA, length(plotdatainterval$u_beta_tmp_yr), length(tmp_yr)) 
 
 for(i in 1:length(plotdatainterval$u_beta_tmp_yr)){
   growthpredictiontmpyr_hightnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm_range[2] +
-    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*size + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm_range[2] +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
     plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size+
     plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm_range[2] +
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm_range[2]*tmp_yr + 
-    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm_range[2]*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm_range[2]*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm_range[2] + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*size
   
   growthpredictiontmpyr_midtnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*size + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
     plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size+
     plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
-    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*size
   
   growthpredictiontmpyr_lowtnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm_range[1] +
-    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*size + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm_range[1] +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
     plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size+
     plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm_range[1] +
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm_range[1]*tmp_yr + 
-    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm_range[1]*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm_range[1]*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm_range[1] + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*size
 }
 tmp_yr_prediction_trtnormlow <- exp(growthpredictiontmpyr_lowtnorm)
 tmp_yr_prediction_trtnormmid <- exp(growthpredictiontmpyr_midtnorm)
@@ -827,6 +1097,77 @@ ggplot(data = tmp_yr_tnormint, aes(x = tmp_yr, y = median, color = ci.group)) + 
 
 
 
+#tmp_yr and Precip_NovDecJanFebMar interaction
+tmp_yrrng <- range(grow_train$tmp_yr,na.rm = TRUE) #setting range for tmp_normrng
+tmp_yr <- seq(tmp_yrrng[1], tmp_yrrng[2], by = 0.50)
+Precip_NovDecJanFebMar <- mean(grow_train$Precip_NovDecJanFebMar)
+x <- mean(grow_train$DIA_prev)
+ppt_norm <- mean(grow_train$ppt_norm)
+tmp_norm <- mean(grow_train$tmp_norm)
+Precip_JulAug <- mean(grow_train$Precip_JulAug)
+Precip_NovDecJanFebMar_range <- quantile(grow_train$Precip_NovDecJanFebMar, c(0.2, 0.8))
+growthpredictiontmpyr_highPrecipNovDecJanFebMar <- growthpredictiontmpyr_lowPrecipNovDecJanFebMar <- growthpredictiontmpyr_midPrecipNovDecJanFebMar <- matrix(NA, length(plotdatainterval$u_beta_tmp_yr), length(tmp_yr)) 
+
+for(i in 1:length(plotdatainterval$u_beta_tmp_yr)){
+  growthpredictiontmpyr_highPrecipNovDecJanFebMar[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar_range[2] +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
+    plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
+    plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*x+
+    plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
+    plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar_range[2]*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar_range[2]*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar_range[2]*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar_range[2]*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar_range[2]*x
+  
+  growthpredictiontmpyr_midPrecipNovDecJanFebMar[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
+    plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
+    plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*x+
+    plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
+    plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*x
+  
+  growthpredictiontmpyr_lowPrecipNovDecJanFebMar[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar_range[1] +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
+    plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
+    plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*x+
+    plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
+    plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*x + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*x +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar_range[1]*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar_range[1]*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar_range[1]*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar_range[1]*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar_range[1]*x
+}
+tmp_yr_prediction_trPrecipNovDecJanFebMarlow <- exp(growthpredictiontmpyr_lowPrecipNovDecJanFebMar)
+tmp_yr_prediction_trPrecipNovDecJanFebMarmid <- exp(growthpredictiontmpyr_midPrecipNovDecJanFebMar)
+tmp_yr_prediction_trPrecipNovDecJanFebMarhigh <- exp(growthpredictiontmpyr_highPrecipNovDecJanFebMar)
+ci.tmp_yrPrecipNovDecJanFebMarhigh <- apply(tmp_yr_prediction_trPrecipNovDecJanFebMarhigh, 2, quantile, c(0.025,0.5,0.975)) #confidence intervals
+ci.tmp_yrPrecipNovDecJanFebMarmid <- apply(tmp_yr_prediction_trPrecipNovDecJanFebMarmid, 2, quantile, c(0.025, 0.5, 0.975))
+ci.tmp_yrPrecipNovDecJanFebMarlow <- apply(tmp_yr_prediction_trPrecipNovDecJanFebMarlow, 2, quantile, c(0.025, 0.5, 0.975))
+ci.tmp_yrPrecipNovDecJanFebMarhigh.df <- data.frame(tmp_yr = tmp_yr, median = ci.tmp_yrtnormhigh[2,], ci.low = ci.tmp_yrtnormhigh[1,], ci.high = ci.tmp_yrtnormhigh[3,], ci.group = "highPrecipNovDecJanFebMar")
+ci.tmp_yrPrecipNovDecJanFebMarmid.df <- data.frame(tmp_yr = tmp_yr, median = ci.tmp_yrtnormmid[2,], ci.low = ci.tmp_yrtnormmid[1,], ci.high = ci.tmp_yrtnormmid[3,], ci.group = "midPrecipNovDecJanFebMar")
+ci.tmp_yrPrecipNovDecJanFebMarlow.df <- data.frame(tmp_yr = tmp_yr, median = ci.tmp_yrtnormlow[2,], ci.low = ci.tmp_yrtnormlow[1,], ci.high = ci.tmp_yrtnormlow[3,], ci.group = "lowPrecipNovDecJanFebMar")
+tmp_yr_PrecipNovDecJanFebMarint <- rbind(ci.tmp_yrPrecipNovDecJanFebMarhigh.df, ci.tmp_yrPrecipNovDecJanFebMarmid.df, ci.tmp_yrPrecipNovDecJanFebMarlow.df)
+ggplot(data = tmp_yr_PrecipNovDecJanFebMarint, aes(x = tmp_yr, y = median, color = ci.group)) + geom_ribbon(aes(x = tmp_yr, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
+  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
+
+
 #tmp_yr and size interaction
 tmp_yrrng <- range(grow_train$tmp_yr,na.rm = TRUE) #setting range for tmp_normrng
 tmp_yr <- seq(tmp_yrrng[1], tmp_yrrng[2], by = 0.50)
@@ -834,36 +1175,55 @@ size <- mean(grow_train$DIA_prev)
 ppt_norm <- mean(grow_train$ppt_norm)
 tmp_norm <- mean(grow_train$tmp_norm)
 Precip_JulAug <- mean(grow_train$Precip_JulAug)
+Precip_NovDecJanFebMar <- mean(grow_train$Precip_NovDecJanFebMar)
 size_range <- quantile(grow_train$DIA_prev, c(0.2, 0.8))
 growthpredictiontmpyr_highsize <- growthpredictiontmpyr_lowsize <- growthpredictiontmpyr_midsize <- matrix(NA, length(plotdatainterval$u_beta_tmp_yr), length(tmp_yr)) 
 
 for(i in 1:length(plotdatainterval$u_beta_tmp_yr)){
   growthpredictiontmpyr_highsize[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*size_range[2] + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
     plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size_range[2]+
     plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size_range[2] + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
-    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size_range[2] + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size_range[2]
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size_range[2] + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size_range[2] +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*size_range[2]
   
   growthpredictiontmpyr_midsize[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*size + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
     plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size+
     plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
-    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*size
   
   growthpredictiontmpyr_lowsize[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*size_range[1] + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
     plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size_range[1]+
     plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size_range[1] + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
-    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size_range[1] + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size_range[1]
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size_range[1] + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size_range[1] +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*size_range[1]
 }
 tmp_yr_prediction_trsizelow <- exp(growthpredictiontmpyr_lowsize)
 tmp_yr_prediction_trsizemid <- exp(growthpredictiontmpyr_midsize)
@@ -887,36 +1247,55 @@ size <- mean(grow_train$DIA_prev)
 tmp_yr <- mean(grow_train$tmp_yr)
 tmp_norm <- mean(grow_train$tmp_norm)
 Precip_JulAug <- mean(grow_train$Precip_JulAug)
+Precip_NovDecJanFebMar <- mean(grow_train$Precip_NovDecJanFebMar)
 tmp_norm_range <- quantile(grow_train$tmp_norm, c(0.2, 0.8))
 growthpredictionpnorm_hightnorm <- growthpredictionpnorm_lowtnorm <- growthpredictionpnorm_midtnorm <- matrix(NA, length(plotdatainterval$u_beta_ppt_norm), length(ppt_norm)) 
 
 for(i in 1:length(plotdatainterval$u_beta_ppt_norm)){
   growthpredictionpnorm_hightnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm_range[2] +
-    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*size + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm_range[2] +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
     plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size+
     plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm_range[2] +
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm_range[2]*tmp_yr + 
-    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm_range[2]*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm_range[2]*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm_range[2] + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*size
   
   growthpredictionpnorm_midtnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*size + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
     plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size+
     plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
-    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*size
   
   growthpredictionpnorm_lowtnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm_range[1] +
-    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*size + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm_range[1] +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
     plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size+
     plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm_range[1] +
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm_range[1]*tmp_yr + 
-    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm_range[1]*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm_range[1]*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm_range[1] + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*size
 }
 pnorm_prediction_trtnormlow <- exp(growthpredictionpnorm_lowtnorm)
 pnorm_prediction_trtnormmid <- exp(growthpredictionpnorm_midtnorm)
@@ -940,49 +1319,212 @@ size <- mean(grow_train$DIA_prev)
 tmp_yr <- mean(grow_train$tmp_yr)
 tmp_norm <- mean(grow_train$tmp_norm)
 Precip_JulAug <- mean(grow_train$Precip_JulAug)
-tmp_norm_range <- quantile(grow_train$tmp_norm, c(0.2, 0.8))
-growthpredictionpnorm_hightnorm <- growthpredictionpnorm_lowtnorm <- growthpredictionpnorm_midtnorm <- matrix(NA, length(plotdatainterval$u_beta_ppt_norm), length(ppt_norm)) 
+Precip_NovDecJanFebMar <- mean(grow_train$Precip_NovDecJanFebMar)
+size_range <- quantile(grow_train$DIA_prev, c(0.2, 0.8))
+growthpredictionpnorm_highsize <- growthpredictionpnorm_lowsize <- growthpredictionpnorm_midsize <- matrix(NA, length(plotdatainterval$u_beta_ppt_norm), length(ppt_norm)) 
 
 for(i in 1:length(plotdatainterval$u_beta_ppt_norm)){
-  growthpredictionpnorm_hightnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+  growthpredictionpnorm_highsize[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*size_range[2] + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
-    plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size_range[2] +
-    plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm_range[2] +
+    plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size_range[2]+
+    plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size_range[2] + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
-    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size_range[2] + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size_range[2]
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size_range[2] + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size_range[2] +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*size_range[2]
   
-  growthpredictionpnorm_midtnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+  growthpredictionpnorm_midsize[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*size + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
     plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size+
     plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
-    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*size
   
-  growthpredictionpnorm_lowtnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+  growthpredictionpnorm_lowsize[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*size_range[1] + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
-    plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size_range[1] +
-    plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm_range[2] +
+    plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size_range[1]+
+    plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size_range[1] + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
-    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size_range[1] + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size_range[1]
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size_range[1] + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size_range[1] +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*size_range[1]
 }
-pnorm_prediction_trtnormlow <- exp(growthpredictionpnorm_lowtnorm)
-pnorm_prediction_trtnormmid <- exp(growthpredictionpnorm_midtnorm)
-pnorm_prediction_trtnormhigh <- exp(growthpredictionpnorm_hightnorm)
-ci.pnorm_tnormhigh <- apply(pnorm_prediction_trtnormhigh, 2, quantile, c(0.025,0.5,0.975)) #confidence intervals
-ci.pnorm_tnormmid <- apply(pnorm_prediction_trtnormmid, 2, quantile, c(0.025, 0.5, 0.975))
-ci.pnorm_tnormlow <- apply(pnorm_prediction_trtnormlow, 2, quantile, c(0.025, 0.5, 0.975))
-ci.pnorm_tnormhigh.df <- data.frame(ppt_norm = ppt_norm, median = ci.pnorm_tnormhigh[2,], ci.low = ci.pnorm_tnormhigh[1,], ci.high = ci.pnorm_tnormhigh[3,], ci.group = "highsize")
-ci.pnorm_tnormmid.df <- data.frame(ppt_norm = ppt_norm, median = ci.pnorm_tnormmid[2,], ci.low = ci.pnorm_tnormmid[1,], ci.high = ci.pnorm_tnormmid[3,], ci.group = "midsize")
-ci.pnorm_tnormlow.df <- data.frame(ppt_norm = ppt_norm, median = ci.pnorm_tnormlow[2,], ci.low = ci.pnorm_tnormlow[1,], ci.high = ci.pnorm_tnormlow[3,], ci.group = "lowsize")
-pnorm_tnormint <- rbind(ci.pnorm_tnormhigh.df, ci.pnorm_tnormmid.df, ci.pnorm_tnormlow.df)
-ggplot(data = pnorm_tnormint, aes(x = ppt_norm, y = median, color = ci.group)) + geom_ribbon(aes(x = ppt_norm, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
+pnorm_prediction_trsizelow <- exp(growthpredictionpnorm_lowsize)
+pnorm_prediction_trsizemid <- exp(growthpredictionpnorm_midsize)
+pnorm_prediction_trsizehigh <- exp(growthpredictionpnorm_highsize)
+ci.pnorm_sizehigh <- apply(pnorm_prediction_trsizehigh, 2, quantile, c(0.025,0.5,0.975)) #confidence intervals
+ci.pnorm_sizemid <- apply(pnorm_prediction_trsizemid, 2, quantile, c(0.025, 0.5, 0.975))
+ci.pnorm_sizelow <- apply(pnorm_prediction_trsizelow, 2, quantile, c(0.025, 0.5, 0.975))
+ci.pnorm_sizehigh.df <- data.frame(ppt_norm = ppt_norm, median = ci.pnorm_sizehigh[2,], ci.low = ci.pnorm_sizehigh[1,], ci.high = ci.pnorm_sizehigh[3,], ci.group = "highsize")
+ci.pnorm_sizemid.df <- data.frame(ppt_norm = ppt_norm, median = ci.pnorm_sizemid[2,], ci.low = ci.pnorm_sizemid[1,], ci.high = ci.pnorm_sizemid[3,], ci.group = "midsize")
+ci.pnorm_sizelow.df <- data.frame(ppt_norm = ppt_norm, median = ci.pnorm_sizelow[2,], ci.low = ci.pnorm_sizelow[1,], ci.high = ci.pnorm_sizelow[3,], ci.group = "lowsize")
+pnorm_sizeint <- rbind(ci.pnorm_sizehigh.df, ci.pnorm_sizemid.df, ci.pnorm_sizelow.df)
+ggplot(data = pnorm_sizeint, aes(x = ppt_norm, y = median, color = ci.group)) + geom_ribbon(aes(x = ppt_norm, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
   geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
+
+
+#ppt_norm and Precip_NovDecJanFebMar
+ppt_normrng <- range(grow_train$ppt_norm,na.rm = TRUE) 
+ppt_norm <- seq(ppt_normrng[1], ppt_normrng[2], by = 0.50)
+size <- mean(grow_train$DIA_prev)
+tmp_yr <- mean(grow_train$tmp_yr)
+tmp_norm <- mean(grow_train$tmp_norm)
+Precip_JulAug <- mean(grow_train$Precip_JulAug)
+Precip_NovDecJanFebMar <- mean(grow_train$Precip_NovDecJanFebMar)
+Precip_NovDecJanFebMar_range <- quantile(grow_train$Precip_NovDecJanFebMar, c(0.2, 0.8))
+growthpredictionpnorm_highPrecipNovDecJanFebMar <- growthpredictionpnorm_lowPrecipNovDecJanFebMar <- growthpredictionpnorm_midPrecipNovDecJanFebMar <- matrix(NA, length(plotdatainterval$u_beta_ppt_norm), length(ppt_norm)) 
+
+for(i in 1:length(plotdatainterval$u_beta_ppt_norm)){
+  growthpredictionpnorm_highPrecipNovDecJanFebMar[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar_range[2] +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_DIA_prev"]*size + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
+    plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
+    plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size+
+    plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
+    plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar_range[2]*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar_range[2]*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar_range[2]*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar_range[2]*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar_range[2]*size
+  
+  growthpredictionpnorm_midPrecipNovDecJanFebMar[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_DIA_prev"]*size + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
+    plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
+    plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size+
+    plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
+    plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*size
+  
+  growthpredictionpnorm_lowPrecipNovDecJanFebMar[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar_range[1] +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_DIA_prev"]*size + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
+    plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
+    plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size+
+    plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
+    plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar_range[1]*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar_range[1]*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar_range[1]*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar_range[1]*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar_range[1]*size
+}
+pnorm_prediction_trPrecipNovDecJanFebMarlow <- exp(growthpredictionpnorm_lowPrecipNovDecJanFebMar)
+pnorm_prediction_trPrecipNovDecJanFebMarmid <- exp(growthpredictionpnorm_midPrecipNovDecJanFebMar)
+pnorm_prediction_trPrecipNovDecJanFebMarhigh <- exp(growthpredictionpnorm_highPrecipNovDecJanFebMar)
+ci.pnorm_PrecipNovDecJanFebMarhigh <- apply(pnorm_prediction_trPrecipNovDecJanFebMarhigh, 2, quantile, c(0.025,0.5,0.975)) #confidence intervals
+ci.pnorm_PrecipNovDecJanFebMarmid <- apply(pnorm_prediction_trPrecipNovDecJanFebMarmid, 2, quantile, c(0.025, 0.5, 0.975))
+ci.pnorm_PrecipNovDecJanFebMarlow <- apply(pnorm_prediction_trPrecipNovDecJanFebMarlow, 2, quantile, c(0.025, 0.5, 0.975))
+ci.pnorm_PrecipNovDecJanFebMarhigh.df <- data.frame(ppt_norm = ppt_norm, median = ci.pnorm_PrecipNovDecJanFebMarhigh[2,], ci.low = ci.pnorm_PrecipNovDecJanFebMarhigh[1,], ci.high = ci.pnorm_PrecipNovDecJanFebMarhigh[3,], ci.group = "highPrecipNovDecJanFebMar")
+ci.pnorm_PrecipNovDecJanFebMarmid.df <- data.frame(ppt_norm = ppt_norm, median = ci.pnorm_PrecipNovDecJanFebMarmid[2,], ci.low = ci.pnorm_PrecipNovDecJanFebMarmid[1,], ci.high = ci.pnorm_PrecipNovDecJanFebMarmid[3,], ci.group = "midPrecipNovDecJanFebMar")
+ci.pnorm_PrecipNovDecJanFebMarlow.df <- data.frame(ppt_norm = ppt_norm, median = ci.pnorm_PrecipNovDecJanFebMarlow[2,], ci.low = ci.pnorm_PrecipNovDecJanFebMarlow[1,], ci.high = ci.pnorm_PrecipNovDecJanFebMarlow[3,], ci.group = "lowPrecipNovDecJanFebMar")
+pnorm_PrecipNovDecJanFebMarint <- rbind(ci.pnorm_PrecipNovDecJanFebMarhigh.df, ci.pnorm_PrecipNovDecJanFebMarmid.df, ci.pnorm_PrecipNovDecJanFebMarlow.df)
+ggplot(data = pnorm_PrecipNovDecJanFebMarint, aes(x = ppt_norm, y = median, color = ci.group)) + geom_ribbon(aes(x = ppt_norm, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
+  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
+
+
+
+#tmp_norm and Precip_NovDecJanFebMar
+tmp_normrng <- range(grow_train$tmp_norm,na.rm = TRUE) 
+tmp_norm <- seq(tmp_normrng[1], tmp_normrng[2], by = 0.50)
+size <- mean(grow_train$DIA_prev)
+tmp_yr <- mean(grow_train$tmp_yr)
+ppt_norm <- mean(grow_train$ppt_norm)
+Precip_JulAug <- mean(grow_train$Precip_JulAug)
+Precip_NovDecJanFebMar <- mean(grow_train$Precip_NovDecJanFebMar)
+Precip_NovDecJanFebMar_range <- quantile(grow_train$Precip_NovDecJanFebMar, c(0.2, 0.8))
+growthpredictiontnorm_highPrecipNovDecJanFebMar <- growthpredictiontnorm_lowPrecipNovDecJanFebMar <- growthpredictiontnorm_midPrecipNovDecJanFebMar <- matrix(NA, length(plotdatainterval$u_beta_tmp_norm), length(tmp_norm)) 
+
+for(i in 1:length(plotdatainterval$u_beta_tmp_norm)){
+  growthpredictiontnorm_highPrecipNovDecJanFebMar[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar_range[2] +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_DIA_prev"]*size + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
+    plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
+    plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size+
+    plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
+    plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar_range[2]*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar_range[2]*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar_range[2]*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar_range[2]*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar_range[2]*size
+  
+  growthpredictiontnorm_midPrecipNovDecJanFebMar[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_DIA_prev"]*size + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
+    plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
+    plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size+
+    plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
+    plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*size
+  
+  growthpredictiontnorm_lowPrecipNovDecJanFebMar[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar_range[1] +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_DIA_prev"]*size + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
+    plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
+    plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size+
+    plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
+    plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar_range[1]*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar_range[1]*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar_range[1]*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar_range[1]*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar_range[1]*size
+}
+tnorm_prediction_trPrecipNovDecJanFebMarlow <- exp(growthpredictiontnorm_lowPrecipNovDecJanFebMar)
+tnorm_prediction_trPrecipNovDecJanFebMarmid <- exp(growthpredictiontnorm_midPrecipNovDecJanFebMar)
+tnorm_prediction_trPrecipNovDecJanFebMarhigh <- exp(growthpredictiontnorm_highPrecipNovDecJanFebMar)
+ci.tnorm_PrecipNovDecJanFebMarhigh <- apply(tnorm_prediction_trPrecipNovDecJanFebMarhigh, 2, quantile, c(0.025,0.5,0.975)) #confidence intervals
+ci.tnorm_PrecipNovDecJanFebMarmid <- apply(tnorm_prediction_trPrecipNovDecJanFebMarmid, 2, quantile, c(0.025, 0.5, 0.975))
+ci.tnorm_PrecipNovDecJanFebMarlow <- apply(tnorm_prediction_trPrecipNovDecJanFebMarlow, 2, quantile, c(0.025, 0.5, 0.975))
+ci.tnorm_PrecipNovDecJanFebMarhigh.df <- data.frame(tmp_norm = tmp_norm, median = ci.tnorm_PrecipNovDecJanFebMarhigh[2,], ci.low = ci.tnorm_PrecipNovDecJanFebMarhigh[1,], ci.high = ci.tnorm_PrecipNovDecJanFebMarhigh[3,], ci.group = "highPrecipNovDecJanFebMar")
+ci.tnorm_PrecipNovDecJanFebMarmid.df <- data.frame(tmp_norm = tmp_norm, median = ci.tnorm_PrecipNovDecJanFebMarmid[2,], ci.low = ci.tnorm_PrecipNovDecJanFebMarmid[1,], ci.high = ci.tnorm_PrecipNovDecJanFebMarmid[3,], ci.group = "midPrecipNovDecJanFebMar")
+ci.tnorm_PrecipNovDecJanFebMarlow.df <- data.frame(tmp_norm = tmp_norm, median = ci.tnorm_PrecipNovDecJanFebMarlow[2,], ci.low = ci.tnorm_PrecipNovDecJanFebMarlow[1,], ci.high = ci.tnorm_PrecipNovDecJanFebMarlow[3,], ci.group = "lowPrecipNovDecJanFebMar")
+tnorm_PrecipNovDecJanFebMarint <- rbind(ci.tnorm_PrecipNovDecJanFebMarhigh.df, ci.tnorm_PrecipNovDecJanFebMarmid.df, ci.tnorm_PrecipNovDecJanFebMarlow.df)
+ggplot(data = tnorm_PrecipNovDecJanFebMarint, aes(x = tmp_norm, y = median, color = ci.group)) + geom_ribbon(aes(x = tmp_norm, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
+  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
+
 
 
 #tmp_norm and size interaction
@@ -990,6 +1532,7 @@ tmp_normrng <- range(grow_train$tmp_norm,na.rm = TRUE) #setting range for tmp_no
 tmp_norm <- seq(tmp_normrng[1], tmp_normrng[2], by = 0.50)
 size <- mean(grow_train$DIA_prev)
 Precip_JulAug <- mean(grow_train$Precip_JulAug)
+Precip_NovDecJanFebMar
 ppt_norm <- mean(grow_train$ppt_norm)
 tmp_yr <- mean(grow_train$tmp_yr)
 size_range <- quantile(grow_train$DIA_prev, c(0.2, 0.8))
@@ -997,31 +1540,49 @@ growthpredictiontnorm_highsize <- growthpredictiontnorm_lowsize <- growthpredict
 
 for(i in 1:length(plotdatainterval$u_beta_tmp_norm)){
   growthpredictiontnorm_highsize[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*size_range[2] + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
     plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size_range[2]+
     plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size_range[2] + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
-    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size_range[2] + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size_range[2]
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size_range[2] + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size_range[2] +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*size_range[2]
   
   growthpredictiontnorm_midsize[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*size + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
     plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size+
     plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
-    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*size
   
   growthpredictiontnorm_lowsize[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
     plotdatainterval[i,"u_beta_DIA_prev"]*size_range[1] + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
     plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
     plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size_range[1]+
     plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
     plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size_range[1] + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
-    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size_range[1] + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size_range[1]
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size_range[1] + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size_range[1] +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*size_range[1]
 }
 tnorm_prediction_trlowsize <- exp(growthpredictiontnorm_lowsize)
 tnorm_prediction_trmidsize <- exp(growthpredictiontnorm_midsize)
@@ -1041,7 +1602,7 @@ ggplot(data = tnorm_sizeint, aes(x = tmp_norm, y = median, color = ci.group)) + 
 grow.monsoon$LONbin <- ifelse(grow.monsoon$LON > -111, "-111 to -109", "-114 to -111")
 grow.monsoon$LATbin <- ifelse(grow.monsoon$LAT > 35, "35 to 37", "32 to 35")
 grow.monsoon$LATLONbin <- paste(grow.monsoon$LONbin, grow.monsoon$LATbin)
-ind.samples <- unique(grow.monsoon[,c("LATLONbin", "treeCD")]) %>% group_by(LATLONbin) %>% sample_n(7)
+ind.samples <- unique(grow.monsoon[,c("LATLONbin", "treeCD")]) %>% group_by(LATLONbin) %>% sample_n(16)
 
 #tmp_yr and tmp_norm
 get.ind.tmp.response<- function(j){
@@ -1059,13 +1620,19 @@ get.ind.tmp.response<- function(j){
   
   for(i in 1:length(plotdatainterval$u_beta_tmp_yr)){
     growthpredictiontmpyr_midtnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-      plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
+      plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+      plotdatainterval[i,"u_beta_tmp_yr"]*tmp_yr +
       plotdatainterval[i,"u_beta_DIA_prev"]*size + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
       plotdatainterval[i,"u_beta_ppt_norm_tmp_yr"]*ppt_norm*tmp_yr + plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug +
       plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size+
       plotdatainterval[i,"u_beta_Precip_JulAug_tmp_yr"]*Precip_JulAug*tmp_yr + plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm +
       plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size + plotdatainterval[i,"u_beta_tmp_norm_tmp_yr"]*tmp_norm*tmp_yr + 
-      plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size
+      plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_tmp_yr_DIA_prev"]*tmp_yr*size +
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_ppt_norm"]*Precip_NovDecJanFebMar*ppt_norm + 
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_norm"]*Precip_NovDecJanFebMar*tmp_norm + 
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Precip_JulAug"]*Precip_NovDecJanFebMar*Precip_JulAug +
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_tmp_yr"]*Precip_NovDecJanFebMar*tmp_yr + 
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_DIA_prev"]*Precip_NovDecJanFebMar*size
   }
   tmp_yr_prediction_trtnormmid <- exp(growthpredictiontmpyr_midtnorm)
   ci.tmp_yrtnormmid <- apply(tmp_yr_prediction_trtnormmid, 2, quantile, c(0.025, 0.5, 0.975))
