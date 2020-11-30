@@ -220,13 +220,14 @@ ppc_dens_overlay(yGtest, as.matrix(plotdata))
 
 #Validation
 sigma <- as.data.frame(fit_grow)[,"sigma_y"]
-mu <- rowSums(xG*plotdatainterval)
-ll <- vector()
-for(i in 1:length(mu)){
-  ll[i] <- sum(dnorm(yG, mu[i], sd = sigma[i], log = TRUE))
+mu <- as.matrix(plotdatainterval) %*% t(xG)
+ll <- matrix(0, length(sigma), length(yG))
+for(i in 1:length(sigma)){
+  ll[i,] <- dnorm(yG, mu[i,], sd = sigma[i], log = TRUE)
 }
 newll <- as.matrix(ll)
-leaveoneout <- loo(as.matrix(ll))
+r_eff <- relative_eff(exp(ll), cores = 8)
+leaveoneout <- loo(as.matrix(ll), r_eff = r_eff, save_psis = TRUE, cores = 8)
 
 
 
