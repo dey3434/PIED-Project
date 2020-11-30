@@ -229,6 +229,17 @@ newll <- as.matrix(ll)
 r_eff <- relative_eff(exp(ll), cores = 8)
 leaveoneout <- loo(as.matrix(ll), r_eff = r_eff, save_psis = TRUE, cores = 8)
 
+yrep <- matrix(0, length(sigma), length(yG))
+for(i in 1:length(sigma)){
+  yrep[i,] <- rnorm(yG, mu[i,], sd = sigma[i])
+}
+psis <- leaveoneout$psis_object
+keep_obs <- sample(1:length(yG), 100)
+lw <- weights(psis)
+ppc_loo_intervals(yG, yrep = yrep, psis_object = psis, subset = keep_obs, order = "median") 
+ppc_loo_pit_overlay(yG, yrep = yrep, lw = lw)
+ppc_loo_pit_qq(yG, yrep = yrep, lw = lw)
+
 
 
 ext_fit <- rstan::extract(fit_grow)
