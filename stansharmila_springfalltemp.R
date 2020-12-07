@@ -3519,207 +3519,9 @@ ggplot(data = merged.response.samples, aes(x = Precip_JulAug, y = median, color 
 
 
 
-#Precip_DecJanFeb and tmp_norm
-grow.monsoon$LONbin <- ifelse(grow.monsoon$LON > -111, "-111 to -109", "-114 to -111")
-grow.monsoon$LATbin <- ifelse(grow.monsoon$LAT > 35, "35 to 37", "32 to 35")
-grow.monsoon$LATLONbin <- paste(grow.monsoon$LONbin, grow.monsoon$LATbin)
-ind.samples <- unique(grow.monsoon[,c("LATLONbin", "treeCD")]) %>% group_by(LATLONbin) %>% sample_n(7)
-
-get.ind.tmp.response<- function(j){
-  tree.subset <- ind.samples[j,]
-  tree.grow <- grow.monsoon %>% filter(LATLONbin == tree.subset$LATLONbin & treeCD == tree.subset$treeCD)
-  
-  Precip_DecJanFebrng <- range(tree.grow$Precip_DecJanFeb,na.rm = TRUE) #setting range for tmp_normrng
-  Precip_DecJanFeb <- seq(Precip_DecJanFebrng[1], Precip_DecJanFebrng[2], by = 0.1)
-  size <- mean(tree.grow$DIA_prev)
-  ppt_norm <- mean(tree.grow$ppt_norm)
-  tmp_norm <- mean(tree.grow$tmp_norm)
-  Tmean_DecJanFeb <- mean(tree.grow$Tmean_DecJanFeb)
-  Tmean_JulAug <- mean(tree.grow$Tmean_JulAug)
-  Precip_JulAug <- mean(tree.grow$Precip_JulAug)
-  tmp_norm_range <- quantile(tree.grow$tmp_norm, c(0.2, 0.8))
-  growthpredictionPrecipDecJanFeb_tmpnorm <- matrix(NA, length(plotdatainterval$u_beta_Precip_DecJanFeb), length(Precip_DecJanFeb)) 
-  
-  for(i in 1:length(plotdatainterval$u_beta_Precip_DecJanFeb)){
-    growthpredictionPrecipDecJanFeb_tmpnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-      plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_DecJanFeb"]*Precip_DecJanFeb +
-      plotdatainterval[i,"u_beta_Tmean_JulAug"]*Tmean_JulAug + plotdatainterval[i,"u_beta_Tmean_DecJanFeb"]*Tmean_DecJanFeb +
-      plotdatainterval[i,"u_beta_DIA_prev"]*size + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
-      plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug + plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size +
-      plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm + plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size+
-      plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_Precip_DecJanFeb_ppt_norm"]*Precip_DecJanFeb*ppt_norm +
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_tmp_norm"]*Precip_DecJanFeb*tmp_norm + 
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_Precip_JulAug"]*Precip_DecJanFeb*Precip_JulAug +
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_Tmean_JulAug"]*Precip_DecJanFeb*Tmean_JulAug + 
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_Tmean_DecJanFeb"]*Precip_DecJanFeb*Tmean_DecJanFeb + 
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_DIA_prev"]*Precip_DecJanFeb*size + plotdatainterval[i,"u_beta_Tmean_JulAug_ppt_norm"]*Tmean_JulAug*ppt_norm +
-      plotdatainterval[i,"u_beta_Tmean_JulAug_tmp_norm"]*Tmean_JulAug*tmp_norm + plotdatainterval[i,"u_beta_Tmean_JulAug_Precip_JulAug"]*Tmean_JulAug*Precip_JulAug + 
-      plotdatainterval[i,"u_beta_Tmean_JulAug_Tmean_DecJanFeb"]*Tmean_JulAug*Tmean_DecJanFeb +
-      plotdatainterval[i,"u_beta_Tmean_JulAug_DIA_prev"]*Tmean_JulAug*size + plotdatainterval[i,"u_beta_Tmean_DecJanFeb_ppt_norm"]*Tmean_DecJanFeb*ppt_norm + 
-      plotdatainterval[i,"u_beta_Tmean_DecJanFeb_tmp_norm"]*Tmean_DecJanFeb*tmp_norm + 
-      plotdatainterval[i,"u_beta_Tmean_DecJanFeb_Precip_JulAug"]*Tmean_DecJanFeb*Precip_JulAug + 
-      plotdatainterval[i,"u_beta_Tmean_DecJanFeb_DIA_prev"]*Tmean_DecJanFeb*size
-  }
-  Precip_DecJanFeb_prediction_trtmpnorm <- exp(growthpredictionPrecipDecJanFeb_tmpnorm)
-  ci.Precip_DecJanFebtmpnorm <- apply(Precip_DecJanFeb_prediction_trtmpnorm, 2, quantile, c(0.025, 0.5, 0.975))
-  ci.Precip_DecJanFebtmpnorm.df <- data.frame(Precip_DecJanFeb = Precip_DecJanFeb, tmp_norm = tmp_norm, median = ci.Precip_DecJanFebtmpnorm[2,], ci.low = ci.Precip_DecJanFebtmpnorm[1,], ci.high = ci.Precip_DecJanFebtmpnorm[3,], ci.group = tree.subset$treeCD)
-  Precip_DecJanFeb_tmpnormint <- rbind(ci.Precip_DecJanFebtmpnorm.df)
-  print(ind.samples[j,])
-  Precip_DecJanFeb_tmpnormint  
-}
-#get.ind.tmp.response(i = 6)
-Precip_DecJanFeb_tree_response <- list()
-Precip_DecJanFeb_tree_response <- lapply(1:length(ind.samples$treeCD), FUN = get.ind.tmp.response)
-Precip_DecJanFeb_tree_response.df <- do.call(rbind, Precip_DecJanFeb_tree_response)
-merged.response.samples <- merge(Precip_DecJanFeb_tree_response.df, ind.samples, by.x = "ci.group", by.y = "treeCD")
-merged.response.samples$ci.group <- as.character(merged.response.samples$ci.group)
-#color by group
-ggplot(data = merged.response.samples, aes(x = Precip_DecJanFeb, y = median, color = ci.group)) + geom_ribbon(aes(x = Precip_DecJanFeb, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
-  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
-#color by LATLONbin
-ggplot(data = merged.response.samples, aes(x = Precip_DecJanFeb, y = median, color = LATLONbin, group = ci.group)) + geom_ribbon(aes(x = Precip_DecJanFeb, ymin = ci.low, ymax = ci.high, fill = LATLONbin, group = ci.group),color = NA, alpha = 0.5) + 
-  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
-#color by tmp_norm
-ggplot(data = merged.response.samples, aes(x = Precip_DecJanFeb, y = median, color = tmp_norm, group = ci.group)) + #geom_ribbon(aes(x = tmp_yr, ymin = ci.low, ymax = ci.high, fill = tmp_norm, group = ci.group),color = NA, alpha = 0.5) + 
-  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
-
-
-
-#Precip_DecJanFeb and ppt_norm
-grow.monsoon$LONbin <- ifelse(grow.monsoon$LON > -111, "-111 to -109", "-114 to -111")
-grow.monsoon$LATbin <- ifelse(grow.monsoon$LAT > 35, "35 to 37", "32 to 35")
-grow.monsoon$LATLONbin <- paste(grow.monsoon$LONbin, grow.monsoon$LATbin)
-ind.samples <- unique(grow.monsoon[,c("LATLONbin", "treeCD")]) %>% group_by(LATLONbin) %>% sample_n(7)
-
-get.ind.tmp.response<- function(j){
-  tree.subset <- ind.samples[j,]
-  tree.grow <- grow.monsoon %>% filter(LATLONbin == tree.subset$LATLONbin & treeCD == tree.subset$treeCD)
-  
-  Precip_DecJanFebrng <- range(tree.grow$Precip_DecJanFeb,na.rm = TRUE) #setting range for tmp_normrng
-  Precip_DecJanFeb <- seq(Precip_DecJanFebrng[1], Precip_DecJanFebrng[2], by = 0.1)
-  size <- mean(tree.grow$DIA_prev)
-  ppt_norm <- mean(tree.grow$ppt_norm)
-  tmp_norm <- mean(tree.grow$tmp_norm)
-  Tmean_DecJanFeb <- mean(tree.grow$Tmean_DecJanFeb)
-  Tmean_JulAug <- mean(tree.grow$Tmean_JulAug)
-  Precip_JulAug <- mean(tree.grow$Precip_JulAug)
-  ppt_norm_range <- quantile(tree.grow$ppt_norm, c(0.2, 0.8))
-  growthpredictionPrecipDecJanFeb_pptnorm <- matrix(NA, length(plotdatainterval$u_beta_Precip_DecJanFeb), length(Precip_DecJanFeb)) 
-  
-  for(i in 1:length(plotdatainterval$u_beta_Precip_DecJanFeb)){
-    growthpredictionPrecipDecJanFeb_pptnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-      plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_DecJanFeb"]*Precip_DecJanFeb +
-      plotdatainterval[i,"u_beta_Tmean_JulAug"]*Tmean_JulAug + plotdatainterval[i,"u_beta_Tmean_DecJanFeb"]*Tmean_DecJanFeb +
-      plotdatainterval[i,"u_beta_DIA_prev"]*size + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
-      plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug + plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size +
-      plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm + plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size+
-      plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_Precip_DecJanFeb_ppt_norm"]*Precip_DecJanFeb*ppt_norm +
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_tmp_norm"]*Precip_DecJanFeb*tmp_norm + 
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_Precip_JulAug"]*Precip_DecJanFeb*Precip_JulAug +
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_Tmean_JulAug"]*Precip_DecJanFeb*Tmean_JulAug + 
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_Tmean_DecJanFeb"]*Precip_DecJanFeb*Tmean_DecJanFeb + 
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_DIA_prev"]*Precip_DecJanFeb*size + plotdatainterval[i,"u_beta_Tmean_JulAug_ppt_norm"]*Tmean_JulAug*ppt_norm +
-      plotdatainterval[i,"u_beta_Tmean_JulAug_tmp_norm"]*Tmean_JulAug*tmp_norm + plotdatainterval[i,"u_beta_Tmean_JulAug_Precip_JulAug"]*Tmean_JulAug*Precip_JulAug + 
-      plotdatainterval[i,"u_beta_Tmean_JulAug_Tmean_DecJanFeb"]*Tmean_JulAug*Tmean_DecJanFeb +
-      plotdatainterval[i,"u_beta_Tmean_JulAug_DIA_prev"]*Tmean_JulAug*size + plotdatainterval[i,"u_beta_Tmean_DecJanFeb_ppt_norm"]*Tmean_DecJanFeb*ppt_norm + 
-      plotdatainterval[i,"u_beta_Tmean_DecJanFeb_tmp_norm"]*Tmean_DecJanFeb*tmp_norm + 
-      plotdatainterval[i,"u_beta_Tmean_DecJanFeb_Precip_JulAug"]*Tmean_DecJanFeb*Precip_JulAug + 
-      plotdatainterval[i,"u_beta_Tmean_DecJanFeb_DIA_prev"]*Tmean_DecJanFeb*size
-  }
-  Precip_DecJanFeb_prediction_trpptnorm <- exp(growthpredictionPrecipDecJanFeb_pptnorm)
-  ci.Precip_DecJanFebpptnorm <- apply(Precip_DecJanFeb_prediction_trpptnorm, 2, quantile, c(0.025, 0.5, 0.975))
-  ci.Precip_DecJanFebpptnorm.df <- data.frame(Precip_DecJanFeb = Precip_DecJanFeb, ppt_norm = ppt_norm, median = ci.Precip_DecJanFebpptnorm[2,], ci.low = ci.Precip_DecJanFebpptnorm[1,], ci.high = ci.Precip_DecJanFebpptnorm[3,], ci.group = tree.subset$treeCD)
-  Precip_DecJanFeb_pptnormint <- rbind(ci.Precip_DecJanFebpptnorm.df)
-  print(ind.samples[j,])
-  Precip_DecJanFeb_pptnormint  
-}
-#get.ind.tmp.response(i = 6)
-Precip_DecJanFeb_tree_response <- list()
-Precip_DecJanFeb_tree_response <- lapply(1:length(ind.samples$treeCD), FUN = get.ind.tmp.response)
-Precip_DecJanFeb_tree_response.df <- do.call(rbind, Precip_DecJanFeb_tree_response)
-merged.response.samples <- merge(Precip_DecJanFeb_tree_response.df, ind.samples, by.x = "ci.group", by.y = "treeCD")
-merged.response.samples$ci.group <- as.character(merged.response.samples$ci.group)
-#color by group
-ggplot(data = merged.response.samples, aes(x = Precip_DecJanFeb, y = median, color = ci.group)) + geom_ribbon(aes(x = Precip_DecJanFeb, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
-  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
-#color by LATLONbin
-ggplot(data = merged.response.samples, aes(x = Precip_DecJanFeb, y = median, color = LATLONbin, group = ci.group)) + geom_ribbon(aes(x = Precip_DecJanFeb, ymin = ci.low, ymax = ci.high, fill = LATLONbin, group = ci.group),color = NA, alpha = 0.5) + 
-  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
-#color by tmp_norm
-ggplot(data = merged.response.samples, aes(x = Precip_DecJanFeb, y = median, color = ppt_norm, group = ci.group)) + #geom_ribbon(aes(x = tmp_yr, ymin = ci.low, ymax = ci.high, fill = tmp_norm, group = ci.group),color = NA, alpha = 0.5) + 
-  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
-
-
-
-#Precip_DecJanFeb and Tmean_DecJanFeb
-grow.monsoon$LONbin <- ifelse(grow.monsoon$LON > -111, "-111 to -109", "-114 to -111")
-grow.monsoon$LATbin <- ifelse(grow.monsoon$LAT > 35, "35 to 37", "32 to 35")
-grow.monsoon$LATLONbin <- paste(grow.monsoon$LONbin, grow.monsoon$LATbin)
-ind.samples <- unique(grow.monsoon[,c("LATLONbin", "treeCD")]) %>% group_by(LATLONbin) %>% sample_n(7)
-
-get.ind.tmp.response<- function(j){
-  tree.subset <- ind.samples[j,]
-  tree.grow <- grow.monsoon %>% filter(LATLONbin == tree.subset$LATLONbin & treeCD == tree.subset$treeCD)
-  
-  Precip_DecJanFebrng <- range(tree.grow$Precip_DecJanFeb,na.rm = TRUE) #setting range for tmp_normrng
-  Precip_DecJanFeb <- seq(Precip_DecJanFebrng[1], Precip_DecJanFebrng[2], by = 0.1)
-  size <- mean(tree.grow$DIA_prev)
-  ppt_norm <- mean(tree.grow$ppt_norm)
-  tmp_norm <- mean(tree.grow$tmp_norm)
-  Tmean_DecJanFeb <- mean(tree.grow$Tmean_DecJanFeb)
-  Tmean_JulAug <- mean(tree.grow$Tmean_JulAug)
-  Precip_JulAug <- mean(tree.grow$Precip_JulAug)
-  Tmean_DecJanFeb_range <- quantile(tree.grow$Tmean_DecJanFeb, c(0.2, 0.8))
-  growthpredictionPrecipDecJanFeb_TmeanDecJanFeb <- matrix(NA, length(plotdatainterval$u_beta_Precip_DecJanFeb), length(Precip_DecJanFeb)) 
-  
-  for(i in 1:length(plotdatainterval$u_beta_Precip_DecJanFeb)){
-    growthpredictionPrecipDecJanFeb_TmeanDecJanFeb[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-      plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_DecJanFeb"]*Precip_DecJanFeb +
-      plotdatainterval[i,"u_beta_Tmean_JulAug"]*Tmean_JulAug + plotdatainterval[i,"u_beta_Tmean_DecJanFeb"]*Tmean_DecJanFeb +
-      plotdatainterval[i,"u_beta_DIA_prev"]*size + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
-      plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug + plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size +
-      plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm + plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size+
-      plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_Precip_DecJanFeb_ppt_norm"]*Precip_DecJanFeb*ppt_norm +
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_tmp_norm"]*Precip_DecJanFeb*tmp_norm + 
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_Precip_JulAug"]*Precip_DecJanFeb*Precip_JulAug +
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_Tmean_JulAug"]*Precip_DecJanFeb*Tmean_JulAug + 
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_Tmean_DecJanFeb"]*Precip_DecJanFeb*Tmean_DecJanFeb + 
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_DIA_prev"]*Precip_DecJanFeb*size + plotdatainterval[i,"u_beta_Tmean_JulAug_ppt_norm"]*Tmean_JulAug*ppt_norm +
-      plotdatainterval[i,"u_beta_Tmean_JulAug_tmp_norm"]*Tmean_JulAug*tmp_norm + plotdatainterval[i,"u_beta_Tmean_JulAug_Precip_JulAug"]*Tmean_JulAug*Precip_JulAug + 
-      plotdatainterval[i,"u_beta_Tmean_JulAug_Tmean_DecJanFeb"]*Tmean_JulAug*Tmean_DecJanFeb +
-      plotdatainterval[i,"u_beta_Tmean_JulAug_DIA_prev"]*Tmean_JulAug*size + plotdatainterval[i,"u_beta_Tmean_DecJanFeb_ppt_norm"]*Tmean_DecJanFeb*ppt_norm + 
-      plotdatainterval[i,"u_beta_Tmean_DecJanFeb_tmp_norm"]*Tmean_DecJanFeb*tmp_norm + 
-      plotdatainterval[i,"u_beta_Tmean_DecJanFeb_Precip_JulAug"]*Tmean_DecJanFeb*Precip_JulAug + 
-      plotdatainterval[i,"u_beta_Tmean_DecJanFeb_DIA_prev"]*Tmean_DecJanFeb*size
-  }
-  Precip_DecJanFeb_prediction_trTmeanDecJanFeb <- exp(growthpredictionPrecipDecJanFeb_TmeanDecJanFeb)
-  ci.Precip_DecJanFebTmeanDecJanFeb <- apply(Precip_DecJanFeb_prediction_trTmeanDecJanFeb, 2, quantile, c(0.025, 0.5, 0.975))
-  ci.Precip_DecJanFebTmeanDecJanFeb.df <- data.frame(Precip_DecJanFeb = Precip_DecJanFeb, Tmean_DecJanFeb = Tmean_DecJanFeb, median = ci.Precip_DecJanFebTmeanDecJanFeb[2,], ci.low = ci.Precip_DecJanFebTmeanDecJanFeb[1,], ci.high = ci.Precip_DecJanFebTmeanDecJanFeb[3,], ci.group = tree.subset$treeCD)
-  Precip_DecJanFeb_TmeanDecJanFebint <- rbind(ci.Precip_DecJanFebTmeanDecJanFeb.df)
-  print(ind.samples[j,])
-  Precip_DecJanFeb_TmeanDecJanFebint  
-}
-#get.ind.tmp.response(i = 6)
-Precip_DecJanFeb_tree_response <- list()
-Precip_DecJanFeb_tree_response <- lapply(1:length(ind.samples$treeCD), FUN = get.ind.tmp.response)
-Precip_DecJanFeb_tree_response.df <- do.call(rbind, Precip_DecJanFeb_tree_response)
-merged.response.samples <- merge(Precip_DecJanFeb_tree_response.df, ind.samples, by.x = "ci.group", by.y = "treeCD")
-merged.response.samples$ci.group <- as.character(merged.response.samples$ci.group)
-#color by group
-ggplot(data = merged.response.samples, aes(x = Precip_DecJanFeb, y = median, color = ci.group)) + geom_ribbon(aes(x = Precip_DecJanFeb, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
-  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
-#color by LATLONbin
-ggplot(data = merged.response.samples, aes(x = Precip_DecJanFeb, y = median, color = LATLONbin, group = ci.group)) + geom_ribbon(aes(x = Precip_DecJanFeb, ymin = ci.low, ymax = ci.high, fill = LATLONbin, group = ci.group),color = NA, alpha = 0.5) + 
-  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
-#color by tmp_norm
-ggplot(data = merged.response.samples, aes(x = Precip_DecJanFeb, y = median, color = Tmean_DecJanFeb, group = ci.group)) + #geom_ribbon(aes(x = tmp_yr, ymin = ci.low, ymax = ci.high, fill = tmp_norm, group = ci.group),color = NA, alpha = 0.5) + 
-  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
-
-
-
-#Precip_JulAug and Tmean_DecJanFeb
-grow.monsoon$LONbin <- ifelse(grow.monsoon$LON > -111, "-111 to -109", "-114 to -111")
-grow.monsoon$LATbin <- ifelse(grow.monsoon$LAT > 35, "35 to 37", "32 to 35")
+#Precip_JulAug and Tmean_SepOct
+grow.monsoon$LONbin <- ifelse(grow.monsoon$LON > -109, "-109 to -104", "-114 to -109")
+grow.monsoon$LATbin <- ifelse(grow.monsoon$LAT > 37, "37 to 41", "32 to 37")
 grow.monsoon$LATLONbin <- paste(grow.monsoon$LONbin, grow.monsoon$LATbin)
 ind.samples <- unique(grow.monsoon[,c("LATLONbin", "treeCD")]) %>% group_by(LATLONbin) %>% sample_n(7)
 
@@ -3732,38 +3534,38 @@ get.ind.tmp.response<- function(j){
   size <- mean(tree.grow$DIA_prev)
   ppt_norm <- mean(tree.grow$ppt_norm)
   tmp_norm <- mean(tree.grow$tmp_norm)
-  Tmean_DecJanFeb <- mean(tree.grow$Tmean_DecJanFeb)
-  Tmean_JulAug <- mean(tree.grow$Tmean_JulAug)
-  Precip_DecJanFeb <- mean(tree.grow$Precip_DecJanFeb)
-  Tmean_DecJanFeb_range <- quantile(tree.grow$Tmean_DecJanFeb, c(0.2, 0.8))
-  growthpredictionPrecipJulAug_TmeanDecJanFeb <- matrix(NA, length(plotdatainterval$u_beta_Precip_JulAug), length(Precip_JulAug)) 
+  Tmean_SepOct <- mean(tree.grow$Tmean_SepOct)
+  Tmean_AprMayJun <- mean(tree.grow$Tmean_AprMayJun)
+  Precip_NovDecJanFebMar <- mean(tree.grow$Precip_NovDecJanFebMar)
+  Tmean_SepOct_range <- quantile(tree.grow$Tmean_SepOct, c(0.2, 0.8))
+  growthpredictionPrecipJulAug_TmeanSepOct <- matrix(NA, length(plotdatainterval$u_beta_Precip_JulAug), length(Precip_JulAug)) 
   
   for(i in 1:length(plotdatainterval$u_beta_Precip_JulAug)){
-    growthpredictionPrecipJulAug_TmeanDecJanFeb[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-      plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_DecJanFeb"]*Precip_DecJanFeb +
-      plotdatainterval[i,"u_beta_Tmean_JulAug"]*Tmean_JulAug + plotdatainterval[i,"u_beta_Tmean_DecJanFeb"]*Tmean_DecJanFeb +
-      plotdatainterval[i,"u_beta_DIA_prev"]*size + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
-      plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug + plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size +
-      plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm + plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size+
-      plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_Precip_DecJanFeb_ppt_norm"]*Precip_DecJanFeb*ppt_norm +
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_tmp_norm"]*Precip_DecJanFeb*tmp_norm + 
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_Precip_JulAug"]*Precip_DecJanFeb*Precip_JulAug +
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_Tmean_JulAug"]*Precip_DecJanFeb*Tmean_JulAug + 
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_Tmean_DecJanFeb"]*Precip_DecJanFeb*Tmean_DecJanFeb + 
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_DIA_prev"]*Precip_DecJanFeb*size + plotdatainterval[i,"u_beta_Tmean_JulAug_ppt_norm"]*Tmean_JulAug*ppt_norm +
-      plotdatainterval[i,"u_beta_Tmean_JulAug_tmp_norm"]*Tmean_JulAug*tmp_norm + plotdatainterval[i,"u_beta_Tmean_JulAug_Precip_JulAug"]*Tmean_JulAug*Precip_JulAug + 
-      plotdatainterval[i,"u_beta_Tmean_JulAug_Tmean_DecJanFeb"]*Tmean_JulAug*Tmean_DecJanFeb +
-      plotdatainterval[i,"u_beta_Tmean_JulAug_DIA_prev"]*Tmean_JulAug*size + plotdatainterval[i,"u_beta_Tmean_DecJanFeb_ppt_norm"]*Tmean_DecJanFeb*ppt_norm + 
-      plotdatainterval[i,"u_beta_Tmean_DecJanFeb_tmp_norm"]*Tmean_DecJanFeb*tmp_norm + 
-      plotdatainterval[i,"u_beta_Tmean_DecJanFeb_Precip_JulAug"]*Tmean_DecJanFeb*Precip_JulAug + 
-      plotdatainterval[i,"u_beta_Tmean_DecJanFeb_DIA_prev"]*Tmean_DecJanFeb*size
+    growthpredictionPrecipJulAug_TmeanSepOct[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+      plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+      plotdatainterval[i,"u_beta_Tmean_AprMayJun"]*Tmean_AprMayJun + plotdatainterval[i,"u_beta_Tmean_SepOct"]*Tmean_SepOct +
+      plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
+      plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug + plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*x +
+      plotdatainterval[i,"u_beta_ppt_norm_Precip_NovDecJanFebMar"]*ppt_norm*Precip_NovDecJanFebMar + 
+      plotdatainterval[i,"u_beta_ppt_norm_Tmean_AprMayJun"]*ppt_norm*Tmean_AprMayJun +  plotdatainterval[i,"u_beta_ppt_norm_Tmean_SepOct"]*ppt_norm*Tmean_SepOct +
+      plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_norm_Precip_JulAug"]*tmp_norm*Precip_JulAug +
+      plotdatainterval[i,"u_beta_tmp_norm_Precip_NovDecJanFebMar"]*tmp_norm*Precip_NovDecJanFebMar + 
+      plotdatainterval[i,"u_beta_tmp_norm_Tmean_AprMayJun"]*tmp_norm*Tmean_AprMayJun + plotdatainterval[i,"u_beta_tmp_norm_Tmean_SepOct"]*tmp_norm*Tmean_SepOct + 
+      plotdatainterval[i,"u_beta_DIA_prev_Precip_JulAug"]*x*Precip_JulAug + plotdatainterval[i,"u_beta_DIA_prev_Precip_NovDecJanFebMar"]*x*Precip_NovDecJanFebMar + 
+      plotdatainterval[i,"u_beta_DIA_prev_Tmean_AprMayJun"]*x*Tmean_AprMayJun + plotdatainterval[i,"u_beta_DIA_prev_Tmean_SepOct"]*x*Tmean_SepOct + 
+      plotdatainterval[i,"u_beta_Precip_JulAug_Precip_NovDecJanFebMar"]*Precip_JulAug*Precip_NovDecJanFebMar +
+      plotdatainterval[i,"u_beta_Precip_JulAug_Tmean_AprMayJun"]*Precip_JulAug*Tmean_AprMayJun + 
+      plotdatainterval[i,"u_beta_Precip_JulAug_Tmean_SepOct"]*Precip_JulAug*Tmean_SepOct + 
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Tmean_AprMayJun"]*Precip_NovDecJanFebMar*Tmean_AprMayJun +  
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Tmean_SepOct"]*Precip_NovDecJanFebMar*Tmean_SepOct + 
+      plotdatainterval[i,"u_beta_Tmean_AprMayJun_Tmean_SepOct"]*Tmean_AprMayJun*Tmean_SepOct
   }
-  Precip_JulAug_prediction_trTmeanDecJanFeb <- exp(growthpredictionPrecipJulAug_TmeanDecJanFeb)
-  ci.Precip_JulAugTmeanDecJanFeb <- apply(Precip_JulAug_prediction_trTmeanDecJanFeb, 2, quantile, c(0.025, 0.5, 0.975))
-  ci.Precip_JulAugTmeanDecJanFeb.df <- data.frame(Precip_JulAug = Precip_JulAug, Tmean_DecJanFeb = Tmean_DecJanFeb, median = ci.Precip_JulAugTmeanDecJanFeb[2,], ci.low = ci.Precip_JulAugTmeanDecJanFeb[1,], ci.high = ci.Precip_JulAugTmeanDecJanFeb[3,], ci.group = tree.subset$treeCD)
-  Precip_JulAug_TmeanDecJanFebint <- rbind(ci.Precip_JulAugTmeanDecJanFeb.df)
+  Precip_JulAug_prediction_trTmeanSepOct <- exp(growthpredictionPrecipJulAug_TmeanSepOct)
+  ci.Precip_JulAugTmeanSepOct <- apply(Precip_JulAug_prediction_trTmeanSepOct, 2, quantile, c(0.025, 0.5, 0.975))
+  ci.Precip_JulAugTmeanSepOct.df <- data.frame(Precip_JulAug = Precip_JulAug, Tmean_SepOct = Tmean_SepOct, median = ci.Precip_JulAugTmeanSepOct[2,], ci.low = ci.Precip_JulAugTmeanSepOct[1,], ci.high = ci.Precip_JulAugTmeanSepOct[3,], ci.group = tree.subset$treeCD)
+  Precip_JulAug_TmeanSepOctint <- rbind(ci.Precip_JulAugTmeanSepOct.df)
   print(ind.samples[j,])
-  Precip_JulAug_TmeanDecJanFebint  
+  Precip_JulAug_TmeanSepOctint  
 }
 #get.ind.tmp.response(i = 6)
 Precip_JulAug_tree_response <- list()
@@ -3778,13 +3580,14 @@ ggplot(data = merged.response.samples, aes(x = Precip_JulAug, y = median, color 
 ggplot(data = merged.response.samples, aes(x = Precip_JulAug, y = median, color = LATLONbin, group = ci.group)) + geom_ribbon(aes(x = Precip_JulAug, ymin = ci.low, ymax = ci.high, fill = LATLONbin, group = ci.group),color = NA, alpha = 0.5) + 
   geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
 #color by tmp_norm
-ggplot(data = merged.response.samples, aes(x = Precip_JulAug, y = median, color = Tmean_DecJanFeb, group = ci.group)) + #geom_ribbon(aes(x = tmp_yr, ymin = ci.low, ymax = ci.high, fill = tmp_norm, group = ci.group),color = NA, alpha = 0.5) + 
+ggplot(data = merged.response.samples, aes(x = Precip_JulAug, y = median, color = Tmean_SepOct, group = ci.group)) + #geom_ribbon(aes(x = tmp_yr, ymin = ci.low, ymax = ci.high, fill = tmp_norm, group = ci.group),color = NA, alpha = 0.5) + 
   geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
 
 
-#Tmean_DecJanFeb and ppt_norm
-grow.monsoon$LONbin <- ifelse(grow.monsoon$LON > -111, "-111 to -109", "-114 to -111")
-grow.monsoon$LATbin <- ifelse(grow.monsoon$LAT > 35, "35 to 37", "32 to 35")
+
+#Precip_NovDecJanFebMar and tmp_norm
+grow.monsoon$LONbin <- ifelse(grow.monsoon$LON > -109, "-109 to -104", "-114 to -109")
+grow.monsoon$LATbin <- ifelse(grow.monsoon$LAT > 37, "37 to 41", "32 to 37")
 grow.monsoon$LATLONbin <- paste(grow.monsoon$LONbin, grow.monsoon$LATbin)
 ind.samples <- unique(grow.monsoon[,c("LATLONbin", "treeCD")]) %>% group_by(LATLONbin) %>% sample_n(7)
 
@@ -3792,58 +3595,321 @@ get.ind.tmp.response<- function(j){
   tree.subset <- ind.samples[j,]
   tree.grow <- grow.monsoon %>% filter(LATLONbin == tree.subset$LATLONbin & treeCD == tree.subset$treeCD)
   
-  Tmean_DecJanFebrng <- range(tree.grow$Tmean_DecJanFeb,na.rm = TRUE) #setting range for tmp_normrng
-  Tmean_DecJanFeb <- seq(Tmean_DecJanFebrng[1], Tmean_DecJanFebrng[2], by = 0.1)
+  Precip_NovDecJanFebMarrng <- range(tree.grow$Precip_NovDecJanFebMar,na.rm = TRUE) #setting range for tmp_normrng
+  Precip_NovDecJanFebMar <- seq(Precip_NovDecJanFebMarrng[1], Precip_NovDecJanFebMarrng[2], by = 0.1)
   size <- mean(tree.grow$DIA_prev)
   ppt_norm <- mean(tree.grow$ppt_norm)
   tmp_norm <- mean(tree.grow$tmp_norm)
+  Tmean_SepOct <- mean(tree.grow$Tmean_SepOct)
+  Tmean_AprMayJun <- mean(tree.grow$Tmean_AprMayJun)
   Precip_JulAug <- mean(tree.grow$Precip_JulAug)
-  Tmean_JulAug <- mean(tree.grow$Tmean_JulAug)
-  Precip_DecJanFeb <- mean(tree.grow$Precip_DecJanFeb)
-  ppt_norm_range <- quantile(tree.grow$ppt_norm, c(0.2, 0.8))
-  growthpredictionTmeanDecJanFeb_pptnorm <- matrix(NA, length(plotdatainterval$u_beta_Tmean_DecJanFeb), length(Tmean_DecJanFeb)) 
+  tmp_norm_range <- quantile(tree.grow$tmp_norm, c(0.2, 0.8))
+  growthpredictionPrecipNovDecJanFebMar_tmpnorm <- matrix(NA, length(plotdatainterval$u_beta_Precip_NovDecJanFebMar), length(Precip_NovDecJanFebMar)) 
   
-  for(i in 1:length(plotdatainterval$u_beta_Tmean_DecJanFeb)){
-    growthpredictionTmeanDecJanFeb_pptnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
-      plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_DecJanFeb"]*Precip_DecJanFeb +
-      plotdatainterval[i,"u_beta_Tmean_JulAug"]*Tmean_JulAug + plotdatainterval[i,"u_beta_Tmean_DecJanFeb"]*Tmean_DecJanFeb +
-      plotdatainterval[i,"u_beta_DIA_prev"]*size + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
-      plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug + plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*size +
-      plotdatainterval[i,"u_beta_Precip_JulAug_tmp_norm"]*Precip_JulAug*tmp_norm + plotdatainterval[i,"u_beta_Precip_JulAug_DIA_prev"]*Precip_JulAug*size+
-      plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*size + plotdatainterval[i,"u_beta_Precip_DecJanFeb_ppt_norm"]*Precip_DecJanFeb*ppt_norm +
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_tmp_norm"]*Precip_DecJanFeb*tmp_norm + 
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_Precip_JulAug"]*Precip_DecJanFeb*Precip_JulAug +
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_Tmean_JulAug"]*Precip_DecJanFeb*Tmean_JulAug + 
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_Tmean_DecJanFeb"]*Precip_DecJanFeb*Tmean_DecJanFeb + 
-      plotdatainterval[i,"u_beta_Precip_DecJanFeb_DIA_prev"]*Precip_DecJanFeb*size + plotdatainterval[i,"u_beta_Tmean_JulAug_ppt_norm"]*Tmean_JulAug*ppt_norm +
-      plotdatainterval[i,"u_beta_Tmean_JulAug_tmp_norm"]*Tmean_JulAug*tmp_norm + plotdatainterval[i,"u_beta_Tmean_JulAug_Precip_JulAug"]*Tmean_JulAug*Precip_JulAug + 
-      plotdatainterval[i,"u_beta_Tmean_JulAug_Tmean_DecJanFeb"]*Tmean_JulAug*Tmean_DecJanFeb +
-      plotdatainterval[i,"u_beta_Tmean_JulAug_DIA_prev"]*Tmean_JulAug*size + plotdatainterval[i,"u_beta_Tmean_DecJanFeb_ppt_norm"]*Tmean_DecJanFeb*ppt_norm + 
-      plotdatainterval[i,"u_beta_Tmean_DecJanFeb_tmp_norm"]*Tmean_DecJanFeb*tmp_norm + 
-      plotdatainterval[i,"u_beta_Tmean_DecJanFeb_Precip_JulAug"]*Tmean_DecJanFeb*Precip_JulAug + 
-      plotdatainterval[i,"u_beta_Tmean_DecJanFeb_DIA_prev"]*Tmean_DecJanFeb*size
+  for(i in 1:length(plotdatainterval$u_beta_Precip_NovDecJanFebMar)){
+    growthpredictionPrecipNovDecJanFebMar_tmpnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+      plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+      plotdatainterval[i,"u_beta_Tmean_AprMayJun"]*Tmean_AprMayJun + plotdatainterval[i,"u_beta_Tmean_SepOct"]*Tmean_SepOct +
+      plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
+      plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug + plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*x +
+      plotdatainterval[i,"u_beta_ppt_norm_Precip_NovDecJanFebMar"]*ppt_norm*Precip_NovDecJanFebMar + 
+      plotdatainterval[i,"u_beta_ppt_norm_Tmean_AprMayJun"]*ppt_norm*Tmean_AprMayJun +  plotdatainterval[i,"u_beta_ppt_norm_Tmean_SepOct"]*ppt_norm*Tmean_SepOct +
+      plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_norm_Precip_JulAug"]*tmp_norm*Precip_JulAug +
+      plotdatainterval[i,"u_beta_tmp_norm_Precip_NovDecJanFebMar"]*tmp_norm*Precip_NovDecJanFebMar + 
+      plotdatainterval[i,"u_beta_tmp_norm_Tmean_AprMayJun"]*tmp_norm*Tmean_AprMayJun + plotdatainterval[i,"u_beta_tmp_norm_Tmean_SepOct"]*tmp_norm*Tmean_SepOct + 
+      plotdatainterval[i,"u_beta_DIA_prev_Precip_JulAug"]*x*Precip_JulAug + plotdatainterval[i,"u_beta_DIA_prev_Precip_NovDecJanFebMar"]*x*Precip_NovDecJanFebMar + 
+      plotdatainterval[i,"u_beta_DIA_prev_Tmean_AprMayJun"]*x*Tmean_AprMayJun + plotdatainterval[i,"u_beta_DIA_prev_Tmean_SepOct"]*x*Tmean_SepOct + 
+      plotdatainterval[i,"u_beta_Precip_JulAug_Precip_NovDecJanFebMar"]*Precip_JulAug*Precip_NovDecJanFebMar +
+      plotdatainterval[i,"u_beta_Precip_JulAug_Tmean_AprMayJun"]*Precip_JulAug*Tmean_AprMayJun + 
+      plotdatainterval[i,"u_beta_Precip_JulAug_Tmean_SepOct"]*Precip_JulAug*Tmean_SepOct + 
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Tmean_AprMayJun"]*Precip_NovDecJanFebMar*Tmean_AprMayJun +  
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Tmean_SepOct"]*Precip_NovDecJanFebMar*Tmean_SepOct + 
+      plotdatainterval[i,"u_beta_Tmean_AprMayJun_Tmean_SepOct"]*Tmean_AprMayJun*Tmean_SepOct
   }
-  Tmean_DecJanFeb_prediction_trpptnorm <- exp(growthpredictionTmeanDecJanFeb_pptnorm)
-  ci.Tmean_DecJanFebpptnorm <- apply(Tmean_DecJanFeb_prediction_trpptnorm, 2, quantile, c(0.025, 0.5, 0.975))
-  ci.Tmean_DecJanFebpptnorm.df <- data.frame(Tmean_DecJanFeb = Tmean_DecJanFeb, ppt_norm = ppt_norm, median = ci.Tmean_DecJanFebpptnorm[2,], ci.low = ci.Tmean_DecJanFebpptnorm[1,], ci.high = ci.Tmean_DecJanFebpptnorm[3,], ci.group = tree.subset$treeCD)
-  Tmean_DecJanFeb_pptnormint <- rbind(ci.Tmean_DecJanFebpptnorm.df)
+  Precip_NovDecJanFebMar_prediction_trtmpnorm <- exp(growthpredictionPrecipNovDecJanFebMar_tmpnorm)
+  ci.Precip_NovDecJanFebMartmpnorm <- apply(Precip_NovDecJanFebMar_prediction_trtmpnorm, 2, quantile, c(0.025, 0.5, 0.975))
+  ci.Precip_NovDecJanFebMartmpnorm.df <- data.frame(Precip_NovDecJanFebMar = Precip_NovDecJanFebMar, tmp_norm = tmp_norm, median = ci.Precip_NovDecJanFebMartmpnorm[2,], ci.low = ci.Precip_NovDecJanFebMartmpnorm[1,], ci.high = ci.Precip_NovDecJanFebMartmpnorm[3,], ci.group = tree.subset$treeCD)
+  Precip_NovDecJanFebMar_tmpnormint <- rbind(ci.Precip_NovDecJanFebMartmpnorm.df)
   print(ind.samples[j,])
-  Tmean_DecJanFeb_pptnormint  
+  Precip_NovDecJanFebMar_tmpnormint  
 }
 #get.ind.tmp.response(i = 6)
-Tmean_DecJanFeb_tree_response <- list()
-Tmean_DecJanFeb_tree_response <- lapply(1:length(ind.samples$treeCD), FUN = get.ind.tmp.response)
-Tmean_DecJanFeb_tree_response.df <- do.call(rbind, Tmean_DecJanFeb_tree_response)
-merged.response.samples <- merge(Tmean_DecJanFeb_tree_response.df, ind.samples, by.x = "ci.group", by.y = "treeCD")
+Precip_NovDecJanFebMar_tree_response <- list()
+Precip_NovDecJanFebMar_tree_response <- lapply(1:length(ind.samples$treeCD), FUN = get.ind.tmp.response)
+Precip_NovDecJanFebMar_tree_response.df <- do.call(rbind, Precip_NovDecJanFebMar_tree_response)
+merged.response.samples <- merge(Precip_NovDecJanFebMar_tree_response.df, ind.samples, by.x = "ci.group", by.y = "treeCD")
 merged.response.samples$ci.group <- as.character(merged.response.samples$ci.group)
 #color by group
-ggplot(data = merged.response.samples, aes(x = Tmean_DecJanFeb, y = median, color = ci.group)) + geom_ribbon(aes(x = Tmean_DecJanFeb, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
+ggplot(data = merged.response.samples, aes(x = Precip_NovDecJanFebMar, y = median, color = ci.group)) + geom_ribbon(aes(x = Precip_NovDecJanFebMar, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
   geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
 #color by LATLONbin
-ggplot(data = merged.response.samples, aes(x = Tmean_DecJanFeb, y = median, color = LATLONbin, group = ci.group)) + geom_ribbon(aes(x = Tmean_DecJanFeb, ymin = ci.low, ymax = ci.high, fill = LATLONbin, group = ci.group),color = NA, alpha = 0.5) + 
+ggplot(data = merged.response.samples, aes(x = Precip_NovDecJanFebMar, y = median, color = LATLONbin, group = ci.group)) + geom_ribbon(aes(x = Precip_NovDecJanFebMar, ymin = ci.low, ymax = ci.high, fill = LATLONbin, group = ci.group),color = NA, alpha = 0.5) + 
   geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
 #color by tmp_norm
-ggplot(data = merged.response.samples, aes(x = Tmean_DecJanFeb, y = median, color = ppt_norm, group = ci.group)) + #geom_ribbon(aes(x = tmp_yr, ymin = ci.low, ymax = ci.high, fill = tmp_norm, group = ci.group),color = NA, alpha = 0.5) + 
+ggplot(data = merged.response.samples, aes(x = Precip_NovDecJanFebMar, y = median, color = tmp_norm, group = ci.group)) + #geom_ribbon(aes(x = tmp_yr, ymin = ci.low, ymax = ci.high, fill = tmp_norm, group = ci.group),color = NA, alpha = 0.5) + 
+  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
+
+
+
+#Precip_NovDecJanFebMar and ppt_norm
+grow.monsoon$LONbin <- ifelse(grow.monsoon$LON > -109, "-109 to -104", "-114 to -109")
+grow.monsoon$LATbin <- ifelse(grow.monsoon$LAT > 37, "37 to 41", "32 to 37")
+grow.monsoon$LATLONbin <- paste(grow.monsoon$LONbin, grow.monsoon$LATbin)
+ind.samples <- unique(grow.monsoon[,c("LATLONbin", "treeCD")]) %>% group_by(LATLONbin) %>% sample_n(7)
+
+get.ind.tmp.response<- function(j){
+  tree.subset <- ind.samples[j,]
+  tree.grow <- grow.monsoon %>% filter(LATLONbin == tree.subset$LATLONbin & treeCD == tree.subset$treeCD)
+  
+  Precip_NovDecJanFebMarrng <- range(tree.grow$Precip_NovDecJanFebMar,na.rm = TRUE) #setting range for tmp_normrng
+  Precip_NovDecJanFebMar <- seq(Precip_NovDecJanFebMarrng[1], Precip_NovDecJanFebMarrng[2], by = 0.1)
+  size <- mean(tree.grow$DIA_prev)
+  ppt_norm <- mean(tree.grow$ppt_norm)
+  tmp_norm <- mean(tree.grow$tmp_norm)
+  Tmean_SepOct <- mean(tree.grow$Tmean_SepOct)
+  Tmean_AprMayJun <- mean(tree.grow$Tmean_AprMayJun)
+  Precip_JulAug <- mean(tree.grow$Precip_JulAug)
+  ppt_norm_range <- quantile(tree.grow$ppt_norm, c(0.2, 0.8))
+  growthpredictionPrecipNovDecJanFebMar_pptnorm <- matrix(NA, length(plotdatainterval$u_beta_Precip_NovDecJanFebMar), length(Precip_NovDecJanFebMar)) 
+  
+  for(i in 1:length(plotdatainterval$u_beta_Precip_NovDecJanFebMar)){
+    growthpredictionPrecipNovDecJanFebMar_pptnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+      plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+      plotdatainterval[i,"u_beta_Tmean_AprMayJun"]*Tmean_AprMayJun + plotdatainterval[i,"u_beta_Tmean_SepOct"]*Tmean_SepOct +
+      plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
+      plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug + plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*x +
+      plotdatainterval[i,"u_beta_ppt_norm_Precip_NovDecJanFebMar"]*ppt_norm*Precip_NovDecJanFebMar + 
+      plotdatainterval[i,"u_beta_ppt_norm_Tmean_AprMayJun"]*ppt_norm*Tmean_AprMayJun +  plotdatainterval[i,"u_beta_ppt_norm_Tmean_SepOct"]*ppt_norm*Tmean_SepOct +
+      plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_norm_Precip_JulAug"]*tmp_norm*Precip_JulAug +
+      plotdatainterval[i,"u_beta_tmp_norm_Precip_NovDecJanFebMar"]*tmp_norm*Precip_NovDecJanFebMar + 
+      plotdatainterval[i,"u_beta_tmp_norm_Tmean_AprMayJun"]*tmp_norm*Tmean_AprMayJun + plotdatainterval[i,"u_beta_tmp_norm_Tmean_SepOct"]*tmp_norm*Tmean_SepOct + 
+      plotdatainterval[i,"u_beta_DIA_prev_Precip_JulAug"]*x*Precip_JulAug + plotdatainterval[i,"u_beta_DIA_prev_Precip_NovDecJanFebMar"]*x*Precip_NovDecJanFebMar + 
+      plotdatainterval[i,"u_beta_DIA_prev_Tmean_AprMayJun"]*x*Tmean_AprMayJun + plotdatainterval[i,"u_beta_DIA_prev_Tmean_SepOct"]*x*Tmean_SepOct + 
+      plotdatainterval[i,"u_beta_Precip_JulAug_Precip_NovDecJanFebMar"]*Precip_JulAug*Precip_NovDecJanFebMar +
+      plotdatainterval[i,"u_beta_Precip_JulAug_Tmean_AprMayJun"]*Precip_JulAug*Tmean_AprMayJun + 
+      plotdatainterval[i,"u_beta_Precip_JulAug_Tmean_SepOct"]*Precip_JulAug*Tmean_SepOct + 
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Tmean_AprMayJun"]*Precip_NovDecJanFebMar*Tmean_AprMayJun +  
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Tmean_SepOct"]*Precip_NovDecJanFebMar*Tmean_SepOct + 
+      plotdatainterval[i,"u_beta_Tmean_AprMayJun_Tmean_SepOct"]*Tmean_AprMayJun*Tmean_SepOct
+  }
+  Precip_NovDecJanFebMar_prediction_trpptnorm <- exp(growthpredictionPrecipNovDecJanFebMar_pptnorm)
+  ci.Precip_NovDecJanFebMarpptnorm <- apply(Precip_NovDecJanFebMar_prediction_trpptnorm, 2, quantile, c(0.025, 0.5, 0.975))
+  ci.Precip_NovDecJanFebMarpptnorm.df <- data.frame(Precip_NovDecJanFebMar = Precip_NovDecJanFebMar, ppt_norm = ppt_norm, median = ci.Precip_NovDecJanFebMarpptnorm[2,], ci.low = ci.Precip_NovDecJanFebMarpptnorm[1,], ci.high = ci.Precip_NovDecJanFebMarpptnorm[3,], ci.group = tree.subset$treeCD)
+  Precip_NovDecJanFebMar_pptnormint <- rbind(ci.Precip_NovDecJanFebMarpptnorm.df)
+  print(ind.samples[j,])
+  Precip_NovDecJanFebMar_pptnormint  
+}
+#get.ind.tmp.response(i = 6)
+Precip_NovDecJanFebMar_tree_response <- list()
+Precip_NovDecJanFebMar_tree_response <- lapply(1:length(ind.samples$treeCD), FUN = get.ind.tmp.response)
+Precip_NovDecJanFebMar_tree_response.df <- do.call(rbind, Precip_NovDecJanFebMar_tree_response)
+merged.response.samples <- merge(Precip_NovDecJanFebMar_tree_response.df, ind.samples, by.x = "ci.group", by.y = "treeCD")
+merged.response.samples$ci.group <- as.character(merged.response.samples$ci.group)
+#color by group
+ggplot(data = merged.response.samples, aes(x = Precip_NovDecJanFebMar, y = median, color = ci.group)) + geom_ribbon(aes(x = Precip_NovDecJanFebMar, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
+  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
+#color by LATLONbin
+ggplot(data = merged.response.samples, aes(x = Precip_NovDecJanFebMar, y = median, color = LATLONbin, group = ci.group)) + geom_ribbon(aes(x = Precip_NovDecJanFebMar, ymin = ci.low, ymax = ci.high, fill = LATLONbin, group = ci.group),color = NA, alpha = 0.5) + 
+  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
+#color by tmp_norm
+ggplot(data = merged.response.samples, aes(x = Precip_NovDecJanFebMar, y = median, color = ppt_norm, group = ci.group)) + #geom_ribbon(aes(x = tmp_yr, ymin = ci.low, ymax = ci.high, fill = tmp_norm, group = ci.group),color = NA, alpha = 0.5) + 
+  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
+
+
+
+#Precip_NovDecJanFebMar and Tmean_SepOct
+grow.monsoon$LONbin <- ifelse(grow.monsoon$LON > -109, "-109 to -104", "-114 to -109")
+grow.monsoon$LATbin <- ifelse(grow.monsoon$LAT > 37, "37 to 41", "32 to 37")
+grow.monsoon$LATLONbin <- paste(grow.monsoon$LONbin, grow.monsoon$LATbin)
+ind.samples <- unique(grow.monsoon[,c("LATLONbin", "treeCD")]) %>% group_by(LATLONbin) %>% sample_n(7)
+
+get.ind.tmp.response<- function(j){
+  tree.subset <- ind.samples[j,]
+  tree.grow <- grow.monsoon %>% filter(LATLONbin == tree.subset$LATLONbin & treeCD == tree.subset$treeCD)
+  
+  Precip_NovDecJanFebMarrng <- range(tree.grow$Precip_NovDecJanFebMar,na.rm = TRUE) #setting range for tmp_normrng
+  Precip_NovDecJanFebMar <- seq(Precip_NovDecJanFebMarrng[1], Precip_NovDecJanFebMarrng[2], by = 0.1)
+  size <- mean(tree.grow$DIA_prev)
+  ppt_norm <- mean(tree.grow$ppt_norm)
+  tmp_norm <- mean(tree.grow$tmp_norm)
+  Tmean_SepOct <- mean(tree.grow$Tmean_SepOct)
+  Tmean_AprMayJun <- mean(tree.grow$Tmean_AprMayJun)
+  Precip_JulAug <- mean(tree.grow$Precip_JulAug)
+  Tmean_SepOct_range <- quantile(tree.grow$Tmean_SepOct, c(0.2, 0.8))
+  growthpredictionPrecipNovDecJanFebMar_TmeanSepOct <- matrix(NA, length(plotdatainterval$u_beta_Precip_NovDecJanFebMar), length(Precip_NovDecJanFebMar)) 
+  
+  for(i in 1:length(plotdatainterval$u_beta_Precip_NovDecJanFebMar)){
+    growthpredictionPrecipNovDecJanFebMar_TmeanSepOct[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+      plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+      plotdatainterval[i,"u_beta_Tmean_AprMayJun"]*Tmean_AprMayJun + plotdatainterval[i,"u_beta_Tmean_SepOct"]*Tmean_SepOct +
+      plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
+      plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug + plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*x +
+      plotdatainterval[i,"u_beta_ppt_norm_Precip_NovDecJanFebMar"]*ppt_norm*Precip_NovDecJanFebMar + 
+      plotdatainterval[i,"u_beta_ppt_norm_Tmean_AprMayJun"]*ppt_norm*Tmean_AprMayJun +  plotdatainterval[i,"u_beta_ppt_norm_Tmean_SepOct"]*ppt_norm*Tmean_SepOct +
+      plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_norm_Precip_JulAug"]*tmp_norm*Precip_JulAug +
+      plotdatainterval[i,"u_beta_tmp_norm_Precip_NovDecJanFebMar"]*tmp_norm*Precip_NovDecJanFebMar + 
+      plotdatainterval[i,"u_beta_tmp_norm_Tmean_AprMayJun"]*tmp_norm*Tmean_AprMayJun + plotdatainterval[i,"u_beta_tmp_norm_Tmean_SepOct"]*tmp_norm*Tmean_SepOct + 
+      plotdatainterval[i,"u_beta_DIA_prev_Precip_JulAug"]*x*Precip_JulAug + plotdatainterval[i,"u_beta_DIA_prev_Precip_NovDecJanFebMar"]*x*Precip_NovDecJanFebMar + 
+      plotdatainterval[i,"u_beta_DIA_prev_Tmean_AprMayJun"]*x*Tmean_AprMayJun + plotdatainterval[i,"u_beta_DIA_prev_Tmean_SepOct"]*x*Tmean_SepOct + 
+      plotdatainterval[i,"u_beta_Precip_JulAug_Precip_NovDecJanFebMar"]*Precip_JulAug*Precip_NovDecJanFebMar +
+      plotdatainterval[i,"u_beta_Precip_JulAug_Tmean_AprMayJun"]*Precip_JulAug*Tmean_AprMayJun + 
+      plotdatainterval[i,"u_beta_Precip_JulAug_Tmean_SepOct"]*Precip_JulAug*Tmean_SepOct + 
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Tmean_AprMayJun"]*Precip_NovDecJanFebMar*Tmean_AprMayJun +  
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Tmean_SepOct"]*Precip_NovDecJanFebMar*Tmean_SepOct + 
+      plotdatainterval[i,"u_beta_Tmean_AprMayJun_Tmean_SepOct"]*Tmean_AprMayJun*Tmean_SepOct
+  }
+  Precip_NovDecJanFebMar_prediction_trTmeanSepOct <- exp(growthpredictionPrecipNovDecJanFebMar_TmeanSepOct)
+  ci.Precip_NovDecJanFebMarTmeanSepOct <- apply(Precip_NovDecJanFebMar_prediction_trTmeanSepOct, 2, quantile, c(0.025, 0.5, 0.975))
+  ci.Precip_NovDecJanFebMarTmeanSepOct.df <- data.frame(Precip_NovDecJanFebMar = Precip_NovDecJanFebMar, Tmean_SepOct = Tmean_SepOct, median = ci.Precip_NovDecJanFebMarTmeanSepOct[2,], ci.low = ci.Precip_NovDecJanFebMarTmeanSepOct[1,], ci.high = ci.Precip_NovDecJanFebMarTmeanSepOct[3,], ci.group = tree.subset$treeCD)
+  Precip_NovDecJanFebMar_TmeanSepOctint <- rbind(ci.Precip_NovDecJanFebMarTmeanSepOct.df)
+  print(ind.samples[j,])
+  Precip_NovDecJanFebMar_TmeanSepOctint  
+}
+#get.ind.tmp.response(i = 6)
+Precip_NovDecJanFebMar_tree_response <- list()
+Precip_NovDecJanFebMar_tree_response <- lapply(1:length(ind.samples$treeCD), FUN = get.ind.tmp.response)
+Precip_NovDecJanFebMar_tree_response.df <- do.call(rbind, Precip_NovDecJanFebMar_tree_response)
+merged.response.samples <- merge(Precip_NovDecJanFebMar_tree_response.df, ind.samples, by.x = "ci.group", by.y = "treeCD")
+merged.response.samples$ci.group <- as.character(merged.response.samples$ci.group)
+#color by group
+ggplot(data = merged.response.samples, aes(x = Precip_NovDecJanFebMar, y = median, color = ci.group)) + geom_ribbon(aes(x = Precip_NovDecJanFebMar, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
+  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
+#color by LATLONbin
+ggplot(data = merged.response.samples, aes(x = Precip_NovDecJanFebMar, y = median, color = LATLONbin, group = ci.group)) + geom_ribbon(aes(x = Precip_NovDecJanFebMar, ymin = ci.low, ymax = ci.high, fill = LATLONbin, group = ci.group),color = NA, alpha = 0.5) + 
+  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
+#color by tmp_norm
+ggplot(data = merged.response.samples, aes(x = Precip_NovDecJanFebMar, y = median, color = Tmean_SepOct, group = ci.group)) + #geom_ribbon(aes(x = tmp_yr, ymin = ci.low, ymax = ci.high, fill = tmp_norm, group = ci.group),color = NA, alpha = 0.5) + 
+  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
+
+
+
+#Tmean_SepOct and ppt_norm
+grow.monsoon$LONbin <- ifelse(grow.monsoon$LON > -109, "-109 to -104", "-114 to -109")
+grow.monsoon$LATbin <- ifelse(grow.monsoon$LAT > 37, "37 to 41", "32 to 37")
+grow.monsoon$LATLONbin <- paste(grow.monsoon$LONbin, grow.monsoon$LATbin)
+ind.samples <- unique(grow.monsoon[,c("LATLONbin", "treeCD")]) %>% group_by(LATLONbin) %>% sample_n(7)
+
+get.ind.tmp.response<- function(j){
+  tree.subset <- ind.samples[j,]
+  tree.grow <- grow.monsoon %>% filter(LATLONbin == tree.subset$LATLONbin & treeCD == tree.subset$treeCD)
+  
+  Tmean_SepOctrng <- range(tree.grow$Tmean_SepOct,na.rm = TRUE) #setting range for tmp_normrng
+  Tmean_SepOct <- seq(Tmean_SepOctrng[1], Tmean_SepOctrng[2], by = 0.1)
+  size <- mean(tree.grow$DIA_prev)
+  ppt_norm <- mean(tree.grow$ppt_norm)
+  tmp_norm <- mean(tree.grow$tmp_norm)
+  Precip_NovDecJanFebMar <- mean(tree.grow$Precip_NovDecJanFebMar)
+  Precip_JulAug <- mean(tree.grow$Precip_JulAug)
+  Tmean_AprMayJun <- mean(tree.grow$Tmean_AprMayJun)
+  ppt_norm_range <- quantile(tree.grow$ppt_norm, c(0.2, 0.8))
+  growthpredictionTmeanSepOct_pptnorm <- matrix(NA, length(plotdatainterval$u_beta_Tmean_SepOct), length(Tmean_SepOct)) 
+  
+  for(i in 1:length(plotdatainterval$u_beta_Tmean_SepOct)){
+    growthpredictionTmeanSepOct_pptnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+      plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+      plotdatainterval[i,"u_beta_Tmean_AprMayJun"]*Tmean_AprMayJun + plotdatainterval[i,"u_beta_Tmean_SepOct"]*Tmean_SepOct +
+      plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
+      plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug + plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*x +
+      plotdatainterval[i,"u_beta_ppt_norm_Precip_NovDecJanFebMar"]*ppt_norm*Precip_NovDecJanFebMar + 
+      plotdatainterval[i,"u_beta_ppt_norm_Tmean_AprMayJun"]*ppt_norm*Tmean_AprMayJun +  plotdatainterval[i,"u_beta_ppt_norm_Tmean_SepOct"]*ppt_norm*Tmean_SepOct +
+      plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_norm_Precip_JulAug"]*tmp_norm*Precip_JulAug +
+      plotdatainterval[i,"u_beta_tmp_norm_Precip_NovDecJanFebMar"]*tmp_norm*Precip_NovDecJanFebMar + 
+      plotdatainterval[i,"u_beta_tmp_norm_Tmean_AprMayJun"]*tmp_norm*Tmean_AprMayJun + plotdatainterval[i,"u_beta_tmp_norm_Tmean_SepOct"]*tmp_norm*Tmean_SepOct + 
+      plotdatainterval[i,"u_beta_DIA_prev_Precip_JulAug"]*x*Precip_JulAug + plotdatainterval[i,"u_beta_DIA_prev_Precip_NovDecJanFebMar"]*x*Precip_NovDecJanFebMar + 
+      plotdatainterval[i,"u_beta_DIA_prev_Tmean_AprMayJun"]*x*Tmean_AprMayJun + plotdatainterval[i,"u_beta_DIA_prev_Tmean_SepOct"]*x*Tmean_SepOct + 
+      plotdatainterval[i,"u_beta_Precip_JulAug_Precip_NovDecJanFebMar"]*Precip_JulAug*Precip_NovDecJanFebMar +
+      plotdatainterval[i,"u_beta_Precip_JulAug_Tmean_AprMayJun"]*Precip_JulAug*Tmean_AprMayJun + 
+      plotdatainterval[i,"u_beta_Precip_JulAug_Tmean_SepOct"]*Precip_JulAug*Tmean_SepOct + 
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Tmean_AprMayJun"]*Precip_NovDecJanFebMar*Tmean_AprMayJun +  
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Tmean_SepOct"]*Precip_NovDecJanFebMar*Tmean_SepOct + 
+      plotdatainterval[i,"u_beta_Tmean_AprMayJun_Tmean_SepOct"]*Tmean_AprMayJun*Tmean_SepOct
+  }
+  Tmean_SepOct_prediction_trpptnorm <- exp(growthpredictionTmeanSepOct_pptnorm)
+  ci.Tmean_SepOctpptnorm <- apply(Tmean_SepOct_prediction_trpptnorm, 2, quantile, c(0.025, 0.5, 0.975))
+  ci.Tmean_SepOctpptnorm.df <- data.frame(Tmean_SepOct = Tmean_SepOct, ppt_norm = ppt_norm, median = ci.Tmean_SepOctpptnorm[2,], ci.low = ci.Tmean_SepOctpptnorm[1,], ci.high = ci.Tmean_SepOctpptnorm[3,], ci.group = tree.subset$treeCD)
+  Tmean_SepOct_pptnormint <- rbind(ci.Tmean_SepOctpptnorm.df)
+  print(ind.samples[j,])
+  Tmean_SepOct_pptnormint  
+}
+#get.ind.tmp.response(i = 6)
+Tmean_SepOct_tree_response <- list()
+Tmean_SepOct_tree_response <- lapply(1:length(ind.samples$treeCD), FUN = get.ind.tmp.response)
+Tmean_SepOct_tree_response.df <- do.call(rbind, Tmean_SepOct_tree_response)
+merged.response.samples <- merge(Tmean_SepOct_tree_response.df, ind.samples, by.x = "ci.group", by.y = "treeCD")
+merged.response.samples$ci.group <- as.character(merged.response.samples$ci.group)
+#color by group
+ggplot(data = merged.response.samples, aes(x = Tmean_SepOct, y = median, color = ci.group)) + geom_ribbon(aes(x = Tmean_SepOct, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
+  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
+#color by LATLONbin
+ggplot(data = merged.response.samples, aes(x = Tmean_SepOct, y = median, color = LATLONbin, group = ci.group)) + geom_ribbon(aes(x = Tmean_SepOct, ymin = ci.low, ymax = ci.high, fill = LATLONbin, group = ci.group),color = NA, alpha = 0.5) + 
+  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
+#color by tmp_norm
+ggplot(data = merged.response.samples, aes(x = Tmean_SepOct, y = median, color = ppt_norm, group = ci.group)) + #geom_ribbon(aes(x = tmp_yr, ymin = ci.low, ymax = ci.high, fill = tmp_norm, group = ci.group),color = NA, alpha = 0.5) + 
+  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
+
+
+#Tmean_SepOct and ppt_norm
+grow.monsoon$LONbin <- ifelse(grow.monsoon$LON > -109, "-109 to -104", "-114 to -109")
+grow.monsoon$LATbin <- ifelse(grow.monsoon$LAT > 37, "37 to 41", "32 to 37")
+grow.monsoon$LATLONbin <- paste(grow.monsoon$LONbin, grow.monsoon$LATbin)
+ind.samples <- unique(grow.monsoon[,c("LATLONbin", "treeCD")]) %>% group_by(LATLONbin) %>% sample_n(7)
+
+get.ind.tmp.response<- function(j){
+  tree.subset <- ind.samples[j,]
+  tree.grow <- grow.monsoon %>% filter(LATLONbin == tree.subset$LATLONbin & treeCD == tree.subset$treeCD)
+  
+  Tmean_SepOctrng <- range(tree.grow$Tmean_SepOct,na.rm = TRUE) #setting range for tmp_normrng
+  Tmean_SepOct <- seq(Tmean_SepOctrng[1], Tmean_SepOctrng[2], by = 0.1)
+  size <- mean(tree.grow$DIA_prev)
+  ppt_norm <- mean(tree.grow$ppt_norm)
+  tmp_norm <- mean(tree.grow$tmp_norm)
+  Precip_NovDecJanFebMar <- mean(tree.grow$Precip_NovDecJanFebMar)
+  Precip_JulAug <- mean(tree.grow$Precip_JulAug)
+  Tmean_AprMayJun <- mean(tree.grow$Tmean_AprMayJun)
+  tmp_norm_range <- quantile(tree.grow$tmp_norm, c(0.2, 0.8))
+  growthpredictionTmeanSepOct_tmpnorm <- matrix(NA, length(plotdatainterval$u_beta_Tmean_SepOct), length(Tmean_SepOct)) 
+  
+  for(i in 1:length(plotdatainterval$u_beta_Tmean_SepOct)){
+    growthpredictionTmeanSepOct_tmpnorm[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+      plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+      plotdatainterval[i,"u_beta_Tmean_AprMayJun"]*Tmean_AprMayJun + plotdatainterval[i,"u_beta_Tmean_SepOct"]*Tmean_SepOct +
+      plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
+      plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug + plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*x +
+      plotdatainterval[i,"u_beta_ppt_norm_Precip_NovDecJanFebMar"]*ppt_norm*Precip_NovDecJanFebMar + 
+      plotdatainterval[i,"u_beta_ppt_norm_Tmean_AprMayJun"]*ppt_norm*Tmean_AprMayJun +  plotdatainterval[i,"u_beta_ppt_norm_Tmean_SepOct"]*ppt_norm*Tmean_SepOct +
+      plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_norm_Precip_JulAug"]*tmp_norm*Precip_JulAug +
+      plotdatainterval[i,"u_beta_tmp_norm_Precip_NovDecJanFebMar"]*tmp_norm*Precip_NovDecJanFebMar + 
+      plotdatainterval[i,"u_beta_tmp_norm_Tmean_AprMayJun"]*tmp_norm*Tmean_AprMayJun + plotdatainterval[i,"u_beta_tmp_norm_Tmean_SepOct"]*tmp_norm*Tmean_SepOct + 
+      plotdatainterval[i,"u_beta_DIA_prev_Precip_JulAug"]*x*Precip_JulAug + plotdatainterval[i,"u_beta_DIA_prev_Precip_NovDecJanFebMar"]*x*Precip_NovDecJanFebMar + 
+      plotdatainterval[i,"u_beta_DIA_prev_Tmean_AprMayJun"]*x*Tmean_AprMayJun + plotdatainterval[i,"u_beta_DIA_prev_Tmean_SepOct"]*x*Tmean_SepOct + 
+      plotdatainterval[i,"u_beta_Precip_JulAug_Precip_NovDecJanFebMar"]*Precip_JulAug*Precip_NovDecJanFebMar +
+      plotdatainterval[i,"u_beta_Precip_JulAug_Tmean_AprMayJun"]*Precip_JulAug*Tmean_AprMayJun + 
+      plotdatainterval[i,"u_beta_Precip_JulAug_Tmean_SepOct"]*Precip_JulAug*Tmean_SepOct + 
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Tmean_AprMayJun"]*Precip_NovDecJanFebMar*Tmean_AprMayJun +  
+      plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Tmean_SepOct"]*Precip_NovDecJanFebMar*Tmean_SepOct + 
+      plotdatainterval[i,"u_beta_Tmean_AprMayJun_Tmean_SepOct"]*Tmean_AprMayJun*Tmean_SepOct
+  }
+  Tmean_SepOct_prediction_trtmpnorm <- exp(growthpredictionTmeanSepOct_tmpnorm)
+  ci.Tmean_SepOcttmpnorm <- apply(Tmean_SepOct_prediction_trtmpnorm, 2, quantile, c(0.025, 0.5, 0.975))
+  ci.Tmean_SepOcttmpnorm.df <- data.frame(Tmean_SepOct = Tmean_SepOct, tmp_norm = tmp_norm, median = ci.Tmean_SepOcttmpnorm[2,], ci.low = ci.Tmean_SepOcttmpnorm[1,], ci.high = ci.Tmean_SepOcttmpnorm[3,], ci.group = tree.subset$treeCD)
+  Tmean_SepOct_tmpnormint <- rbind(ci.Tmean_SepOcttmpnorm.df)
+  print(ind.samples[j,])
+  Tmean_SepOct_tmpnormint  
+}
+#get.ind.tmp.response(i = 6)
+Tmean_SepOct_tree_response <- list()
+Tmean_SepOct_tree_response <- lapply(1:length(ind.samples$treeCD), FUN = get.ind.tmp.response)
+Tmean_SepOct_tree_response.df <- do.call(rbind, Tmean_SepOct_tree_response)
+merged.response.samples <- merge(Tmean_SepOct_tree_response.df, ind.samples, by.x = "ci.group", by.y = "treeCD")
+merged.response.samples$ci.group <- as.character(merged.response.samples$ci.group)
+#color by group
+ggplot(data = merged.response.samples, aes(x = Tmean_SepOct, y = median, color = ci.group)) + geom_ribbon(aes(x = Tmean_SepOct, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
+  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
+#color by LATLONbin
+ggplot(data = merged.response.samples, aes(x = Tmean_SepOct, y = median, color = LATLONbin, group = ci.group)) + geom_ribbon(aes(x = Tmean_SepOct, ymin = ci.low, ymax = ci.high, fill = LATLONbin, group = ci.group),color = NA, alpha = 0.5) + 
+  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
+#color by tmp_norm
+ggplot(data = merged.response.samples, aes(x = Tmean_SepOct, y = median, color = tmp_norm, group = ci.group)) + #geom_ribbon(aes(x = tmp_yr, ymin = ci.low, ymax = ci.high, fill = tmp_norm, group = ci.group),color = NA, alpha = 0.5) + 
   geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
 
 
