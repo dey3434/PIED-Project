@@ -3008,6 +3008,57 @@ ggplot(data = size_PrecipDecJanFebint, aes(x = size, y = median, color = ci.grou
 
 
 
+#New interaction plots
+
+biggrid <- expand_grid(ppt_norm = as.vector(quantile(grow_train$ppt_norm, c(.2, .4, .6, .8, 1.0))), tmp_norm = as.vector(quantile(grow_train$tmp_norm, c(.2, .4, .6, .8, 1.0))),
+            Precip_NovDecJanFebMar = as.vector(quantile(grow_train$Precip_NovDecJanFebMar, c(.2, .4, .6, .8, 1.0))), Precip_JulAug = as.vector(quantile(grow_train$Precip_JulAug, c(.2, .4, .6, .8, 1.0))),
+            Tmean_AprMayJun = as.vector(quantile(grow_train$Tmean_AprMayJun, c(.2, .4, .6, .8, 1.0))), Tmean_SepOct = as.vector(quantile(grow_train$Tmean_SepOct, c(.2, .4, .6, .8, 1.0))),
+            DIA_prev = as.vector(quantile(grow_train$DIA_prev, c(.2, .4, .6, .8, 1.0))))
+
+ppt_norm <- biggrid$ppt_norm
+tmp_norm <- biggrid$tmp_norm
+Precip_NovDecJanFebMar <- biggrid$Precip_NovDecJanFebMar
+Precip_JulAug <- biggrid$Precip_JulAug
+Tmean_AprMayJun <- biggrid$Tmean_AprMayJun
+Tmean_SepOct <- biggrid$Tmean_SepOct
+x <- biggrid$DIA_prev
+
+growthprediction <- matrix(NA, length(plotdatainterval$u_beta_Precip_NovDecJanFebMar), nrow(biggrid)) 
+
+for(i in 1:length(plotdatainterval$u_beta_Precip_NovDecJanFebMar)){
+  growthprediction[i,] <- plotdatainterval[i,"u_beta_ppt_norm"]*ppt_norm + plotdatainterval[i,"u_beta_tmp_norm"]*tmp_norm +
+    plotdatainterval[i,"u_beta_Precip_JulAug"]*Precip_JulAug + plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar"]*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_Tmean_AprMayJun"]*Tmean_AprMayJun + plotdatainterval[i,"u_beta_Tmean_SepOct"]*Tmean_SepOct +
+    plotdatainterval[i,"u_beta_DIA_prev"]*x + plotdatainterval[i,"u_beta_ppt_norm_tmp_norm"]*ppt_norm*tmp_norm +
+    plotdatainterval[i,"u_beta_ppt_norm_Precip_JulAug"]*ppt_norm*Precip_JulAug + plotdatainterval[i,"u_beta_ppt_norm_DIA_prev"]*ppt_norm*x +
+    plotdatainterval[i,"u_beta_ppt_norm_Precip_NovDecJanFebMar"]*ppt_norm*Precip_NovDecJanFebMar + 
+    plotdatainterval[i,"u_beta_ppt_norm_Tmean_AprMayJun"]*ppt_norm*Tmean_AprMayJun +  plotdatainterval[i,"u_beta_ppt_norm_Tmean_SepOct"]*ppt_norm*Tmean_SepOct +
+    plotdatainterval[i,"u_beta_tmp_norm_DIA_prev"]*tmp_norm*x + plotdatainterval[i,"u_beta_tmp_norm_Precip_JulAug"]*tmp_norm*Precip_JulAug +
+    plotdatainterval[i,"u_beta_tmp_norm_Precip_NovDecJanFebMar"]*tmp_norm*Precip_NovDecJanFebMar + 
+    plotdatainterval[i,"u_beta_tmp_norm_Tmean_AprMayJun"]*tmp_norm*Tmean_AprMayJun + plotdatainterval[i,"u_beta_tmp_norm_Tmean_SepOct"]*tmp_norm*Tmean_SepOct + 
+    plotdatainterval[i,"u_beta_DIA_prev_Precip_JulAug"]*x*Precip_JulAug + plotdatainterval[i,"u_beta_DIA_prev_Precip_NovDecJanFebMar"]*x*Precip_NovDecJanFebMar + 
+    plotdatainterval[i,"u_beta_DIA_prev_Tmean_AprMayJun"]*x*Tmean_AprMayJun + plotdatainterval[i,"u_beta_DIA_prev_Tmean_SepOct"]*x*Tmean_SepOct + 
+    plotdatainterval[i,"u_beta_Precip_JulAug_Precip_NovDecJanFebMar"]*Precip_JulAug*Precip_NovDecJanFebMar +
+    plotdatainterval[i,"u_beta_Precip_JulAug_Tmean_AprMayJun"]*Precip_JulAug*Tmean_AprMayJun + 
+    plotdatainterval[i,"u_beta_Precip_JulAug_Tmean_SepOct"]*Precip_JulAug*Tmean_SepOct + 
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Tmean_AprMayJun"]*Precip_NovDecJanFebMar*Tmean_AprMayJun +  
+    plotdatainterval[i,"u_beta_Precip_NovDecJanFebMar_Tmean_SepOct"]*Precip_NovDecJanFebMar*Tmean_SepOct + 
+    plotdatainterval[i,"u_beta_Tmean_AprMayJun_Tmean_SepOct"]*Tmean_AprMayJun*Tmean_SepOct
+}
+growth_prediction <- exp(growthprediction)
+ci.growthprediction <- apply(growth_prediction, 2, quantile, c(0.025,0.5,0.975)) #confidence intervals
+growthpredictioncbind <- cbind(ci.growthprediction, biggrid)
+
+ci.Precip_NovDecJanFebMarhigh.df <- data.frame(Precip_NovDecJanFebMar = Precip_NovDecJanFebMar, median = ci.Precip_NovDecJanFebMarhigh[2,], ci.low = ci.Precip_NovDecJanFebMarhigh[1,], ci.high = ci.Precip_NovDecJanFebMarhigh[3,], ci.group = "highppt_norm")
+ci.Precip_NovDecJanFebMarmid.df <- data.frame(Precip_NovDecJanFebMar = Precip_NovDecJanFebMar, median = ci.Precip_NovDecJanFebMarmid[2,], ci.low = ci.Precip_NovDecJanFebMarmid[1,], ci.high = ci.Precip_NovDecJanFebMarmid[3,], ci.group = "midppt_norm")
+ci.Precip_NovDecJanFebMarlow.df <- data.frame(Precip_NovDecJanFebMar = Precip_NovDecJanFebMar, median = ci.Precip_NovDecJanFebMarlow[2,], ci.low = ci.Precip_NovDecJanFebMarlow[1,], ci.high = ci.Precip_NovDecJanFebMarlow[3,], ci.group = "lowppt_norm")
+Precip_NovDecJanFebMar_ppt_normint <- rbind(ci.Precip_NovDecJanFebMarhigh.df, ci.Precip_NovDecJanFebMarmid.df, ci.Precip_NovDecJanFebMarlow.df)
+ggplot(data = Precip_NovDecJanFebMar_ppt_normint, aes(x = Precip_NovDecJanFebMar, y = median, color = ci.group)) + geom_ribbon(aes(x = Precip_NovDecJanFebMar, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
+  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
+
+
+
+
 
 
 
