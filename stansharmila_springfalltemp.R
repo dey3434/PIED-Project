@@ -3,8 +3,9 @@
 # 22 June 2020
 setwd("/home/rstudio")
 load("/home/rstudio/data/pied_grow_coef2.rda")
-fit_grow <- readRDS(url("https://de.cyverse.org/dl/d/45F8D455-B623-4728-8F0E-3546311A708B/ppt_tmp_springfall.RDS"))
-fit_grow <- readRDS("data/ppt_tmp_springfall.RDS")
+#fit_grow <- readRDS(url("https://de.cyverse.org/dl/d/45F8D455-B623-4728-8F0E-3546311A708B/ppt_tmp_springfall.RDS"))
+fit_grow <- readRDS("ppt_tmp_springfall_sizefix.RDS")
+fit_grow_old <- readRDS("data/ppt_tmp_springfall.RDS")
 install.packages("rstan", version = "2.19.3", repos = "http://cran.us.r-project.org")
 library(rstan)
 options(mc.cores = parallel::detectCores())
@@ -186,7 +187,7 @@ pied_dat <- list(K = K, nG = nG, nGtest = nGtest, yG = yG, xG = xG, xGtest = xGt
 fit_grow <- stan(file = 'pied_grow.stan', data = pied_dat, 
                  iter = 5000, warmup = 1000, chains = 3)
 #saveRDS(fit_grow, file = "log_normal_fg_7_24_20.RDS")
-saveRDS(fit_grow, file = "ppt_tmp_springfall.RDS")
+saveRDS(fit_grow, file = "ppt_tmp_springfall_sizefix.RDS")
 summary<-summary(fit_grow)
 summary
 
@@ -3012,10 +3013,10 @@ ggplot(data = size_PrecipDecJanFebint, aes(x = size, y = median, color = ci.grou
 
 #New interaction plots
 
-biggrid <- expand_grid(ppt_norm = as.vector(quantile(grow_train$ppt_norm, c(.2, .6, .8))), tmp_norm = as.vector(quantile(grow_train$tmp_norm, c(.2, .6, .8))),
-            Precip_NovDecJanFebMar = as.vector(quantile(grow_train$Precip_NovDecJanFebMar, c(.2, .6, .8))), Precip_JulAug = as.vector(quantile(grow_train$Precip_JulAug, c(.2, .6, .8))),
-            Tmean_AprMayJun = as.vector(quantile(grow_train$Tmean_AprMayJun, c(.2, .6, .8))), Tmean_SepOct = as.vector(quantile(grow_train$Tmean_SepOct, c(.2, .6, .8))),
-            DIA_prev = as.vector(quantile(grow_train$DIA_prev, c(.2, .6, .8))))
+biggrid <- expand_grid(ppt_norm = as.vector(quantile(grow_train$ppt_norm, c(0, .2, .6, .8, 1.0))), tmp_norm = as.vector(quantile(grow_train$tmp_norm, c(0, .2, .6, .8, 1.0))),
+            Precip_NovDecJanFebMar = as.vector(quantile(grow_train$Precip_NovDecJanFebMar, c(0, .2, .6, .8, 1.0))), Precip_JulAug = as.vector(quantile(grow_train$Precip_JulAug, c(0, .2, .6, .8, 1.0))),
+            Tmean_AprMayJun = as.vector(quantile(grow_train$Tmean_AprMayJun, c(0, .2, .6, .8, 1.0))), Tmean_SepOct = as.vector(quantile(grow_train$Tmean_SepOct, c(0, .2, .6, .8, 1.0))),
+            DIA_prev = as.vector(quantile(grow_train$DIA_prev, c(0, .2, .6, .8, 1.0))))
 
 ppt_norm <- biggrid$ppt_norm
 tmp_norm <- biggrid$tmp_norm
@@ -3052,9 +3053,10 @@ ci.growthprediction <- apply(growth_prediction, 2, quantile, c(0.025,0.5,0.975))
 ci.growthprediction <- t(ci.growthprediction)
 growthpredictioncbind <- cbind(ci.growthprediction, biggrid)
 growthpredictionfilter2 <- growthpredictioncbind
-growthpredictionfilter2$ppt_norm_character <- ifelse(growthpredictionfilter2$ppt_norm == quantile(grow_train$ppt_norm, c(0.2)), "low ppt_norm", 
-                                                     ifelse(growthpredictionfilter2$ppt_norm == quantile(grow_train$ppt_norm, c(0.6)), "mid ppt_norm",
-                                                     "high ppt_norm"))
+growthpredictionfilter2$ppt_norm_character <- ifelse(growthpredictionfilter2$ppt_norm == quantile (grow_train$ppt_norm, c(0)), "lowest ppt_norm", 
+                                                     ifelse(growthpredictionfilter2$ppt_norm == quantile(grow_train$ppt_norm, c(0.2)), "low ppt_norm", 
+                                                     ifelse(growthpredictionfilter2$ppt_norm == quantile(grow_train$ppt_norm, c(0.6)), "mid ppt_norm", 
+                                                     ifelse(growthpredictionfilter2$ppt_norm == quantile(grow_train$ppt_norm, c(0.8)), "high ppt_norm", "highest ppt_norm"))))
 growthpredictionfilter2$ppt_norm_character <- factor(growthpredictionfilter2$ppt_norm_character, levels = c("low ppt_norm", "mid ppt_norm", "high ppt_norm"))
 growthpredictionfilter2$tmp_norm_character <- ifelse(growthpredictionfilter2$tmp_norm == quantile(grow_train$tmp_norm, c(0.2)), "low tmp_norm", 
                                                      ifelse(growthpredictionfilter2$tmp_norm == quantile(grow_train$tmp_norm, c(0.6)), "mid tmp_norm",
@@ -3701,7 +3703,7 @@ ggplot(data = merged.response.samples, aes(x = Precip_JulAug, y = median, color 
 grow.monsoon$LONbin <- ifelse(grow.monsoon$LON > -109, "-109 to -104", "-114 to -109")
 grow.monsoon$LATbin <- ifelse(grow.monsoon$LAT > 37, "37 to 41", "32 to 37")
 grow.monsoon$LATLONbin <- paste(grow.monsoon$LONbin, grow.monsoon$LATbin)
-ind.samples <- unique(grow.monsoon[,c("LATLONbin", "treeCD")]) %>% group_by(LATLONbin) %>% sample_n(7)
+ind.samples <- unique(grow.monsoon[,c("LATLONbin", "treeCD")]) %>% group_by(LATLONbin)
 
 get.ind.tmp.response<- function(j){
   tree.subset <- ind.samples[j,]
@@ -3758,8 +3760,8 @@ ggplot(data = merged.response.samples, aes(x = Precip_NovDecJanFebMar, y = media
 ggplot(data = merged.response.samples, aes(x = Precip_NovDecJanFebMar, y = median, color = LATLONbin, group = ci.group)) + geom_ribbon(aes(x = Precip_NovDecJanFebMar, ymin = ci.low, ymax = ci.high, fill = LATLONbin, group = ci.group),color = NA, alpha = 0.5) + 
   geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
 #color by tmp_norm
-ggplot(data = merged.response.samples, aes(x = Precip_NovDecJanFebMar, y = median, color = tmp_norm, group = ci.group)) + #geom_ribbon(aes(x = tmp_yr, ymin = ci.low, ymax = ci.high, fill = tmp_norm, group = ci.group),color = NA, alpha = 0.5) + 
-  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
+ggplot(data = merged.response.samples, aes(x = Precip_NovDecJanFebMar, y = median, color = tmp_norm, group = ci.group)) + geom_line(alpha = 0.5) + 
+  mytheme + ylab("Predicted Growth") + ylim(0, 2) + scale_color_gradient2(low = "#b2182b", mid = "#fddbc7", high = "#4575b4")
 
 
 
@@ -3767,6 +3769,8 @@ ggplot(data = merged.response.samples, aes(x = Precip_NovDecJanFebMar, y = media
 grow.monsoon$LONbin <- ifelse(grow.monsoon$LON > -109, "-109 to -104", "-114 to -109")
 grow.monsoon$LATbin <- ifelse(grow.monsoon$LAT > 37, "37 to 41", "32 to 37")
 grow.monsoon$LATLONbin <- paste(grow.monsoon$LONbin, grow.monsoon$LATbin)
+
+growfilter <- filter(grow.monsoon, Precip_NovDecJanFebMar > 9)
 ind.samples <- unique(grow.monsoon[,c("LATLONbin", "treeCD")]) %>% group_by(LATLONbin)
 
 get.ind.tmp.response<- function(j){
@@ -3824,7 +3828,7 @@ ggplot(data = merged.response.samples, aes(x = Precip_NovDecJanFebMar, y = media
 ggplot(data = merged.response.samples, aes(x = Precip_NovDecJanFebMar, y = median, color = LATLONbin, group = ci.group)) + geom_ribbon(aes(x = Precip_NovDecJanFebMar, ymin = ci.low, ymax = ci.high, fill = LATLONbin, group = ci.group),color = NA, alpha = 0.5) + 
   geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
 #color by tmp_norm
-ggplot(data = merged.response.samples, aes(x = Precip_NovDecJanFebMar, y = median, color = ppt_norm, group = ci.group))  + geom_line() + 
+ggplot(data = merged.response.samples, aes(x = Precip_NovDecJanFebMar, y = median, color = ppt_norm, group = ci.group))  + geom_line(alpha = 0.5) + 
   mytheme + ylab("Predicted Growth") + ylim(0, 2) + scale_color_gradient2(low = "#b2182b", mid = "#fddbc7", high = "#4575b4")
 
 
