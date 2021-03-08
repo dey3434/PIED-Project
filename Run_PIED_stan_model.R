@@ -184,8 +184,3 @@ overpredictedpoints <- p.o.df %>% filter(observed <= ci.low)
 # ggplot(data = p.o.df, aes(x = ppt_yr, y = observed, color = overpredicted)) + geom_point(size = 0.5)
 # ggplot(data = p.o.df, aes(x = year, y = observed, color = overpredicted)) + geom_point(size = 0.5)
 # ggplot(data = p.o.df, aes(x = name, y = observed, color = overpredicted)) + geom_point(size = 0.5)
-
-#----------------------------------------------------------------------------------------------
-#  Run other validation code!
-#----------------------------------------------------------------------------------------------
-
