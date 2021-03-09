@@ -5,9 +5,13 @@
 #----------------------------------------------------------------------------------------------
 #  Read in the data 
 #----------------------------------------------------------------------------------------------
-
+print("reading in PIED growth data")
 PIED.all <- read.csv("data/pied_all_growth_v4.csv") #read in the pied growth data
-full.ppt.tmean.norms <- read.csv(url("https://de.cyverse.org/dl/d/329EBCF7-817F-497C-BEA7-A2D906493392/pied_all_tmean_ppt_v3.csv"))
+
+print("reading in climate data")
+full.ppt.tmean.norms <- read.csv("data/pied_all_tmean_ppt_v3.csv")
+
+print("merging growth and climate data")
 grow.new <- merge(PIED.all, full.ppt.tmean.norms, by.x = c("name", "year", "LON", "LAT"), by.y = c("name", "year", "lon", "lat"))
 
 
@@ -15,14 +19,14 @@ grow.new <- merge(PIED.all, full.ppt.tmean.norms, by.x = c("name", "year", "LON"
 #  Scale covariates & split into testing and training
 #----------------------------------------------------------------------------------------------
 # here we are doing global scaling...need to update to local scaling
-
+print("Scaling covariates: Covariates are globally scaled")
 grow.monsoon<-na.omit(grow.new) %>% 
   mutate_at(scale, .vars = vars(Precip_JulAug, Precip_NovDecJanFebMar, Tmean_AprMayJun, Tmean_SepOct, tmp_norm, ppt_norm)) %>%
   arrange(PLOT,SUBP,name) %>%
   mutate(PlotCD=as.numeric(factor(PLOT, levels = unique(PLOT))),treeCD=as.numeric(factor(name,levels=unique(name))),
          growth2=ifelse(growth==0,0.001,growth),loggrowth=log(growth2))
 
-
+print("split training and testing data")
 # spilt into testing and training data
 split=0.20
 trainIndex <- createDataPartition(grow.monsoon$name, p=split, list=FALSE)
@@ -32,7 +36,7 @@ grow_train <- grow.monsoon[-trainIndex,]
 #----------------------------------------------------------------------------------------------
 #  Set up data inputs for stan model
 #----------------------------------------------------------------------------------------------
-
+print("setting up PIED_dat for stan model input")
 # xG and xGtest is big matrices with all the covariates and interactions 
 xG<-as.matrix(cbind(grow_train$ppt_norm, grow_train$tmp_norm, grow_train$Precip_JulAug, grow_train$Precip_NovDecJanFebMar, 
                     grow_train$Tmean_AprMayJun, grow_train$Tmean_SepOct, grow_train$DIA_prev,

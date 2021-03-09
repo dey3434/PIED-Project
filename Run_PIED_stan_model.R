@@ -1,6 +1,6 @@
 # code for stan portion of the model
 # must run Read_PIED_data_format.R before
-
+print("defining stan model")
 sink("pied_grow.stan")
 cat("
     data {
@@ -98,13 +98,15 @@ cat("
 
 sink()
 
-
-fit_grow <- stan(file = 'pied_grow.stan', data = pied_dat, 
-                 iter = 5000, warmup = 1000, chains = 3)
+print("run stan model")
+fit_grow <- rstan::stan(file = 'pied_grow.stan', data = pied_dat, 
+                 iter = 100, warmup = 10, chains = 3)
 #saveRDS(fit_grow, file = "log_normal_fg_7_24_20.RDS")
 saveRDS(fit_grow, file = "ppt_tmp_springfall_sizefix.RDS")
 summary<-summary(fit_grow)
 summary
+
+print("Extract output")
 
 plotdata<-select(as.data.frame(fit_grow),"yrep[1]":"yrep[8780]")
 plotdatainterval<-select(as.data.frame(fit_grow), "u_beta[1]":"u_beta[28]")
@@ -129,10 +131,12 @@ yrep <- ext_fit$yrep
 mean.pred <- apply(ext_fit$yrep, 2, median)
 p.o.df <- data.frame(predicted = exp(mean.pred), observed = exp(grow_test$loggrowth), error = (exp(mean.pred) - exp(grow_test$loggrowth)))
 meansqrd <- (mean(p.o.df$error))^2
+
+print("Plotting predicted vs observed growth")
 ggplot(p.o.df, aes(predicted, observed)) + geom_point(alpha = 0.1) + geom_abline(aes(intercept = 0, slope = 1), color = "red", linetype = "dotted") +
   ylim(0, 10) + xlim(0,10)
 
-
+print("Run loo model validation")
 #Validation
 sigma <- as.data.frame(fit_grow)[,"sigma_y"]
 mu <- as.matrix(plotdatainterval) %*% t(xG)

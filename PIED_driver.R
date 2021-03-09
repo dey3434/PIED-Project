@@ -13,14 +13,17 @@ library(ggplot2)
 library(caret) ; library(tidyverse)
 library(bayesplot)
 library(here)
-library(gifski)
+#library(gifski)
 library(maps) 
+library(tidyverse)
 
 # use here to set wd
 setwd(here())
 
 # read in the PIED data:
+source("Read_PIED_data_format.R")
 
 # define and run stan model:
+source("Run_PIED_stan_model.R")
 
 # Make plots with output of stan model:
