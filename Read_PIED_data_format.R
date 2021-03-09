@@ -1,23 +1,6 @@
 # Read_PIED_data_format.R
 # code to read in the Pinus edulis data, and format for our stan model.
 
-# setting up libraries
-library(here)
-install.packages("rstan", version = "2.19.3", repos = "http://cran.us.r-project.org")
-library(rstan)
-options(mc.cores = parallel::detectCores())
-library(parallel) 
-library(mcmcplots) ; library(lattice) ; library(MASS)
-library(lme4) ; library(nlme) ; library(splines); library(MCMCpack)
-library(ggplot2)
-library(caret) ; library(tidyverse)
-library(bayesplot)
-library(here)
-library(gifski)
-library(maps) 
-
-# use here to set wd
-setwd("/home/rstudio")
 
 #----------------------------------------------------------------------------------------------
 #  Read in the data 
