@@ -27,3 +27,4 @@ source("Read_PIED_data_format.R")
 source("Run_PIED_stan_model.R")
 
 # Make plots with output of stan model:
+source("Plot_PIED_mod.R")

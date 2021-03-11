@@ -19,12 +19,22 @@ grow.new <- merge(PIED.all, full.ppt.tmean.norms, by.x = c("name", "year", "LON"
 #  Scale covariates & split into testing and training
 #----------------------------------------------------------------------------------------------
 # here we are doing global scaling...need to update to local scaling
-print("Scaling covariates: Covariates are globally scaled")
+print("Scaling covariates: Time-varying covariates are locally scaled")
+# grow.monsoon<-na.omit(grow.new) %>% 
+#   mutate_at(scale, .vars = vars(Precip_JulAug, Precip_NovDecJanFebMar, Tmean_AprMayJun, Tmean_SepOct, tmp_norm, ppt_norm)) %>%
+#   arrange(PLOT,SUBP,name) %>%
+#   mutate(PlotCD=as.numeric(factor(PLOT, levels = unique(PLOT))),treeCD=as.numeric(factor(name,levels=unique(name))),
+#          growth2=ifelse(growth==0,0.001,growth),loggrowth=log(growth2))
+
 grow.monsoon<-na.omit(grow.new) %>% 
-  mutate_at(scale, .vars = vars(Precip_JulAug, Precip_NovDecJanFebMar, Tmean_AprMayJun, Tmean_SepOct, tmp_norm, ppt_norm)) %>%
+  mutate_at(scale, .vars = vars( tmp_norm, ppt_norm)) %>%
+  
   arrange(PLOT,SUBP,name) %>%
   mutate(PlotCD=as.numeric(factor(PLOT, levels = unique(PLOT))),treeCD=as.numeric(factor(name,levels=unique(name))),
-         growth2=ifelse(growth==0,0.001,growth),loggrowth=log(growth2))
+         growth2=ifelse(growth==0,0.001,growth),loggrowth=log(growth2)) %>%
+  group_by(PlotCD)%>%
+  mutate_at(scale, .vars = vars(Precip_JulAug, Precip_NovDecJanFebMar, Tmean_AprMayJun, Tmean_SepOct)) %>%
+  ungroup()
 
 print("split training and testing data")
 # spilt into testing and training data
