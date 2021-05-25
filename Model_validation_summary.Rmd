@@ -1,0 +1,51 @@
+---
+title: "PIED model Tables"
+author: "Sharmila Dey & Kelly Heilman"
+date: "5/24/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(tidyverse)
+library(kableExtra)
+```
+
+## Visualizing Model Validation Stats
+
+A few examples of some different ways of visualizing the models
+
+```{r echo = FALSE}
+model.validation.stats <- read.csv("data/Model Table - Sheet1.csv")
+model.validation.stats$Model <- as.character(model.validation.stats$Model)
+
+
+ggplot(model.validation.stats, aes(x = RMSE.., y = looic.estimate, color = Model))+geom_point()+ylab("LOO Information Criterion")+xlab("RMSE")+theme_bw(base_size = 12)
+
+# add text with geom_text & color by scaling
+ggplot(model.validation.stats, aes(x = RMSE.., y = looic.estimate, label= Model, color = Scaling))+geom_text()+ylab("LOO Information Criterion")+xlab("RMSE")+theme_bw(base_size = 12)+theme(panel.grid = element_blank())
+
+```
+
+
+# Sample model validation table using kable table
+There are a whole bunch of additional options for table styles & customization that we can explore: https://cran.r-project.org/web/packages/kableExtra/vignettes/awesome_table_in_html.html
+
+```{r echo = FALSE}
+model.validation.stats <- read.csv("data/Model Table - Sheet1.csv")
+model.validation.stats$Model <- as.character(model.validation.stats$Model)
+
+
+# fix the column names
+colnames(model.validation.stats)[4:5] <- c("RMSE", "LOO IC")
+
+# kable function tells R how to format the table...latex needs to be the formate if you knit to pdf but if you just want an html, then say html. 
+
+# the arguments after %>% specify different table formats, fonts, and the width of the columns
+kable(model.validation.stats, "latex", align = "c",booktabs = TRUE, caption = "Table 1. Process model covariates, scaling, and model validation statistics", digits = 3, linesep = "") %>% column_spec(1, width = "1cm")%>%column_spec(2, width = "4cm")%>% 
+  column_spec(3:6, width = "1.5cm") %>% kable_classic_2(full_width = F, html_font = "Cambria")
+
+```
