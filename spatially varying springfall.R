@@ -19,7 +19,7 @@ library(here)
 library(gifski)
 library(maps) 
 
-PIED.all <- read.csv("work/data/input/data/pied_all_growth_v6.csv")
+PIED.all <- read.csv(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_all_growth_v6.csv"))
 full.ppt.tmean.norms <- read.csv(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_all_tmean_ppt_v5.csv"))
 grow.new <- merge(PIED.all, full.ppt.tmean.norms, by.x = c("name", "year", "LON", "LAT"), by.y = c("name", "year", "lon", "lat"))
 
