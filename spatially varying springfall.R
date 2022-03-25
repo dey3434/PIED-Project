@@ -2,7 +2,7 @@
 ## Sharmila Dey
 # 22 June 2020
 setwd("/home/rstudio")
-load("/home/rstudio/work/data/input/data/pied_grow_coef2.rda")
+load(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_grow_coef2.rda"))
 fit_grow <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/ppt_tmp_springfall_sizefix_scale.RDS"))
 #fit_grow <- readRDS("ppt_tmp_springfall_sizefix.RDS")
 #fit_grow_old <- readRDS("data/ppt_tmp_springfall.RDS")
