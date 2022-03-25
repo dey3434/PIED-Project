@@ -2,8 +2,8 @@
 ## Sharmila Dey
 # 22 June 2020
 setwd("/home/rstudio")
-load("/home/rstudio/data/pied_grow_coef2.rda")
-fit_grow <- readRDS("ppt_tmp_springfall_sizefix_scale.RDS")
+load("/home/rstudio/work/data/input/data/pied_grow_coef2.rda")
+fit_grow <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/ppt_tmp_springfall_sizefix_scale.RDS"))
 #fit_grow <- readRDS("ppt_tmp_springfall_sizefix.RDS")
 #fit_grow_old <- readRDS("data/ppt_tmp_springfall.RDS")
 install.packages("rstan", version = "2.19.3", repos = "http://cran.us.r-project.org")
@@ -19,9 +19,21 @@ library(here)
 library(gifski)
 library(maps) 
 
-PIED.all <- read.csv("data/pied_all_growth_v4.csv")
-full.ppt.tmean.norms <- read.csv(url("https://de.cyverse.org/dl/d/329EBCF7-817F-497C-BEA7-A2D906493392/pied_all_tmean_ppt_v3.csv"))
+PIED.all <- read.csv("work/data/input/data/pied_all_growth_v6.csv")
+full.ppt.tmean.norms <- read.csv(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_all_tmean_ppt_v5.csv"))
 grow.new <- merge(PIED.all, full.ppt.tmean.norms, by.x = c("name", "year", "LON", "LAT"), by.y = c("name", "year", "lon", "lat"))
+
+hist(full.ppt.tmean.norms$tmp_norm)
+hist(grow.new$tmp_norm)
+yearlyprecip <- as.matrix(cbind(grow.new$Precip_JulAug, grow.new$Precip_NovDecJanFebMar))
+colnames(yearlyprecip) <- c("Precip JulAug", "Precip NovDecJanFebMar")
+boxplot(yearlyprecip, main="Seasonal Precipitation")  
+
+yearlytemp <- as.matrix(cbind(grow.new$Tmean_AprMayJun, grow.new$Tmean_SepOct))
+colnames(yearlytemp) <- c("Tmean AprMayJun", "Tmean SepOct")
+boxplot(yearlytemp, main="Seasonal Temperature")  
+
+
 
 grow.new$Tmean_AprMayJun_l <- grow.new$Tmean_AprMayJun
 grow.new$Tmean_SepOct_l <- grow.new$Tmean_SepOct
