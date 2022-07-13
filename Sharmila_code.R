@@ -3,6 +3,21 @@
  # values and a line with the model prediction. I did not include the code for setting up the original dataframe (FIA_lambda_noex) because I didn't
  # think it would be helpful, but the basic structure is simple: it could include any number of predictors (mine had four different precictions
  # for lambda) and a column with presence/absence data.
+library(raster)
+
+PApied <- raster("data/presenceAbsenceRasterNA.tif")
+# getting a warning: Warning message:
+#In showSRID(SRS_string, format = "PROJ", multiline = "NO", prefer_proj = prefer_proj) :
+#  Discarded datum unknown in Proj4 definition
+plot(PApied)
+
+FIA_PApied <- as.data.frame(PApied,xy=TRUE)
+names(FIA_PApied )<-c("lon","lat","PApied")
+
+summary(FIA_PApied)
+
+# save this as a data frame so that you could read it in without needing the raster package:
+write.csv(FIA_PApied, "data/PresenceAbsernce_PIEDFIA.csv")
 
 ## Logistic models (lambda vs occurrence)
 k=5
