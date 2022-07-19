@@ -306,6 +306,14 @@ colnames(sep_oct)[3] <- "year"
 sep_oct$year <- as.character(sep_oct$year)
 
 
+# water year precip
+wateryr <- temp.ppt %>% filter(month %in% c(1:12)) %>% group_by(lon, lat, year) %>% summarise(Tmean_wateryr  = mean(Tave),
+                                                                                              Precip_wateryr = mean(ppt)) 
+colnames(wateryr)[3] <- "year"
+
+wateryr$year <- as.character(wateryr$year)
+
+
 # monthly of current year
 
 temp.wide <- temp.ppt %>% #filter(! year %in% "T1") %>% 
@@ -316,8 +324,8 @@ ppt.wide <- temp.ppt  %>% #filter(! year %in% "T1") %>%
   dplyr::select(lat, lon, year, ppt, month)  %>%
   group_by(lon, lat)  %>% spread (month, ppt) 
 
-colnames(ppt.wide)[5:16] <- paste0("PPT_", colnames(ppt.wide)[5:16])
-colnames(temp.wide)[5:16] <- paste0("TMEAN_", colnames(ppt.wide)[5:16])
+colnames(ppt.wide)[4:15] <- paste0("PPT_", colnames(ppt.wide)[4:15])
+colnames(temp.wide)[4:15] <- paste0("TMEAN_", colnames(ppt.wide)[4:15])
 
 # get the previous year's temp and precipt
 temp.wide.prev <- temp.wide
@@ -325,7 +333,7 @@ temp.wide.prev$nextyear <- as.numeric(temp.wide.prev$year)+1
 temp.wide.prev$actual.year <- temp.wide.prev$year
 temp.wide.prev$year <- temp.wide.prev$nextyear
 
-colnames(temp.wide.prev)[5:16] <- paste0("PREV_",colnames(temp.wide.prev)[5:16])
+colnames(temp.wide.prev)[4:15] <- paste0("PREV_",colnames(temp.wide.prev)[4:15])
 
 
 
@@ -337,7 +345,7 @@ ppt.wide.prev$nextyear <- as.numeric(ppt.wide.prev$year)+1
 ppt.wide.prev$actual.year <- ppt.wide.prev$year
 ppt.wide.prev$year <- ppt.wide.prev$nextyear
 
-colnames(ppt.wide.prev)[5:16] <- paste0("PREV_",colnames(ppt.wide.prev)[5:16])
+colnames(ppt.wide.prev)[4:15] <- paste0("PREV_",colnames(ppt.wide.prev)[4:15])
 ppt.previous <- ppt.wide.prev %>% dplyr::select(-nextyear, -actual.year)
 ppt.previous$year <- as.character(ppt.previous$year)
 
@@ -354,10 +362,31 @@ all.tmean.5 <- left_join(all.tmean.4, ppt.wide, by = mergeCols)
 all.tmean.6 <- left_join(all.tmean.5, ppt.previous, by = mergeCols)
 all.tmean.7 <- left_join(all.tmean.6, temp.wide, by = mergeCols)
 full.ppt.tmean <- left_join(all.tmean.7, temp.previous, by = mergeCols)
+full.ppt.tmean2 <- left_join(full.ppt.tmean, wateryr, by = mergeCols)
 
 
 
-write.csv(full.ppt.tmean, "data/pied_abundance_ll_climate.csv", row.names = FALSE)
+write.csv(full.ppt.tmean2, "data/FIAPIED_ll_climate.csv", row.names = FALSE)
 
 
+# calculate NORMALS FOR ALL VARIABLES
+NORMALS <- full.ppt.tmean2 %>% group_by(lon, lat) %>% dplyr::summarise(MAP = mean(Precip_wateryr, na.rm = TRUE), 
+                                                    MAT = mean(Tmean_wateryr, na.rm = TRUE), 
+                                                    MATfall = mean(Tmean_SepOct, na.rm = TRUE), 
+                                                    MATspring = mean(Tmean_AprMayJun, na.rm = TRUE), 
+                                                    MAPmonsoon = mean(Precip_JulAug, na.rm = TRUE), 
+                                                    MAPwinter = mean(Precip_NovDecJanFebMar, na.rm = TRUE))
+
+# very simple maps of cliamte
+ggplot(NORMALS, aes(x = lon, y = lat, fill = MAP))+geom_raster()
+ggplot(NORMALS, aes(x = lon, y = lat, fill = MATfall))+geom_raster()
+ggplot(NORMALS, aes(x = lon, y = lat, fill = MATspring))+geom_raster()
+
+
+
+
+# now merge with the PApied data:
+FIA_PApied <- read.csv( "data/PresenceAbsernce_PIEDFIA.csv")
+climate.PApied <- left_join(FIA_PApied, NORMALS, by = c("lat", "lon"))
+write.csv(climate.PApied, "data/Normals_PA_PIED.csv", row.names = FALSE)
 
