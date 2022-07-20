@@ -51,7 +51,7 @@ all$LON <- plots$LON[match(all$PLT_CN, plots$CN)]
 #write.csv(all, "Processed/validationRecords.csv", row.names = F)
 
 # Read in a raster for alignment
-#pres <- raster("./Output/tifs/PIED.clim_lambda_gam.tif")# I dont have this (KH), but is shoudl be the same size as the file emily sent
+pres <- raster("./Output/tifs/PIED.clim_lambda_gam.tif")# I dont have this (KH), but is shoudl be the same size as the file emily sent
 pres <- raster("presenceAbsenceRaster2.tif")
 pres <- setValues(pres, NA)
 
@@ -188,7 +188,7 @@ names(FIA_PApied )<-c("lon","lat","PApied")
 ppt.extracted <- data.frame(extract(pptStack, FIA_PApied[,c("lon", "lat")]))
 ppt.extracted$lon <- FIA_PApied$lon
 ppt.extracted$lat <- FIA_PApied$lat
-#ppt.extracted$name<- FIA_PApied$PApied
+ppt.extracted$name<- FIA_PApied$name
 
 
 saveRDS(ppt.extracted, "data/pied_extracted.ppt.PAdata.rds")
@@ -199,194 +199,74 @@ ppt.extracted <- readRDS( "data/pied_extracted.ppt.PAdata.rds")
 temp.extracted <- data.frame(raster::extract(tempStack, FIA_PApied[,c("lon", "lat")]))
 temp.extracted$lon <- FIA_PApied$lon
 temp.extracted$lat <- FIA_PApied$lat
-#temp.extracted$name<- FIA_PApied$PApied
+temp.extracted$name<- FIA_PApied$name
 
 
 saveRDS(temp.extracted, "data/pied_extracted.temp.PAdata.rds")
-temp.extracted <- readRDS( "data/pied_extracted.temp.PAdata.rds")
-
-# now summarise the climate data to the variables we are interests in:
+temp.extracted <- readRDS( "data/pied_extracted.temp.data.rds")
 
 
-colnames(temp.extracted) 
-years <- rep(1895:2019, each = 12)
-months <- rep(1:12, 125)
+FIA_PApied <- as.data.frame(PApied,xy=TRUE)
+names(FIA_PApied )<-c("lon","lat","PApied")
 
-colnames.clim <- c(paste0(years, "_", months), "2020_1", "2020_2")
-length(temp.extracted)
-length(colnames.clim)
-colnames(temp.extracted)[1:1502] <- colnames.clim
-#colnames(ppt.extracted)[1:1502] <- colnames.clim
-temp.m <- reshape2::melt(temp.extracted, id.vars = c("lon", "lat"))
-#temp.long <- temp.m %>% separate(variable, c("year", "month"))
-temp.long <- temp.m %>% filter(! variable %in% c("2020_1", "2020_2"))
-temp.long$variable <- as.character(temp.long$variable)
-var.split <- str_split_fixed(temp.long$variable, "_", 2)#temp.long %>% separate(variable, c("year", "month"))
-temp.long$year <- var.split[,1]
-temp.long$month <- var.split[,2]
-colnames(temp.long) <- c("lon", "lat","variable", "Tave", "year", "month")
+summary(FIA_PApied)
 
-# do the same for precipitation
-colnames(ppt.extracted) 
-years <- rep(1895:2018, each = 12)
-months <- rep(1:12, 124)
+# save this as a data frame so that you could read it in without needing the raster package:
+write.csv(FIA_PApied, "data/PresenceAbsernce_PIEDFIA.csv")
 
-colnames.clim <- c(paste0(years, "_", months), "2019_1", "2019_2", "2019_3", "2019_4", "2019_5", "2019_6", "2019_7", "2019_8", "2019_9", "2019_10")
-length(ppt.extracted)
-colnames(ppt.extracted)[1:1498] <- colnames.clim
-#colnames(ppt.extracted)[1:1502] <- colnames.clim
-ppt.m <- reshape2::melt(ppt.extracted, id.vars = c("lon", "lat"))
-ppt.m$variable <- as.character(ppt.m$variable)
-#ppt.long <- ppt.m %>% separate(variable, c("year", "month")) This kept crashing R
-var.split <- str_split_fixed(ppt.m$variable, "_", 2)#temp.long %>% separate(variable, c("year", "month"))
-ppt.m$year <- var.split[,1]
-ppt.m$month <- var.split[,2]
-ppt.long <- ppt.m
-colnames(ppt.long) <- c("lon", "lat", "variable", "ppt", "year", "month")
+## Logistic models (lambda vs occurrence)
+k=5
+pa_monsoonp <- gam(PApied~s(Precip_JulAug,k=k),family=binomial(link = cloglog),
+            data=FIA_PApied)
+pa_winterp <- gam(PApied~s(Precip_NovDecJanFebMar,k=k),family=binomial(link = cloglog),
+             data=FIA_PApied)
+pa_springt <- gam(PApied~s(Tmean_AprMayJun,k=k),family=binomial(link = cloglog),
+             data=FIA_PApied)
+pa_fallt <- gam(PApied~s(Tmean_SepOct, k=k),family=binomial(link = cloglog),
+            data=FIA_PApied)
 
-ppt.long <- ppt.long %>% select(-variable)
-temp.long <- temp.long %>% select(-variable)
-temp.ppt <- left_join(temp.long, ppt.long, by =c("lon", "lat", "year", "month"))
+## Set up data frame with binned values
+ncuts=50 # number of cut to create bins
 
+# divide into intervals based on number of cuts
+chopsize_monsoonp<-cut(FIA_PApied$Precip_JulAug,ncuts)
+chopsize_winterp<-cut(FIA_PApied$Precip_NovDecJanFebMar,ncuts)
+chopsize_springt<-cut(FIA_PApied$Tmean_AprMayJun,ncuts)
+chopsize_fallt<-cut(FIA_PApied$Tmean_SepOct,ncuts)
 
-# assign water year
-wtr_yr <- function(df, start_month=9) {
-  # Year offset
-  offset = ifelse(as.numeric(df$month) >= start_month - 1, 1, 0)
-  # Water year
-  adj.year = as.numeric(df$year) + offset
-  # Return the water year
-  adj.year
-}
+count_binned_lam_monsoonp<-as.vector(sapply(split(FIA_PApied$PApied,chopsize_monsoonp),length)) # calculate number of data points in each bin
+lam_monsoonp_binned<-as.vector(sapply(split(FIA_PApied$Precip_JulAug,chopsize_monsoonp),mean,na.rm=T)) # calculate mean lambda in each bin
+pres_monsoonp_binned<-as.vector(sapply(split(FIA_PApied$PApied,chopsize_monsoonp),mean,na.rm=T)) # calculate mean prob of occurrence in each bin
 
-temp.ppt$water_year <- wtr_yr(temp.ppt)
+count_binned_lam_winterp<-as.vector(sapply(split(FIA_PApied$PApied,chopsize_lam_winterp),length))
+lam_winterp_binned<-as.vector(sapply(split(FIA_PApied$Precip_NovDecJanFebMar,chopsize_lam_winterp),mean,na.rm=T))
+pres_winterp_binned<-as.vector(sapply(split(FIA_PApied$PApied,chopsize_lam_winterp),mean,na.rm=T))
 
-# May april jun - arid foresummer
-foresummer <- temp.ppt %>% filter(month %in% 9:11)%>% group_by(lon, lat,  year)%>% summarise(Tmean_MarAprMay = mean(Tave),
-                                                                                                  Precip_MarAprMay = mean(ppt)) 
+count_binned_lam_springt<-as.vector(sapply(split(FIA_PApied$PApied,chopsize_lam_springt),length))
+lam_springt_binned<-as.vector(sapply(split(FIA_PApied$Tmean_AprMayJun,chopsize_lam_springt),mean,na.rm=T))
+pres_springt_binned<-as.vector(sapply(split(FIA_PApied$PApied,chopsize_lam_springt),mean,na.rm=T))
 
+count_binned_lam_fallt<-as.vector(sapply(split(FIA_PApied$PApied,chopsize_lam_fallt),length))
+lam_fallt_binned<-as.vector(sapply(split(FIA_PApied$Tmean_SepOct,chopsize_lam_fallt),mean,na.rm=T))
+pres_fallt_binned<-as.vector(sapply(split(FIA_PApied$PApied,chopsize_lam_fallt),mean,na.rm=T))
 
-# Jul August - monsson
-monsoon <- temp.ppt %>% filter(month %in% 7:8)%>% group_by(lon, lat, year)%>% summarise(Tmean_JulAug = mean(Tave),
-                                                                                              Precip_JulAug = mean(ppt)) 
+# combine into dataframe
+pres_binned<-data.frame(count_lam=c(count_binned_lam_monsoonp,count_binned_lam_winterp,count_binned_lam_springt, count_binned_lam_fallt),
+                        lam=c(lam_monsoonp_binned,lam_winterp_binned,lam_springt_binned, lam_fallt_binned),
+                        pres=c(pres_monsoonp_binned,pres_winterp_binned,pres_springt_binned, pres_fallt_binned),
+                        pred=c(invlogit(predict(pa_monsoonp,newdata=data.frame(lambda_monsoonp=lam_monsoonp_binned))),
+                               invlogit(predict(pa_winterp,newdata=data.frame(lambda_winterp=lam_winterp_binned))),
+                               invlogit(predict(pa_springt,newdata=data.frame(lambda_springt=lam_springt_binned))),
+                               invlogit(predict(pa_fallt,newdata=data.frame(lambda_fallt=lam_fallt_binned)))),
+                        model=c(rep("monsoonp",ncuts),rep("winterp",ncuts),rep("springt",ncuts),rep("fallt", ncuts))
 
-# Sept Oct November - Fall
-fall <-temp.ppt %>% filter(month %in% 9:11)%>% group_by(lon, lat,  year)%>% summarise(Tmean_SepOctNov = mean(Tave),
-                                                                                           Precip_SepOctNov = mean(ppt)) 
-
-# december january february - winter:
-
-winter <- temp.ppt %>% filter(month %in% c(1,2,12)) %>% group_by(lon, lat, water_year) %>% summarise(Tmean_DecJanFeb = mean(Tave),
-                                                                                                           Precip_DecJanFeb = mean(ppt)) 
-colnames(winter)[3] <- "year"
-
-winter$year <- as.character(winter$year)
-
-# other requested variables:
-# november - march
-nov_mar <- temp.ppt %>% filter(month %in% c(1,2,2,11,12)) %>% group_by(lon, lat,  water_year) %>% summarise(Tmean_NovDecJanFebMar = mean(Tave),
-                                                                                                                 Precip_NovDecJanFebMar = mean(ppt)) 
-colnames(nov_mar)[3] <- "year"
-
-nov_mar$year <- as.character(nov_mar$year)
-
-# april may june
-apr_may_jun <- temp.ppt %>% filter(month %in% c(4,5,6)) %>% group_by(lon, lat,  water_year) %>% summarise(Tmean_AprMayJun  = mean(Tave),
-                                                                                                               Precip_AprMayJun = mean(ppt)) 
-colnames(apr_may_jun )[3] <- "year"
-
-apr_may_jun $year <- as.character(apr_may_jun $year)
-
-# September to October of current year
-
-sep_oct <- temp.ppt %>% filter(month %in% c(9,10)) %>% group_by(lon, lat, year) %>% summarise(Tmean_SepOct  = mean(Tave),
-                                                                                                    Precip_SepOct = mean(ppt)) 
-colnames(sep_oct)[3] <- "year"
-
-sep_oct$year <- as.character(sep_oct$year)
-
-
-# water year precip
-wateryr <- temp.ppt %>% filter(month %in% c(1:12)) %>% group_by(lon, lat, year) %>% summarise(Tmean_wateryr  = mean(Tave),
-                                                                                              Precip_wateryr = mean(ppt)) 
-colnames(wateryr)[3] <- "year"
-
-wateryr$year <- as.character(wateryr$year)
-
-
-# monthly of current year
-
-temp.wide <- temp.ppt %>% #filter(! year %in% "T1") %>% 
-  dplyr::select(lat, lon,  year, Tave, month)  %>%
-  group_by(lon, lat)  %>% spread (month, Tave)                         
-
-ppt.wide <- temp.ppt  %>% #filter(! year %in% "T1") %>% 
-  dplyr::select(lat, lon, year, ppt, month)  %>%
-  group_by(lon, lat)  %>% spread (month, ppt) 
-
-colnames(ppt.wide)[4:15] <- paste0("PPT_", colnames(ppt.wide)[4:15])
-colnames(temp.wide)[4:15] <- paste0("TMEAN_", colnames(ppt.wide)[4:15])
-
-# get the previous year's temp and precipt
-temp.wide.prev <- temp.wide
-temp.wide.prev$nextyear <- as.numeric(temp.wide.prev$year)+1                        
-temp.wide.prev$actual.year <- temp.wide.prev$year
-temp.wide.prev$year <- temp.wide.prev$nextyear
-
-colnames(temp.wide.prev)[4:15] <- paste0("PREV_",colnames(temp.wide.prev)[4:15])
-
-
-
-temp.previous <- temp.wide.prev %>% dplyr::select(-nextyear, -actual.year)
-temp.previous$year <- as.character(temp.previous$year)
-
-ppt.wide.prev <- ppt.wide
-ppt.wide.prev$nextyear <- as.numeric(ppt.wide.prev$year)+1                        
-ppt.wide.prev$actual.year <- ppt.wide.prev$year
-ppt.wide.prev$year <- ppt.wide.prev$nextyear
-
-colnames(ppt.wide.prev)[4:15] <- paste0("PREV_",colnames(ppt.wide.prev)[4:15])
-ppt.previous <- ppt.wide.prev %>% dplyr::select(-nextyear, -actual.year)
-ppt.previous$year <- as.character(ppt.previous$year)
-
-
-# combine all together:
-mergeCols = c("lon", "lat", "year")
-fall.wint <- left_join(winter, fall, by = mergeCols)
-mons.fall.wint <- left_join(monsoon, fall.wint, by = mergeCols)
-all.tmean <- left_join(foresummer, mons.fall.wint, by = mergeCols)
-all.tmean.2 <- left_join(all.tmean, nov_mar, by = mergeCols)
-all.tmean.3 <- left_join(all.tmean.2, sep_oct, by = mergeCols)
-all.tmean.4 <- left_join(all.tmean.3, apr_may_jun, by = mergeCols)
-all.tmean.5 <- left_join(all.tmean.4, ppt.wide, by = mergeCols)
-all.tmean.6 <- left_join(all.tmean.5, ppt.previous, by = mergeCols)
-all.tmean.7 <- left_join(all.tmean.6, temp.wide, by = mergeCols)
-full.ppt.tmean <- left_join(all.tmean.7, temp.previous, by = mergeCols)
-full.ppt.tmean2 <- left_join(full.ppt.tmean, wateryr, by = mergeCols)
-
-
-
-write.csv(full.ppt.tmean2, "data/FIAPIED_ll_climate.csv", row.names = FALSE)
-
-
-# calculate NORMALS FOR ALL VARIABLES
-NORMALS <- full.ppt.tmean2 %>% group_by(lon, lat) %>% dplyr::summarise(MAP = mean(Precip_wateryr, na.rm = TRUE), 
-                                                    MAT = mean(Tmean_wateryr, na.rm = TRUE), 
-                                                    MATfall = mean(Tmean_SepOct, na.rm = TRUE), 
-                                                    MATspring = mean(Tmean_AprMayJun, na.rm = TRUE), 
-                                                    MAPmonsoon = mean(Precip_JulAug, na.rm = TRUE), 
-                                                    MAPwinter = mean(Precip_NovDecJanFebMar, na.rm = TRUE))
-
-# very simple maps of cliamte
-ggplot(NORMALS, aes(x = lon, y = lat, fill = MAP))+geom_raster()
-ggplot(NORMALS, aes(x = lon, y = lat, fill = MATfall))+geom_raster()
-ggplot(NORMALS, aes(x = lon, y = lat, fill = MATspring))+geom_raster()
-
-
-
-
-# now merge with the PApied data:
-FIA_PApied <- read.csv( "data/PresenceAbsernce_PIEDFIA.csv")
-climate.PApied <- left_join(FIA_PApied, NORMALS, by = c("lat", "lon"))
-write.csv(climate.PApied, "data/Normals_PA_PIED.csv", row.names = FALSE)
-
+# Plot
+pres_plot_c<-ggplot(data=subset(pres_binned,model=="c"),aes(x=lam,y=pres))+
+  geom_point(aes(size=count_lam))+
+  geom_line(aes(y=pred),size=1)+
+  annotate("label", x = 0.89, y = 0.5, 
+           label = paste("Deviance=",round(pa_c$deviance,2),
+                         "\nAIC =",round(pa_c$aic,2)),
+           hjust = 0, vjust = 1, size=5)+
+  guides(size=guide_legend(title="Count")) +
+  mytheme+labs(x = expression(paste(lambda)), y = "Probability of occurrence")
