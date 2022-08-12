@@ -262,22 +262,22 @@ wtr_yr <- function(df, start_month=9) {
 temp.ppt$water_year <- wtr_yr(temp.ppt)
 
 # May april jun - arid foresummer
-foresummer <- temp.ppt %>% filter(month %in% 9:11)%>% group_by(lon, lat,  year)%>% summarise(Tmean_MarAprMay = mean(Tave),
-                                                                                                  Precip_MarAprMay = mean(ppt)) 
+foresummer <- temp.ppt %>% filter(month %in% 4:6)%>% group_by(lon, lat,  year)%>% summarise(Tmean_AprMayJun = mean(Tave),
+                                                                                                  Precip_AprMayJun = mean(ppt)) 
 
 
 # Jul August - monsson
 monsoon <- temp.ppt %>% filter(month %in% 7:8)%>% group_by(lon, lat, year)%>% summarise(Tmean_JulAug = mean(Tave),
                                                                                               Precip_JulAug = mean(ppt)) 
 
-# Sept Oct November - Fall
-fall <-temp.ppt %>% filter(month %in% 9:11)%>% group_by(lon, lat,  year)%>% summarise(Tmean_SepOctNov = mean(Tave),
-                                                                                           Precip_SepOctNov = mean(ppt)) 
+# Sept Oct- Fall
+fall <-temp.ppt %>% filter(month %in% 9:10)%>% group_by(lon, lat,  year)%>% summarise(Tmean_SepOct = mean(Tave),
+                                                                                           Precip_SepOct = mean(ppt)) 
 
 # december january february - winter:
 
-winter <- temp.ppt %>% filter(month %in% c(1,2,12)) %>% group_by(lon, lat, water_year) %>% summarise(Tmean_DecJanFeb = mean(Tave),
-                                                                                                           Precip_DecJanFeb = mean(ppt)) 
+winter <- temp.ppt %>% filter(month %in% c(11, 12, 1, 2, 3)) %>% group_by(lon, lat, water_year) %>% summarise(Tmean_NovDecJanFebMar = mean(Tave),
+                                                                                                           Precip_NovDecJanFebMar = mean(ppt)) 
 colnames(winter)[3] <- "year"
 
 winter$year <- as.character(winter$year)
@@ -390,3 +390,136 @@ FIA_PApied <- read.csv( "data/PresenceAbsernce_PIEDFIA.csv")
 climate.PApied <- left_join(FIA_PApied, NORMALS, by = c("lat", "lon"))
 write.csv(climate.PApied, "data/Normals_PA_PIED.csv", row.names = FALSE)
 
+
+FIA_PApied <- read.csv("work/PIED-Project/Normals_PA_PIED.csv")
+## Logistic models (lambda vs occurrence)
+k=5
+pa_monsoonp <- gam(PApied~s(MAPmonsoon,k=k),family=binomial(link = cloglog),
+            data=FIA_PApied)
+pa_winterp <- gam(PApied~s(MAPwinter,k=k),family=binomial(link = cloglog),
+             data=FIA_PApied)
+pa_springt <- gam(PApied~s(MATspring,k=k),family=binomial(link = cloglog),
+             data=FIA_PApied)
+pa_fallt <- gam(PApied~s(MATfall, k=k),family=binomial(link = cloglog),
+            data=FIA_PApied)
+pa_map <- gam(PApied~s(MAP,k=k),family=binomial(link = cloglog),
+            data=FIA_PApied)
+pa_mat <- gam(PApied~s(MAT,k=k),family=binomial(link = cloglog),
+             data=FIA_PApied)
+
+## Set up data frame with binned values
+ncuts=50 # number of cut to create bins
+
+# divide into intervals based on number of cuts
+chopsize_monsoonp<-cut(FIA_PApied$MAPmonsoon,ncuts)
+chopsize_winterp<-cut(FIA_PApied$MAPwinter,ncuts)
+chopsize_springt<-cut(FIA_PApied$MATspring,ncuts)
+chopsize_fallt<-cut(FIA_PApied$MATfall,ncuts)
+chopsize_map<-cut(FIA_PApied$MAP,ncuts)
+chopsize_mat<-cut(FIA_PApied$MAT,ncuts)
+
+
+count_binned_lam_monsoonp<-as.vector(sapply(split(FIA_PApied$PApied,chopsize_monsoonp),length)) # calculate number of data points in each bin
+lam_monsoonp_binned<-as.vector(sapply(split(FIA_PApied$MAPmonsoon,chopsize_monsoonp),mean,na.rm=T)) # calculate mean lambda in each bin
+pres_monsoonp_binned<-as.vector(sapply(split(FIA_PApied$PApied,chopsize_monsoonp),mean,na.rm=T)) # calculate mean prob of occurrence in each bin
+
+count_binned_lam_winterp<-as.vector(sapply(split(FIA_PApied$PApied,chopsize_winterp),length))
+lam_winterp_binned<-as.vector(sapply(split(FIA_PApied$MAPwinter,chopsize_winterp),mean,na.rm=T))
+pres_winterp_binned<-as.vector(sapply(split(FIA_PApied$PApied,chopsize_winterp),mean,na.rm=T))
+
+count_binned_lam_springt<-as.vector(sapply(split(FIA_PApied$PApied,chopsize_springt),length))
+lam_springt_binned<-as.vector(sapply(split(FIA_PApied$MATspring,chopsize_springt),mean,na.rm=T))
+pres_springt_binned<-as.vector(sapply(split(FIA_PApied$PApied,chopsize_springt),mean,na.rm=T))
+
+count_binned_lam_fallt<-as.vector(sapply(split(FIA_PApied$PApied,chopsize_fallt),length))
+lam_fallt_binned<-as.vector(sapply(split(FIA_PApied$MATfall,chopsize_fallt),mean,na.rm=T))
+pres_fallt_binned<-as.vector(sapply(split(FIA_PApied$PApied,chopsize_fallt),mean,na.rm=T))
+
+count_binned_lam_map<-as.vector(sapply(split(FIA_PApied$PApied,chopsize_map),length))
+lam_map_binned<-as.vector(sapply(split(FIA_PApied$MAP,chopsize_map),mean,na.rm=T))
+pres_map_binned<-as.vector(sapply(split(FIA_PApied$PApied,chopsize_map),mean,na.rm=T))
+
+count_binned_lam_mat<-as.vector(sapply(split(FIA_PApied$PApied,chopsize_mat),length))
+lam_mat_binned<-as.vector(sapply(split(FIA_PApied$MAT,chopsize_mat),mean,na.rm=T))
+pres_mat_binned<-as.vector(sapply(split(FIA_PApied$PApied,chopsize_mat),mean,na.rm=T))
+
+# combine into dataframe
+pres_binned<-data.frame(count_lam=c(count_binned_lam_monsoonp,count_binned_lam_winterp,count_binned_lam_springt, count_binned_lam_fallt,
+                                    count_binned_lam_map, count_binned_lam_mat),
+                        lam=c(lam_monsoonp_binned,lam_winterp_binned,lam_springt_binned, lam_fallt_binned,
+                              lam_map_binned, lam_mat_binned),
+                        pres=c(pres_monsoonp_binned,pres_winterp_binned,pres_springt_binned, pres_fallt_binned,
+                               pres_map_binned, pres_mat_binned),
+                        pred=c(invlogit(predict(pa_monsoonp,newdata=data.frame(MAPmonsoon=lam_monsoonp_binned))),
+                               invlogit(predict(pa_winterp,newdata=data.frame(MAPwinter=lam_winterp_binned))),
+                               invlogit(predict(pa_springt,newdata=data.frame(MATspring=lam_springt_binned))),
+                               invlogit(predict(pa_fallt,newdata=data.frame(MATfall=lam_fallt_binned))),
+                               invlogit(predict(pa_map,newdata=data.frame(MAP=lam_map_binned))),
+                               invlogit(predict(pa_mat,newdata=data.frame(MAT=lam_mat_binned)))),
+                        model=c(rep("monsoonp",ncuts),rep("winterp",ncuts),rep("springt",ncuts),rep("fallt", ncuts),
+                                rep("map", ncuts), rep("mat", ncuts)))
+
+# Plot
+pres_plot_monsoonp<-ggplot(data=subset(pres_binned,model=="monsoonp"),aes(x=lam,y=pres))+
+  geom_point(aes(size=count_lam))+
+  geom_line(aes(y=pred),size=1)+
+  annotate("label", x = 75, y = 0.25, 
+           label = paste("Deviance=",round(pa_monsoonp$deviance,2),
+                         "\nAIC =",round(pa_monsoonp$aic,2)),
+           hjust = 0, vjust = 1, size=5)+
+  guides(size=guide_legend(title="Count")) +
+  mytheme+labs(x = "Monsoon Precip", y = "Probability of occurrence")
+
+
+pres_plot_winterp<-ggplot(data=subset(pres_binned,model=="winterp"),aes(x=lam,y=pres))+
+  geom_point(aes(size=count_lam))+
+  geom_line(aes(y=pred),size=1)+
+  annotate("label", x = 100, y = 0.75, 
+           label = paste("Deviance=",round(pa_winterp$deviance,2),
+                         "\nAIC =",round(pa_winterp$aic,2)),
+           hjust = 0, vjust = 1, size=5)+
+  guides(size=guide_legend(title="Count")) +
+  mytheme+labs(x = "Winter Precip", y = "Probability of occurrence")
+
+
+pres_plot_springt<-ggplot(data=subset(pres_binned,model=="springt"),aes(x=lam,y=pres))+
+  geom_point(aes(size=count_lam))+
+  geom_line(aes(y=pred),size=1)+
+  annotate("label", x = 0, y = 1, 
+           label = paste("Deviance=",round(pa_springt$deviance,2),
+                         "\nAIC =",round(pa_springt$aic,2)),
+           hjust = 0, vjust = 1, size=5)+
+  guides(size=guide_legend(title="Count")) +
+  mytheme+labs(x = "Spring Temp", y = "Probability of occurrence")
+
+
+pres_plot_fallt<-ggplot(data=subset(pres_binned,model=="fallt"),aes(x=lam,y=pres))+
+  geom_point(aes(size=count_lam))+
+  geom_line(aes(y=pred),size=1)+
+  annotate("label", x = 0, y = 1, 
+           label = paste("Deviance=",round(pa_fallt$deviance,2),
+                         "\nAIC =",round(pa_fallt$aic,2)),
+           hjust = 0, vjust = 1, size=5)+
+  guides(size=guide_legend(title="Count")) +
+  mytheme+labs(x = "Fall Temp", y = "Probability of occurrence")
+
+pres_plot_map<-ggplot(data=subset(pres_binned,model=="map"),aes(x=lam,y=pres))+
+  geom_point(aes(size=count_lam))+
+  geom_line(aes(y=pred),size=1)+
+  annotate("label", x = 0, y = 1, 
+           label = paste("Deviance=",round(pa_map$deviance,2),
+                         "\nAIC =",round(pa_map$aic,2)),
+           hjust = 0, vjust = 1, size=5)+
+  guides(size=guide_legend(title="Count")) +
+  mytheme+labs(x = "MAP", y = "Probability of occurrence")
+
+
+pres_plot_mat<-ggplot(data=subset(pres_binned,model=="mat"),aes(x=lam,y=pres))+
+  geom_point(aes(size=count_lam))+
+  geom_line(aes(y=pred),size=1)+
+  annotate("label", x = 15, y = 1, 
+           label = paste("Deviance=",round(pa_mat$deviance,2),
+                         "\nAIC =",round(pa_mat$aic,2)),
+           hjust = 0, vjust = 1, size=5)+
+  guides(size=guide_legend(title="Count")) +
+  mytheme+labs(x = "MAT", y = "Probability of occurrence")
