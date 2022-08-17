@@ -75,14 +75,17 @@ for (i in 1:length(vpdmaxFiles)) {
 
 
 PIED.data.az <- read.csv(here("data.clim copy.csv")) # the Arizona PIED data
-PIED.region.ll <- read.csv(here("FIA_inc_data//locs-env-1-31-17.csv"))
+PIED.region.ll <- read.csv(here("locs-env-1-31-17.csv"))
+
+PIED.region.ll %>% group_by(INV, SPCD, STATECD) %>% summarise(n())
+
 # the locs contain lat long, aspect, slope, species code, 
-PIED.region.rwl <- read.csv(here("FIA_inc_data//trees-rwl-1-31-17.csv")) # note that this data is has all RWLS in columsn and a year column
+PIED.region.rwl <- read.csv(here("trees-rwl-1-31-17.csv")) # note that this data is has all RWLS in columsn and a year column
 
 
 # new mexico data:
-NM.rwl<- read.delim(here("FIA_inc_data/new-mexico-ring-width.txt"), sep = ",")
-NM.meta<- read.delim(here("FIA_inc_data/new-mexico-meta.txt"), sep = ",")
+NM.rwl<- read.delim(here("new-mexico-ring-width.txt"), sep = ",")
+NM.meta<- read.delim(here("new-mexico-meta.txt"), sep = ",")
 
 # connect by CN column (core cn)
 NM.all <- left_join(NM.rwl, NM.meta, by = "CN")
@@ -96,7 +99,7 @@ NM.meta %>% filter(SPCD ==106)%>%group_by( VERIFY) %>% summarise (n())
 # plot up the raw data
 filterd.df <- NM.all %>% filter(SPCD ==106)%>% mutate(growth2=ifelse(RW==0,0.001,RW),loggrowth=log(RW))%>% filter(loggrowth <= -2.5)
 
-
+filtered.df2<- NM.all %>% filter(SPCD ==106)%>% mutate(growth2=ifelse(RW==0,0.001,RW),loggrowth=log(RW))
 
 # if(!exists("/Users/kah/Documents/docker_pecan/pecan/InWeUS_FIA/NM_COND.csv")){
 # fiadb <- getFIA(states = "NM", dir = "InWeUS_FIA", common = FALSE, tables = c("PLOT", "TREE", "COND", "SUBPLOT"), nCores = 1)
@@ -105,7 +108,7 @@ filterd.df <- NM.all %>% filter(SPCD ==106)%>% mutate(growth2=ifelse(RW==0,0.001
 # }
 
 
-NM.PLOT <- read.csv("FIA_inc_data/NM_PLOT.csv")
+NM.PLOT <- read.csv("/Users/kah/Documents/docker_pecan/pecan/FIA_inc_data/NM_PLOT.csv")
 
 
 # join with lat long
@@ -164,15 +167,24 @@ PIED.nm.ll$dataset <- "NM"
 colnames(PIED.nm.ll)[3] <- "name"
 PIED.ll <- rbind(PIED.az.ll, PIED.outside.ll, PIED.nm.ll)
 
+PIED.outside.AZ %>% filter(year >1999 & !is.na(growth))
+max(unique(PIED.outside.AZ$year)) # 2014
+max(unique(PIED.NM$Year))
+
+length(unique(PIED.ll$name))
+#1818
+#length(unique(PIED.ll$))
+
+
 ppt.extracted <- data.frame(extract(pptStack, PIED.ll [,c("LON", "LAT")]))
 ppt.extracted$lon <- PIED.ll$LON
 ppt.extracted$lat <- PIED.ll$LAT
 ppt.extracted$name<- PIED.ll$name
 
 
-saveRDS(ppt.extracted, here("FIA_inc_data","pied_extracted.ppt.data_v4.rds"))
+saveRDS(ppt.extracted, "pied_extracted.ppt.data_v4.rds")
 
-ppt.extracted <- readRDS(  here("FIA_inc_data","pied_extracted.ppt.data_v4.rds"))
+ppt.extracted <- readRDS(  "/Users/kah/Documents/docker_pecan/pecan/FIA_inc_data/pied_extracted.ppt.data_v4.rds")
 
 
 temp.extracted <- data.frame(extract(tmpStack, PIED.ll [,c("LON", "LAT")]))
@@ -182,7 +194,7 @@ temp.extracted$name<- PIED.ll$name
 
 
 saveRDS(temp.extracted, here("FIA_inc_data","pied_extracted.temp.data_v4.rds"))
-temp.extracted <- readRDS( here("FIA_inc_data","pied_extracted.temp.data_v4.rds"))
+temp.extracted <- readRDS( "/Users/kah/Documents/docker_pecan/pecan/FIA_inc_data/pied_extracted.temp.data_v4.rds")
 
 tempmax.extracted <- data.frame(raster::extract(tmpmaxStack, PIED.ll [,c("LON", "LAT")]))
 tempmax.extracted$lon <- PIED.ll$LON
@@ -191,7 +203,7 @@ tempmax.extracted$name<- PIED.ll$name
 
 
 saveRDS(tempmax.extracted, here("FIA_inc_data","pied_extracted.tmax.data_v4.rds"))
-tmax.extracted <- readRDS( here("FIA_inc_data","pied_extracted.tmax.data_v4.rds"))
+tmax.extracted <- readRDS( "/Users/kah/Documents/docker_pecan/pecan/FIA_inc_data/pied_extracted.tmax.data_v4.rds")
 
 # now summarise the climate data to the variables we are interests in:
 
@@ -205,7 +217,12 @@ length(tmax.extracted)
 colnames(tmax.extracted)[1:1498] <- colnames.clim
 #colnames(ppt.extracted)[1:1502] <- colnames.clim
 tmax.m <- melt(tmax.extracted, id.vars = c("lon", "lat", "name"))
-tmax.long <- tmax.m %>% separate(variable, c("year", "month"))
+
+year.df <- data.frame(variable = c(unique(tmax.m$variable), "2019_11", "2019_12"), 
+           year = rep(1895:2019, each = 12), 
+           month = rep(1:12, 125))
+tmax.long <- left_join(year.df, tmax.m, by = "variable")
+tmax.long <- tmax.long[,c("lon", "lat", "name", "year","month", "value")]
 colnames(tmax.long) <- c("lon", "lat", "name", "year", "month", "Tave")
 
 
@@ -219,7 +236,14 @@ length(temp.extracted)
 colnames(temp.extracted)[1:1502] <- colnames.clim
 #colnames(ppt.extracted)[1:1502] <- colnames.clim
 temp.m <- melt(temp.extracted, id.vars = c("lon", "lat", "name"))
-temp.long <- temp.m %>% separate(variable, c("year", "month"))
+
+year.df <- data.frame(variable = unique(temp.m$variable)[1:1500], 
+                      year = rep(1895:2019, each = 12), 
+                      month = rep(1:12, 125))
+temp.long <- left_join(year.df, temp.m, by = "variable")
+temp.long <- temp.long[,c("lon", "lat", "name", "year","month", "value")]
+
+#temp.long <- temp.m %>% separate(variable, c("year", "month"))
 colnames(temp.long) <- c("lon", "lat", "name", "year", "month", "Tave")
 
 # do the same for precipitation
@@ -232,11 +256,19 @@ length(ppt.extracted)
 colnames(ppt.extracted)[1:1498] <- colnames.clim
 #colnames(ppt.extracted)[1:1502] <- colnames.clim
 ppt.m <- melt(ppt.extracted, id.vars = c("lon", "lat", "name"))
-ppt.long <- ppt.m %>% separate(variable, c("year", "month"))
+#ppt.long <- ppt.m %>% separate(variable, c("year", "month"))
+year.df <- data.frame(variable = unique(temp.m$variable)[1:1498], 
+                      year = rep(1895:2019, each = 12)[1:1498], 
+                      month = rep(1:12, 125)[1:1498])
+ppt.long <- left_join(year.df, ppt.m, by = "variable")
+ppt.long <- ppt.long[,c("lon", "lat", "name", "year","month", "value")]
+
+
 colnames(ppt.long) <- c("lon", "lat", "name", "year", "month", "ppt")
 
 temp.ppt <- left_join(temp.long, ppt.long, by =c("lon", "lat", "name", "year", "month"))
 
+write.csv(temp.ppt, "temp.ppt.pied.csv", row.names = FALSE)
 
 # assign water year
 wtr_yr <- function(df, start_month=9) {
@@ -251,18 +283,20 @@ wtr_yr <- function(df, start_month=9) {
 temp.ppt$water_year <- wtr_yr(temp.ppt)
 
 # May april jun - arid foresummer
-foresummer <- temp.ppt %>% filter(month %in% 9:11)%>% group_by(lon, lat, name, year)%>% summarise(Tmean_MarAprMay = mean(Tave),
+foresummer <- temp.ppt %>% filter(month %in% 3:5)%>% group_by(lon, lat, name, year)%>% summarise(Tmean_MarAprMay = mean(Tave),
                                                                                                   Precip_MarAprMay = mean(ppt)) 
 
-
+foresummer$year <- as.character(foresummer$year)
 # Jul August - monsson
 monsoon <- temp.ppt %>% filter(month %in% 7:8)%>% group_by(lon, lat, name, year)%>% summarise(Tmean_JulAug = mean(Tave),
                                                                                               Precip_JulAug = mean(ppt)) 
 
+monsoon$year <- as.character(monsoon$year)
 # Sept Oct November - Fall
 fall <-temp.ppt %>% filter(month %in% 9:11)%>% group_by(lon, lat, name, year)%>% summarise(Tmean_SepOctNov = mean(Tave),
                                                                                            Precip_SepOctNov = mean(ppt)) 
 
+fall$year <- as.character(fall$year)
 # december january february - winter:
 
 winter <- temp.ppt %>% filter(month %in% c(1,2,12)) %>% group_by(lon, lat, name, water_year) %>% summarise(Tmean_DecJanFeb = mean(Tave),
@@ -273,7 +307,7 @@ winter$year <- as.character(winter$year)
 
 # other requested variables:
 # november - march
-nov_mar <- temp.ppt %>% filter(month %in% c(1,2,2,11,12)) %>% group_by(lon, lat, name, water_year) %>% summarise(Tmean_NovDecJanFebMar = mean(Tave),
+nov_mar <- temp.ppt %>% filter(month %in% c(1,2,3,11,12)) %>% group_by(lon, lat, name, water_year) %>% summarise(Tmean_NovDecJanFebMar = mean(Tave),
                                                                                                                  Precip_NovDecJanFebMar = mean(ppt)) 
 colnames(nov_mar)[4] <- "year"
 
@@ -288,20 +322,25 @@ apr_may_jun $year <- as.character(apr_may_jun $year)
 
 # September to October of current year
 
-sep_oct <- temp.ppt %>% filter(month %in% c(9,10)) %>% group_by(lon, lat, name, year) %>% summarise(Tmean_SepOct  = mean(Tave),
+sep_oct <- temp.ppt %>% filter(month %in% c(9,10)) %>% group_by(lon, lat, name, water_year) %>% summarise(Tmean_SepOct  = mean(Tave),
                                                                                                     Precip_SepOct = mean(ppt, na.rm=TRUE)) 
 colnames(sep_oct)[4] <- "year"
 
-sep_oct$year <- as.character(apr_may_jun $year)
+sep_oct$year <- as.character(sep_oct$year)
 
+total_avg_wateryr <- temp.ppt  %>% group_by(lon, lat, name, water_year) %>% summarise(Tmean  = mean(Tave),
+                                                                                      wateryr_precip = sum(ppt, na.rm=TRUE)) 
+colnames(total_avg_wateryr)[4] <- "year"
+
+total_avg_wateryr$year <- as.character(total_avg_wateryr$year)
 
 # monthly of current year
 
-temp.wide <- temp.ppt %>% ungroup()%>% filter(! year %in% "T1") %>% 
+temp.wide <- temp.ppt %>% ungroup()%>% 
   dplyr::select(lat, lon, name, year, Tave, month)  %>%
   group_by(lon, lat, name)  %>% spread (month, Tave)                         
 
-ppt.wide <- temp.ppt  %>% filter(! year %in% "T1") %>% 
+ppt.wide <- temp.ppt  %>% 
   dplyr::select(lat, lon, name, year, ppt, month)  %>%
   group_by(lon, lat, name)  %>% spread (month, ppt) 
 
@@ -320,6 +359,8 @@ colnames(temp.wide.prev)[5:16] <- paste0("PREV_",colnames(temp.wide.prev)[5:16])
 
 temp.previous <- temp.wide.prev %>% dplyr::select(-nextyear, -actual.year)
 temp.previous$year <- as.character(temp.previous$year)
+temp.wide$year <- as.character(temp.wide$year)
+
 
 ppt.wide.prev <- ppt.wide
 ppt.wide.prev$nextyear <- as.numeric(ppt.wide.prev$year)+1                        
@@ -329,7 +370,7 @@ ppt.wide.prev$year <- ppt.wide.prev$nextyear
 colnames(ppt.wide.prev)[5:16] <- paste0("PREV_",colnames(ppt.wide.prev)[5:16])
 ppt.previous <- ppt.wide.prev %>% dplyr::select(-nextyear, -actual.year)
 ppt.previous$year <- as.character(ppt.previous$year)
-
+ppt.wide$year <- as.character(ppt.wide$year)
 
 # combine all together:
 mergeCols = c("lon", "lat", "name", "year")
@@ -342,7 +383,8 @@ all.tmean.4 <- left_join(all.tmean.3, apr_may_jun, by = mergeCols)
 all.tmean.5 <- left_join(all.tmean.4, ppt.wide, by = mergeCols)
 all.tmean.6 <- left_join(all.tmean.5, ppt.previous, by = mergeCols)
 all.tmean.7 <- left_join(all.tmean.6, temp.wide, by = mergeCols)
-full.ppt.tmean <- left_join(all.tmean.7, temp.previous, by = mergeCols)
+all.tmean.8 <- left_join(all.tmean.7, total_avg_wateryr)
+full.ppt.tmean <- left_join(all.tmean.8, temp.previous, by = mergeCols)
 
 
 
@@ -355,29 +397,39 @@ full.ppt.tmean$tmp_yr <- rowMeans(full.ppt.tmean[,c("TMEAN_1","TMEAN_10","TMEAN_
                                                     "TMEAN_7","TMEAN_8", "TMEAN_9")])
 
 
-full.ppt.tmean$ppt_yr <- rowMeans(full.ppt.tmean[,c("PPT_1","PPT_10","PPT_11",            
+full.ppt.tmean$ppt_yr <- rowSums(full.ppt.tmean[,c("PPT_1","PPT_10","PPT_11",            
                                                     "PPT_12","PPT_2","PPT_3",               
                                                     "PPT_4","PPT_5","PPT_6",               
                                                     "PPT_7","PPT_8", "PPT_9")])
 
-
+full.ppt.tmean$ppt_yr_mean <- rowMeans(full.ppt.tmean[,c("PPT_1","PPT_10","PPT_11",            
+                                                   "PPT_12","PPT_2","PPT_3",               
+                                                   "PPT_4","PPT_5","PPT_6",               
+                                                   "PPT_7","PPT_8", "PPT_9")])
 
 
 climatenormals <- full.ppt.tmean %>% group_by(lat, lon, name) %>% summarise(ppt_norm = mean(ppt_yr, na.rm = TRUE), 
-                                                                            tmp_norm = mean(tmp_yr, na.rm = TRUE)) 
+                                                                            tmp_norm = mean(tmp_yr, na.rm = TRUE),
+                                                                            ppt_norm_mean = mean(ppt_yr_mean, na.rm =TRUE),
+                                                                            ppt_norm_wateryear = mean(wateryr_precip, na.rm =TRUE),
+                                                                            temp_norm_wateryear = mean(Tmean, na.rm =TRUE)) 
 
+
+
+ggplot(climatenormals, aes(ppt_norm, ppt_norm_wateryear))+geom_point()+geom_abline(aes(slope = 1, intercept = 0))
+ggplot(climatenormals, aes(ppt_norm, ppt_norm_mean))+geom_point()+geom_abline(aes(slope = 1, intercept = 0))
 
 full.ppt.tmean.norms <- right_join(full.ppt.tmean, climatenormals, by = c("lon", "lat", "name"))
 
 
 
-write.csv(full.ppt.tmean.norms, here("FIA_inc_data","pied_all_tmean_ppt_v5.csv"), row.names = FALSE)
+write.csv(full.ppt.tmean.norms, "pied_all_tmean_ppt_v7.csv", row.names = FALSE)
 
 
 
 # connect with the rest of the dataset:
 
-full.ppt.tmean.norms <- read.csv(here("FIA_inc_data","pied_all_tmean_ppt_v5.csv"))
+full.ppt.tmean.norms <- read.csv(here("FIA_inc_data","pied_all_tmean_ppt_v7.csv"))
 
 head(PIED.data.az)
 head(PIED.nm.ll)
@@ -583,22 +635,35 @@ write.csv(PIED.all.pos, here("FIA_inc_data","pied_all_growth_v6.csv"))
 
 hist(PIED.all$DIA_prev)
 
-PIED.all <- read.csv(here("FIA_inc_data","pied_all_growth_v6.csv"))
+PIED.all <- read.csv("/Users/kah/Documents/docker_pecan/pecan/FIA_inc_data/pied_all_growth_v6.csv")
+
 
 ggplot(PIED.all, aes(growth))+geom_histogram()+facet_wrap(~dataset)
-full.ppt.tmean.norms <- read.csv(here("FIA_inc_data","pied_all_tmean_ppt_v5.csv"))
+full.ppt.tmean.norms <- read.csv(here("pied_all_tmean_ppt_v7.csv"))
 
-new.merged.growth <- merge(PIED.all, full.ppt.tmean.norms, by.x = c("name", "year", "LON", "LAT"), by.y = c("name", "year", "lon", "lat"))
-#new.merged.growth$ST_PLT <- paste0(new.merged.growth$STATECD, "_", new.merged.growth$PLOT)
+new.merged.growth <- left_join(PIED.all, full.ppt.tmean.norms, by.x = c("name", "year", "LON", "LAT"), by.y = c("name", "year", "lon", "lat"))
+
+# we lose 75 trees
+# missing Lat Lons for thosw
+lost <- PIED.all %>% filter(is.na(LON) | is.na(LAT) | is.na(growth) | is.na(DIA_prev))
+unique(lost$name)
+
+length(unique(PIED.all$name))
+length(unique(new.merged.growth$ST_PLT))
+
 grow.na.omit <- na.omit(new.merged.growth)
 length(unique(grow.na.omit$ST_PLT))
+length(unique(grow.na.omit$PLOT))
+length(unique(grow.na.omit$name))
 
+write.csv(grow.na.omit, "PIED_grow_na_omit.csv", row.names = FALSE)
 
 df<- PIED.all %>% group_by(name) %>% summarise(minyear = min(year), 
                                                maxyear = max(year))
 
 min(df$minyear)
 max(df$minyear)
+max(df$maxyear)
 
 grow.monsoon <- na.omit(new.merged.growth) %>% 
   mutate_at(scale, .vars = vars(ppt_norm, tmp_norm, DIA_prev))%>%
@@ -617,7 +682,7 @@ ggplot(grow.monsoon, aes(loggrowth))+geom_histogram()+facet_wrap(~dataset)
 
 summary(grow.monsoon)
 grow.monsoon %>% group_by(STATECD) %>% summarise(n_distinct(name))
-STATECD `n_distinct(name)`
+#STATECD `n_distinct(name)`
 # <int>              <int>
 # Arizona     4                457
 # Colorado       8                 43
@@ -772,7 +837,7 @@ wtr_yr <- function(df, start_month=9) {
 temp.ppt$water_year <- wtr_yr(temp.ppt)
 
 # May april jun - arid foresummer
-foresummer <- temp.ppt %>% filter(month %in% 9:11)%>% group_by(lon, lat, name, year)%>% summarise(Tmean_MarAprMay = mean(Tave),
+foresummer <- temp.ppt %>% filter(month %in% 3:5)%>% group_by(lon, lat, name, year)%>% summarise(Tmean_MarAprMay = mean(Tave),
                                                                                                   Tmax_MarAprMay = mean(Tmax),
                                                                                                   Precip_MarAprMay = mean(ppt)) 
 
@@ -798,7 +863,7 @@ winter$year <- as.character(winter$year)
 
 # other requested variables:
 # november - march
-nov_mar <- temp.ppt %>% filter(month %in% c(1,2,2,11,12)) %>% group_by(lon, lat, name, water_year) %>% summarise(Tmean_NovDecJanFebMar = mean(Tave),
+nov_mar <- temp.ppt %>% filter(month %in% c(1,2,3,11,12)) %>% group_by(lon, lat, name, water_year) %>% summarise(Tmean_NovDecJanFebMar = mean(Tave),
                                                                                                                  Tmax_NovDecJanFebMar = mean(Tmax),
                                                                                                                  Precip_NovDecJanFebMar = mean(ppt)) 
 colnames(nov_mar)[4] <- "year"
