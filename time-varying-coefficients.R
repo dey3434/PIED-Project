@@ -2,7 +2,7 @@
 ## Sharmila Dey
 # 22 June 2020
 setwd("/home/rstudio")
-load("/home/rstudio/data/pied_grow_coef2.rda")
+load(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_grow_coef2.rda"))
 fit_grow <- readRDS("ppt_tmp_springfall_sizefix_scale.RDS")
 #fit_grow <- readRDS("ppt_tmp_springfall_sizefix.RDS")
 #fit_grow_old <- readRDS("data/ppt_tmp_springfall.RDS")
@@ -19,24 +19,16 @@ library(here)
 library(gifski)
 library(maps) 
 
-PIED.all <- read.csv("data/pied_all_growth_v4.csv")
-full.ppt.tmean.norms <- read.csv(url("https://de.cyverse.org/dl/d/329EBCF7-817F-497C-BEA7-A2D906493392/pied_all_tmean_ppt_v3.csv"))
-grow.new <- merge(PIED.all, full.ppt.tmean.norms, by.x = c("name", "year", "LON", "LAT"), by.y = c("name", "year", "lon", "lat"))
-
-grow.new$Tmean_AprMayJun_l <- grow.new$Tmean_AprMayJun
-grow.new$Tmean_SepOct_l <- grow.new$Tmean_SepOct
-grow.new$Precip_NovDecJanFebMar_l <- grow.new$Precip_NovDecJanFebMar
-grow.new$Precip_JulAug_l <- grow.new$Precip_JulAug
+PIED.all <- read.csv(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_all_growth_v7.csv"))
+full.ppt.tmean.norms <- read.csv(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_all_tmean_ppt_v6.csv"))
+grow.new <- left_join(PIED.all, full.ppt.tmean.norms, by.x = c("name", "year","LAT", "LON"),by.y = c("name", "year","lat", "lon"))
 
 grow.monsoon<-na.omit(grow.new) %>% 
     mutate_at(scale, .vars = vars(tmp_norm, ppt_norm)) %>%
     
     arrange(PLOT,SUBP,name) %>%
     mutate(PlotCD=as.numeric(factor(PLOT, levels = unique(PLOT))),treeCD=as.numeric(factor(name,levels=unique(name))),
-           growth2=ifelse(growth==0,0.001,growth),loggrowth=log(growth2)) %>%
-    group_by(PlotCD)%>%
-    mutate_at(scale, .vars = vars(Precip_JulAug, Precip_NovDecJanFebMar, Tmean_AprMayJun, Tmean_SepOct)) %>%
-    ungroup()
+           growth2=ifelse(growth==0,0.001,growth),loggrowth=log(growth2)) 
 
 
 # the other way of scaling:
@@ -56,32 +48,14 @@ grow_train <- grow.monsoon[-trainIndex,]
 
 
 
-xG<-as.matrix(cbind(grow_train$ppt_norm, grow_train$tmp_norm, grow_train$Precip_JulAug, grow_train$Precip_NovDecJanFebMar, 
-                    grow_train$Tmean_AprMayJun, grow_train$Tmean_SepOct, grow_train$DIA_prev,
-                    grow_train$ppt_norm*grow_train$tmp_norm, grow_train$ppt_norm*grow_train$Precip_JulAug, 
-                    grow_train$ppt_norm*grow_train$DIA_prev, grow_train$ppt_norm*grow_train$Precip_NovDecJanFebMar,
-                    grow_train$ppt_norm*grow_train$Tmean_AprMayJun, grow_train$ppt_norm*grow_train$Tmean_SepOct,
-                    grow_train$tmp_norm*grow_train$DIA_prev, grow_train$tmp_norm*grow_train$Precip_JulAug,
-                    grow_train$tmp_norm*grow_train$Precip_NovDecJanFebMar, grow_train$tmp_norm*grow_train$Tmean_AprMayJun,
-                    grow_train$tmp_norm*grow_train$Tmean_SepOct, grow_train$DIA_prev*grow_train$Precip_JulAug,
-                    grow_train$DIA_prev*grow_train$Precip_NovDecJanFebMar, grow_train$DIA_prev*grow_train$Tmean_AprMayJun,
-                    grow_train$DIA_prev*grow_train$Tmean_SepOct, grow_train$Precip_JulAug*grow_train$Precip_NovDecJanFebMar,
-                    grow_train$Precip_JulAug*grow_train$Tmean_AprMayJun, grow_train$Precip_JulAug*grow_train$Tmean_SepOct,
-                    grow_train$Precip_NovDecJanFebMar*grow_train$Tmean_AprMayJun, grow_train$Precip_NovDecJanFebMar*grow_train$Tmean_SepOct,
-                    grow_train$Tmean_AprMayJun*grow_train$Tmean_SepOct))
-xGtest<-as.matrix(cbind(grow_test$ppt_norm, grow_test$tmp_norm, grow_test$Precip_JulAug, grow_test$Precip_NovDecJanFebMar, 
-                        grow_test$Tmean_AprMayJun, grow_test$Tmean_SepOct, grow_test$DIA_prev,
-                        grow_test$ppt_norm*grow_test$tmp_norm, grow_test$ppt_norm*grow_test$Precip_JulAug, 
-                        grow_test$ppt_norm*grow_test$DIA_prev, grow_test$ppt_norm*grow_test$Precip_NovDecJanFebMar,
-                        grow_test$ppt_norm*grow_test$Tmean_AprMayJun, grow_test$ppt_norm*grow_test$Tmean_SepOct,
-                        grow_test$tmp_norm*grow_test$DIA_prev, grow_test$tmp_norm*grow_test$Precip_JulAug,
-                        grow_test$tmp_norm*grow_test$Precip_NovDecJanFebMar, grow_test$tmp_norm*grow_test$Tmean_AprMayJun,
-                        grow_test$tmp_norm*grow_test$Tmean_SepOct, grow_test$DIA_prev*grow_test$Precip_JulAug,
-                        grow_test$DIA_prev*grow_test$Precip_NovDecJanFebMar, grow_test$DIA_prev*grow_test$Tmean_AprMayJun,
-                        grow_test$DIA_prev*grow_test$Tmean_SepOct, grow_test$Precip_JulAug*grow_test$Precip_NovDecJanFebMar,
-                        grow_test$Precip_JulAug*grow_test$Tmean_AprMayJun, grow_test$Precip_JulAug*grow_test$Tmean_SepOct,
-                        grow_test$Precip_NovDecJanFebMar*grow_test$Tmean_AprMayJun, grow_test$Precip_NovDecJanFebMar*grow_test$Tmean_SepOct,
-                        grow_test$Tmean_AprMayJun*grow_test$Tmean_SepOct))
+xG<-as.matrix(cbind(grow_train$ppt_norm, grow_train$tmp_norm, grow_train$DIA_prev,
+                    grow_train$ppt_norm*grow_train$tmp_norm, 
+                    grow_train$ppt_norm*grow_train$DIA_prev,
+                    grow_train$tmp_norm*grow_train$DIA_prev))
+xGtest<-as.matrix(cbind(grow_test$ppt_norm, grow_test$tmp_norm, grow_test$DIA_prev,
+                        grow_test$ppt_norm*grow_test$tmp_norm, 
+                        grow_test$ppt_norm*grow_test$DIA_prev,
+                        grow_test$tmp_norm*grow_test$DIA_prev))
 yG<-as.vector(grow_train$loggrowth)
 yGtest<-as.vector(grow_test$loggrowth)
 nG<-nrow(grow_train)
@@ -98,7 +72,7 @@ plotfortree<-grow_train %>%
 plotfortree<-plotfortree$Plot
 
 
-sink("pied_grow-dlm.stan")
+sink("pied_grow.stan")
 cat("
     data {
     
@@ -112,13 +86,6 @@ cat("
     int<lower=0> nplot;         // number of plots
     int<lower=1> plot[nG];      // index for plot
     
-    //
-    // added code
-    //
-    int year_idx[nG];           // index for year/time
-    int n_year;                 // number of years/times
-    
-    
     int<lower=0> ntree;          // number of trees
     int<lower=1> tree[nG];          // index for trees
     int<lower=1> treetest[nGtest];  //index for trees (ppc)
@@ -128,13 +95,7 @@ cat("
     parameters {
     
     real u_beta0;                          // intercept means
-    
-    //
-    // modified code
-    //
-    // vector[K] u_beta;                      // other coeff mean
-    matrix[n_year, K] u_beta;                 // other coeff mean
-    real<lower=0> s_beta_u[K];                // time varying variance term
+    vector[K] u_beta;                      // other coeff mean
     
     real beta0_p_tilde[nplot];                   // plot-level intercepts
     real<lower=0> s_beta0_p;               // plot-level intercept variance
@@ -166,20 +127,7 @@ cat("
     beta0_p_tilde ~ normal(0,1);
     beta0_t_tilde ~ normal(0,1);
     
-    //
-    // modified code
-    //
-    // u_beta ~ normal(0, 100); 
-    
-    for (k in 1:K) {
-      u_beta[1, k] ~ normal(0, 100); 
-      for (j in 2:n_year) {
-        u_beta[j, k] ~ normal(u_beta[j-1, k], s_beta_u[k])
-      }
-      s_beta0_u[k] ~ cauchy(0,1);
-    }
-    
-
+    u_beta ~ normal(0, 100); 
     s_beta0_p ~ cauchy(0,2.5);
     s_beta0_t ~ cauchy(0,2.5);
     
@@ -197,13 +145,7 @@ cat("
     // GROWTH MODEL
     
     for(n in 1:nG){
-    
-    //
-    // modified code
-    //
-
-    //  mG[n] = beta0_t[tree[n]]+xG[n]*u_beta;
-      mG[n] = beta0_t[tree[n]]+xG[n]*u_beta[year_idx[n], ];
+    mG[n] = beta0_t[tree[n]]+xG[n]*u_beta;
     }
     
     yG ~ normal(mG,sigma_y);
@@ -214,13 +156,7 @@ cat("
     generated quantities{
     vector[nGtest] yrep;
     for(n in 1:nGtest){
-    
-    //
-    // modified code
-    //
-    
-      // yrep[n] = normal_rng(beta0_t[treetest[n]]+xGtest[n]*u_beta,sigma_y);
-      yrep[n] = normal_rng(beta0_t[treetest[n]]+xGtest[n]*u_beta[year_idx[n], ],sigma_y);
+    yrep[n] = normal_rng(beta0_t[treetest[n]]+xGtest[n]*u_beta,sigma_y);
     }
 
     //for(n in 1:nGtest){
@@ -243,17 +179,14 @@ sink()
 #                  plotfortree = plotfortree)
 pied_dat <- list(K = K, nG = nG, nGtest = nGtest, yG = yG, xG = xG, xGtest = xGtest, plot = plot, 
                  nplot = nplot, tree = tree, treetest = treetest, ntree = ntree, 
-                 plotfortree = plotfortree,
-                 year_idx = grow_test$year, ## added index for each year
-                 n_year = length(unique(grow_test$year))) ## added number of years (assuming no gaps in time series)
-
+                 plotfortree = plotfortree)
 
 #tranG = tranG, SiteForTran = SiteForTran, Ntran_totalG=Ntran_totalG)
 #indG = indG, TranForInd = TranForInd, Nind_totalG = Nind_totalG)
 
 
 
-fit_grow <- stan(file = 'pied_grow-dlm.stan', data = pied_dat, 
+fit_grow <- stan(file = 'pied_grow.stan', data = pied_dat, 
                  iter = 5000, warmup = 1000, chains = 3)
 #saveRDS(fit_grow, file = "log_normal_fg_7_24_20.RDS")
 saveRDS(fit_grow, file = "ppt_tmp_springfall_sizefix_scale.RDS")
