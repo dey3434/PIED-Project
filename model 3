@@ -2,7 +2,7 @@
 ## Sharmila Dey
 # 22 June 2020
 setwd("/home/rstudio")
-load("/home/rstudio/data/pied_grow_coef2.rda")
+load(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_grow_coef2.rda"))
 fit_grow <- readRDS(url("https://de.cyverse.org/dl/d/3C958A2C-6439-47C9-AFB9-2EC4A4C3824A/ppt_tmp_springfall_sizefix.RDS"))
 fit_grow <- readRDS("ppt_tmp_springfall_sizefix.RDS")
 fit_grow_old <- readRDS("data/ppt_tmp_springfall.RDS")
@@ -19,9 +19,9 @@ library(here)
 library(gifski)
 library(maps) 
 
-PIED.all <- read.csv("data/pied_all_growth_v4.csv")
-full.ppt.tmean.norms <- read.csv(url("https://de.cyverse.org/dl/d/329EBCF7-817F-497C-BEA7-A2D906493392/pied_all_tmean_ppt_v3.csv"))
-grow.new <- merge(PIED.all, full.ppt.tmean.norms, by.x = c("name", "year", "LON", "LAT"), by.y = c("name", "year", "lon", "lat"))
+PIED.all <- read.csv(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_all_growth_v7.csv"))
+full.ppt.tmean.norms <- read.csv(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_all_tmean_ppt_v6.csv"))
+grow.new <- left_join(PIED.all, full.ppt.tmean.norms, by.x = c("name", "year","LAT", "LON"),by.y = c("name", "year","lat", "lon"))
 
 grow.monsoon<-na.omit(grow.new) %>% 
   mutate_at(scale, .vars = vars(Precip_JulAug, Precip_NovDecJanFebMar, Tmean_AprMayJun, Tmean_SepOct, tmp_norm, ppt_norm)) %>%
