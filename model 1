@@ -1,8 +1,8 @@
 ### Stan models for PIAL growth using technique in Ogle et al., Ecology Letters to test for climate effects
 ## Sharmila Dey
 # 22 June 2020
-setwd("/home/rstudio")
-load("/home/rstudio/data/pied_grow_coef2.rda")
+setwd("/home/work/")
+load(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_grow_coef2.rda"))
 fit_grow <- readRDS(url("https://de.cyverse.org/dl/d/888FD6F6-DAEA-46AE-BDF4-036A708990CC/log_normal_monsoonoos_pptoos.RDS"))
 library(rstan)
 options(mc.cores = parallel::detectCores())
@@ -17,9 +17,9 @@ library(gifski)
 library(maps)
 
 
-PIED.all <- read.csv("data/pied_all_growth_v3.csv")
-full.ppt.tmean.norms <- read.csv("data/pied_all_tmean_ppt_v3.csv")
-grow.new <- merge(PIED.all, full.ppt.tmean.norms, by.x = c("name", "year", "LON", "LAT"), by.y = c("name", "year", "lon", "lat"))
+PIED.all <- read.csv(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_all_growth_v7.csv"))
+full.ppt.tmean.norms <- read.csv(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_all_tmean_ppt_v6.csv"))
+grow.new <- left_join(PIED.all, full.ppt.tmean.norms, by.x = c("name", "year","LAT", "LON"),by.y = c("name", "year","lat", "lon"))
 
 #grow.new <- read.csv("data/pied_all_tmean_ppt_v3.csv")
 
