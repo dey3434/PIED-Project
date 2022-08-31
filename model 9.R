@@ -36,7 +36,7 @@ boxplot(yearlytemp, main="Seasonal Temperature")
 
 grow.monsoon<-na.omit(grow.new) %>% 
   arrange(PLOT,SUBP,name) %>%
-  mutate(PlotCD=as.numeric(factor(PLOT, levels = unique(PLOT))),treeCD=as.numeric(factor(name,levels=unique(name))),
+  mutate(PlotCD=as.numeric(factor(ST_PLT, levels = unique(ST_PLT))),treeCD=as.numeric(factor(name,levels=unique(name))),
          growth2=ifelse(growth==0,0.001,growth),loggrowth=log(growth2)) %>%
   group_by(PlotCD)%>%
   mutate_at(scale, .vars = vars(Precip_JulAug, Precip_NovDecJanFebMar, Tmean_AprMayJun, Tmean_SepOct)) %>%
