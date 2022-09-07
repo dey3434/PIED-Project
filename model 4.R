@@ -225,19 +225,19 @@ summary
 
 plotdata<-select(as.data.frame(fit_grow),"yrep[1]":"yrep[8780]")
 plotdatainterval<-select(as.data.frame(fit_grow), "u_beta[1]":"u_beta[28]")
-colnames(plotdatainterval) <- c("u_beta_ppt_norm", "u_beta_tmp_norm", "u_beta_Precip_JulAug", "u_beta_Precip_NovDecJanFebMar", 
-                                "u_beta_Tmean_AprMayJun", "u_beta_Tmean_SepOct", "u_beta_DIA_prev",
-                                "u_beta_ppt_norm_tmp_norm", "u_beta_ppt_norm_Precip_JulAug", 
-                                "u_beta_ppt_norm_DIA_prev", "u_beta_ppt_norm_Precip_NovDecJanFebMar",
-                                "u_beta_ppt_norm_Tmean_AprMayJun", "u_beta_ppt_norm_Tmean_SepOct",
-                                "u_beta_tmp_norm_DIA_prev", "u_beta_tmp_norm_Precip_JulAug",
-                                "u_beta_tmp_norm_Precip_NovDecJanFebMar", "u_beta_tmp_norm_Tmean_AprMayJun",
-                                "u_beta_tmp_norm_Tmean_SepOct", "u_beta_DIA_prev_Precip_JulAug",
-                                "u_beta_DIA_prev_Precip_NovDecJanFebMar", "u_beta_DIA_prev_Tmean_AprMayJun",
-                                "u_beta_DIA_prev_Tmean_SepOct", "u_beta_Precip_JulAug_Precip_NovDecJanFebMar",
-                                "u_beta_Precip_JulAug_Tmean_AprMayJun", "u_beta_Precip_JulAug_Tmean_SepOct",
-                                "u_beta_Precip_NovDecJanFebMar_Tmean_AprMayJun", "u_beta_Precip_NovDecJanFebMar_Tmean_SepOct",
-                                "u_beta_Tmean_AprMayJun_Tmean_SepOct")
+colnames(plotdatainterval) <- c("MAP", "MAT", "monsoon precip", "winter precip", 
+                                "spring temp", "fall temp", "tree size",
+                                "MAP*MAT", "MAP*monsoon precip", 
+                                "MAP*tree size", "MAP*winter precip",
+                                "MAP*spring temp", "MAP*fall temp",
+                                "MAT*tree size", "MAT*monsoon precip",
+                                "MAT*winter precip", "MAT*spring temp",
+                                "MAT*fall temp", "tree size*Precip_JulAug",
+                                "tree size*winter precip", "tree size*spring temp",
+                                "tree size*fall temp", "monsoon precip*winter precip",
+                                "monsoon precip*spring temp", "monsoon precip*fall temp",
+                                "winter precip*spring temp", "winter precip*fall temp",
+                                "spring temp*fall temp")
 ppc_dens_overlay(yGtest, as.matrix(plotdata))
 
 ext_fit <- rstan::extract(fit_grow)
