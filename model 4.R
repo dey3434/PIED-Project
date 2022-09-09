@@ -247,6 +247,21 @@ colnames(plotdatainterval) <- c("MAP", "MAT", "monsoon precip", "winter precip",
                                 "monsoon precip*spring temp", "monsoon precip*fall temp",
                                 "winter precip*spring temp", "winter precip*fall temp",
                                 "spring temp*fall temp")
+
+# get summaries of plotdatainterval:
+
+df <- reshape2::melt(plotdatainterval)
+beta.summaries <- df %>% group_by(variable) %>%
+  summarise(mean = mean(value),
+            ci.lo = quantile(value, 0.025),
+            ci.hi = quantile(value, 0.975))
+
+beta.summaries$allpos <- ifelse(beta.summaries$mean > 0 &  beta.summaries$ci.lo > 0 &  beta.summaries$ci.hi > 0, "yes", "no")
+beta.summaries$allneg <- ifelse(beta.summaries$mean <= 0 &  beta.summaries$ci.lo <= 0 &  beta.summaries$ci.hi <= 0, "yes", "no")
+beta.summaries$significant <- ifelse(beta.summaries$allpos == "yes" | beta.summaries$allneg == "yes", "significant", "not significant")
+write.csv(beta.summaries, "betasummaries_model4_threechain_PIED.csv", row.names = FALSE)
+
+
 ppc_dens_overlay(yGtest, as.matrix(plotdata))
 
 ext_fit <- rstan::extract(fit_grow)

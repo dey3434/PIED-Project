@@ -218,6 +218,20 @@ colnames(plotdatainterval) <- c("u_beta_ppt_norm", "u_beta_tmp_norm", "u_beta_Pr
                                 "u_beta_Precip_JulAug_Tmean_AprMayJun", "u_beta_Precip_JulAug_Tmean_SepOct",
                                 "u_beta_Precip_NovDecJanFebMar_Tmean_AprMayJun", "u_beta_Precip_NovDecJanFebMar_Tmean_SepOct",
                                 "u_beta_Tmean_AprMayJun_Tmean_SepOct")
+
+# get summaries of plotdatainterval:
+
+df <- reshape2::melt(plotdatainterval)
+beta.summaries <- df %>% group_by(variable) %>%
+  summarise(mean = mean(value),
+            ci.lo = quantile(value, 0.025),
+            ci.hi = quantile(value, 0.975))
+
+beta.summaries$allpos <- ifelse(beta.summaries$mean > 0 &  beta.summaries$ci.lo > 0 &  beta.summaries$ci.hi > 0, "yes", "no")
+beta.summaries$allneg <- ifelse(beta.summaries$mean <= 0 &  beta.summaries$ci.lo <= 0 &  beta.summaries$ci.hi <= 0, "yes", "no")
+beta.summaries$significant <- ifelse(beta.summaries$allpos == "yes" | beta.summaries$allneg == "yes", "significant", "not significant")
+write.csv(beta.summaries, "betasummaries_model7_threechain_PIED.csv", row.names = FALSE)
+
 ppc_dens_overlay(yGtest, as.matrix(plotdata))
 
 ext_fit <- rstan::extract(fit_grow)
