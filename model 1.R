@@ -179,7 +179,16 @@ pied_dat <- list(K = K, nG = nG, nGtest = nGtest, yG = yG, xG = xG, xGtest = xGt
 
 
 fit_grow <- stan(file = 'pied_grow.stan', data = pied_dat, 
-                 iter = 5000, warmup = 1000, chains = 3)
+                 iter = 5000, warmup = 1000, chains = 3, cores = 8, sample_file = "log_normal_monsoonoos_pptoos")
+read_stan_csv(csvfiles, col_major = TRUE)
+
+chain1 <- rstan::read_stan_csv("/home/rstudio/log_normal_monsoonoos_pptoos_1.csv")
+chain2 <- rstan::read_stan_csv("/home/rstudio/log_normal_monsoonoos_pptoos_2.csv")
+chain3 <- rstan::read_stan_csv("/home/rstudio/log_normal_monsoonoos_pptoos_3.csv")
+
+csvfiles <- dir("/home/rstudio/",
+                pattern = 'log_normal_monsoonoos_pptoos_[0-3].csv', full.names = TRUE)
+fit_grow <- rstan::read_stan_csv(csvfiles)
 saveRDS(fit_grow, file = "log_normal_monsoonoos_pptoos.RDS")
 summary<-summary(fit_grow)
 summary

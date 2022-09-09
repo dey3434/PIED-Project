@@ -215,8 +215,16 @@ pied_dat <- list(K = K, nG = nG, nGtest = nGtest, yG = yG, xG = xG, xGtest = xGt
 
 
 fit_grow <- stan(file = 'pied_grow.stan', data = pied_dat, 
-                 iter = 5000, warmup = 1000, chains = 3)
-#saveRDS(fit_grow, file = "log_normal_fg_7_24_20.RDS")
+                 iter = 5000, warmup = 1000, chains = 3, cores = 8, sample_file = "megamodel")
+read_stan_csv(csvfiles, col_major = TRUE)
+
+chain1 <- rstan::read_stan_csv("/home/rstudio/megamodel_1.csv")
+chain2 <- rstan::read_stan_csv("/home/rstudio/megamodel_2.csv")
+chain3 <- rstan::read_stan_csv("/home/rstudio/megamodel_3.csv")
+
+csvfiles <- dir("/home/rstudio/",
+                pattern = 'megamodel_[0-3].csv', full.names = TRUE)
+fit_grow <- rstan::read_stan_csv(csvfiles)
 saveRDS(fit_grow, file = "megamodel.RDS")
 summary<-summary(fit_grow)
 summary
