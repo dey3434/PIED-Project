@@ -68,32 +68,32 @@ grow_train <- grow.monsoon[-trainIndex,]
 
 
 
-xG<-as.matrix(cbind(grow_train$ppt_norm, grow_train$tmp_norm, grow_train$Precip_JulAug, grow_train$Precip_NovDecJanFebMar, 
-                    grow_train$Tmean_AprMayJun, grow_train$Tmean_SepOct, grow_train$DIA_prev,
-                    grow_train$ppt_norm*grow_train$tmp_norm, grow_train$ppt_norm*grow_train$Precip_JulAug, 
-                    grow_train$ppt_norm*grow_train$DIA_prev, grow_train$ppt_norm*grow_train$Precip_NovDecJanFebMar,
+xG<-as.matrix(cbind(grow_train$ppt_norm, grow_train$tmp_norm, grow_train$ppt_norm*grow_train$tmp_norm,
+                    grow_train$Precip_JulAug, grow_train$Precip_NovDecJanFebMar, 
+                    grow_train$Tmean_AprMayJun, grow_train$Tmean_SepOct, grow_train$DIA_prev, 
+                    grow_train$DIA_prev*grow_train$ppt_norm, grow_train$DIA_prev*grow_train$tmp_norm,
+                    grow_train$DIA_prev*grow_train$Precip_JulAug, grow_train$DIA_prev*grow_train$Precip_NovDecJanFebMar, 
+                    grow_train$DIA_prev*grow_train$Tmean_AprMayJun, grow_train$DIA_prev*grow_train$Tmean_SepOct,
+                    grow_train$ppt_norm*grow_train$Precip_JulAug, grow_train$ppt_norm*grow_train$Precip_NovDecJanFebMar,
                     grow_train$ppt_norm*grow_train$Tmean_AprMayJun, grow_train$ppt_norm*grow_train$Tmean_SepOct,
-                    grow_train$tmp_norm*grow_train$DIA_prev, grow_train$tmp_norm*grow_train$Precip_JulAug,
-                    grow_train$tmp_norm*grow_train$Precip_NovDecJanFebMar, grow_train$tmp_norm*grow_train$Tmean_AprMayJun,
-                    grow_train$tmp_norm*grow_train$Tmean_SepOct, grow_train$DIA_prev*grow_train$Precip_JulAug,
-                    grow_train$DIA_prev*grow_train$Precip_NovDecJanFebMar, grow_train$DIA_prev*grow_train$Tmean_AprMayJun,
-                    grow_train$DIA_prev*grow_train$Tmean_SepOct, grow_train$Precip_JulAug*grow_train$Precip_NovDecJanFebMar,
-                    grow_train$Precip_JulAug*grow_train$Tmean_AprMayJun, grow_train$Precip_JulAug*grow_train$Tmean_SepOct,
-                    grow_train$Precip_NovDecJanFebMar*grow_train$Tmean_AprMayJun, grow_train$Precip_NovDecJanFebMar*grow_train$Tmean_SepOct,
-                    grow_train$Tmean_AprMayJun*grow_train$Tmean_SepOct))
-xGtest<-as.matrix(cbind(grow_test$ppt_norm, grow_test$tmp_norm, grow_test$Precip_JulAug, grow_test$Precip_NovDecJanFebMar, 
-                        grow_test$Tmean_AprMayJun, grow_test$Tmean_SepOct, grow_test$DIA_prev,
-                        grow_test$ppt_norm*grow_test$tmp_norm, grow_test$ppt_norm*grow_test$Precip_JulAug, 
-                        grow_test$ppt_norm*grow_test$DIA_prev, grow_test$ppt_norm*grow_test$Precip_NovDecJanFebMar,
-                        grow_test$ppt_norm*grow_test$Tmean_AprMayJun, grow_test$ppt_norm*grow_test$Tmean_SepOct,
-                        grow_test$tmp_norm*grow_test$DIA_prev, grow_test$tmp_norm*grow_test$Precip_JulAug,
-                        grow_test$tmp_norm*grow_test$Precip_NovDecJanFebMar, grow_test$tmp_norm*grow_test$Tmean_AprMayJun,
-                        grow_test$tmp_norm*grow_test$Tmean_SepOct, grow_test$DIA_prev*grow_test$Precip_JulAug,
-                        grow_test$DIA_prev*grow_test$Precip_NovDecJanFebMar, grow_test$DIA_prev*grow_test$Tmean_AprMayJun,
-                        grow_test$DIA_prev*grow_test$Tmean_SepOct, grow_test$Precip_JulAug*grow_test$Precip_NovDecJanFebMar,
-                        grow_test$Precip_JulAug*grow_test$Tmean_AprMayJun, grow_test$Precip_JulAug*grow_test$Tmean_SepOct,
-                        grow_test$Precip_NovDecJanFebMar*grow_test$Tmean_AprMayJun, grow_test$Precip_NovDecJanFebMar*grow_test$Tmean_SepOct,
-                        grow_test$Tmean_AprMayJun*grow_test$Tmean_SepOct))
+                    grow_train$tmp_norm*grow_train$Precip_JulAug, grow_train$tmp_norm*grow_train$Precip_NovDecJanFebMar, 
+                    grow_train$tmp_norm*grow_train$Tmean_AprMayJun, grow_train$tmp_norm*grow_train$Tmean_SepOct, 
+                    grow_train$Precip_JulAug*grow_train$Precip_NovDecJanFebMar, grow_train$Precip_JulAug*grow_train$Tmean_AprMayJun, 
+                    grow_train$Precip_JulAug*grow_train$Tmean_SepOct, grow_train$Precip_NovDecJanFebMar*grow_train$Tmean_AprMayJun, 
+                    grow_train$Precip_NovDecJanFebMar*grow_train$Tmean_SepOct, grow_train$Tmean_AprMayJun*grow_train$Tmean_SepOct))
+xGtest<-as.matrix(cbind(grow_test$ppt_norm, grow_test$tmp_norm, grow_test$ppt_norm*grow_test$tmp_norm,
+                    grow_test$Precip_JulAug, grow_test$Precip_NovDecJanFebMar, 
+                    grow_test$Tmean_AprMayJun, grow_test$Tmean_SepOct, grow_test$DIA_prev, 
+                    grow_test$DIA_prev*grow_test$ppt_norm, grow_test$DIA_prev*grow_test$tmp_norm,
+                    grow_test$DIA_prev*grow_test$Precip_JulAug, grow_test$DIA_prev*grow_test$Precip_NovDecJanFebMar, 
+                    grow_test$DIA_prev*grow_test$Tmean_AprMayJun, grow_test$DIA_prev*grow_test$Tmean_SepOct,
+                    grow_test$ppt_norm*grow_test$Precip_JulAug, grow_test$ppt_norm*grow_test$Precip_NovDecJanFebMar,
+                    grow_test$ppt_norm*grow_test$Tmean_AprMayJun, grow_test$ppt_norm*grow_test$Tmean_SepOct,
+                    grow_test$tmp_norm*grow_test$Precip_JulAug, grow_test$tmp_norm*grow_test$Precip_NovDecJanFebMar, 
+                    grow_test$tmp_norm*grow_test$Tmean_AprMayJun, grow_test$tmp_norm*grow_test$Tmean_SepOct, 
+                    grow_test$Precip_JulAug*grow_test$Precip_NovDecJanFebMar, grow_test$Precip_JulAug*grow_test$Tmean_AprMayJun, 
+                    grow_test$Precip_JulAug*grow_test$Tmean_SepOct, grow_test$Precip_NovDecJanFebMar*grow_test$Tmean_AprMayJun, 
+                    grow_test$Precip_NovDecJanFebMar*grow_test$Tmean_SepOct, grow_test$Tmean_AprMayJun*grow_test$Tmean_SepOct))
 yG<-as.vector(grow_train$loggrowth)
 yGtest<-as.vector(grow_test$loggrowth)
 nG<-nrow(grow_train)
@@ -234,16 +234,14 @@ summary
 
 plotdata<-select(as.data.frame(fit_grow),"yrep[1]":"yrep[8780]")
 plotdatainterval<-select(as.data.frame(fit_grow), "u_beta[1]":"u_beta[28]")
-colnames(plotdatainterval) <- c("MAP", "MAT", "monsoon precip", "winter precip", 
+colnames(plotdatainterval) <- c("MAP", "MAT","MAP*MAT", "monsoon precip", "winter precip", 
                                 "spring temp", "fall temp", "tree size",
-                                "MAP*MAT", "MAP*monsoon precip", 
-                                "MAP*tree size", "MAP*winter precip",
-                                "MAP*spring temp", "MAP*fall temp",
-                                "MAT*tree size", "MAT*monsoon precip",
-                                "MAT*winter precip", "MAT*spring temp",
-                                "MAT*fall temp", "tree size*Precip_JulAug",
+                                "tree size*MAP", "tree size*MAT", "tree size*Precip_JulAug",
                                 "tree size*winter precip", "tree size*spring temp",
-                                "tree size*fall temp", "monsoon precip*winter precip",
+                                "tree size*fall temp", "MAP*monsoon precip", 
+                                "MAP*winter precip","MAP*spring temp", "MAP*fall temp",
+                                "MAT*monsoon precip", "MAT*winter precip", "MAT*spring temp",
+                                "MAT*fall temp",  "monsoon precip*winter precip",
                                 "monsoon precip*spring temp", "monsoon precip*fall temp",
                                 "winter precip*spring temp", "winter precip*fall temp",
                                 "spring temp*fall temp")
