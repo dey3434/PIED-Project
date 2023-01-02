@@ -3,7 +3,7 @@
 # 22 June 2020
 #setwd("/home/rstudio")
 #load(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_grow_coef2.rda"))
-fit_grow <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/ppt_tmp_springfall_sizefix_scale_3.RDS"))
+#fit_grow <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/ppt_tmp_springfall_sizefix_scale_3.RDS"))
 #fit_grow <- readRDS("ppt_tmp_springfall_sizefix.RDS")
 #fit_grow_old <- readRDS("data/ppt_tmp_springfall.RDS")
 #install.packages("rstan", version = "2.19.3", repos = "http://cran.us.r-project.org")

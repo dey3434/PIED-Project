@@ -2,8 +2,8 @@
 ## Sharmila Dey
 # 22 June 2020
 setwd("/home/rstudio")
-load(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_grow_coef2.rda"))
-readRDS("log_normal_fg_7_24_20.RDS")
+#load(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_grow_coef2.rda"))
+#readRDS("log_normal_fg_7_24_20.RDS")
 library(rstan)
 options(mc.cores = parallel::detectCores())
 library(parallel) 

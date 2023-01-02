@@ -2,11 +2,11 @@
 ## Sharmila Dey
 # 22 June 2020
 setwd("/home/rstudio")
-load(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_grow_coef2.rda"))
-fit_grow <- readRDS(url("https://de.cyverse.org/dl/d/3C958A2C-6439-47C9-AFB9-2EC4A4C3824A/ppt_tmp_springfall_sizefix.RDS"))
-fit_grow <- readRDS("ppt_tmp_springfall_sizefix.RDS")
-fit_grow_old <- readRDS("data/ppt_tmp_springfall.RDS")
-install.packages("rstan", version = "2.19.3", repos = "http://cran.us.r-project.org")
+#load(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_grow_coef2.rda"))
+#fit_grow <- readRDS(url("https://de.cyverse.org/dl/d/3C958A2C-6439-47C9-AFB9-2EC4A4C3824A/ppt_tmp_springfall_sizefix.RDS"))
+#fit_grow <- readRDS("ppt_tmp_springfall_sizefix.RDS")
+#fit_grow_old <- readRDS("data/ppt_tmp_springfall.RDS")
+#install.packages("rstan", version = "2.19.3", repos = "http://cran.us.r-project.org")
 library(rstan)
 options(mc.cores = parallel::detectCores())
 library(parallel) 
