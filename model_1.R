@@ -1,7 +1,7 @@
 ### Stan models for PIAL growth using technique in Ogle et al., Ecology Letters to test for climate effects
 ## Sharmila Dey
 # 22 June 2020
-setwd("/home/work/")
+# setwd("/home/work/")
 #load(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_grow_coef2.rda"))
 #fit_grow <- readRDS(url("https://de.cyverse.org/dl/d/888FD6F6-DAEA-46AE-BDF4-036A708990CC/log_normal_monsoonoos_pptoos.RDS"))
 library(rstan)
@@ -17,8 +17,23 @@ library(gifski)
 library(maps)
 
 
-PIED.all <- read.csv(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_all_growth_v7.csv"))
-full.ppt.tmean.norms <- read.csv(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_all_tmean_ppt_v6.csv"))
+# PIED.all <- read.csv(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_all_growth_v7.csv"))
+# full.ppt.tmean.norms <- read.csv(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_all_tmean_ppt_v6.csv"))
+
+if (file.exists(here::here("data", "PIED_data.csv"))) {
+  PIED.all <- read.csv(here::here("data", "PIED_data.csv"))
+} else {
+  PIED.all <- read.csv(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_all_growth_v7.csv"))  
+  write.csv(PIED.all, file = here::here("data", "PIED_data.csv"), row.names = FALSE)
+}
+
+if (file.exists(here::here("data", "climate_data.csv"))) {
+  full.ppt.tmean.norms <- read.csv(here::here("data", "climate_data.csv"))
+} else {
+  full.ppt.tmean.norms <- read.csv(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_all_tmean_ppt_v6.csv"))
+  write.csv(full.ppt.tmean.norms, file = here::here("data", "climate_data.csv"), row.names = FALSE)
+}
+
 grow.new <- left_join(PIED.all, full.ppt.tmean.norms, by.x = c("name", "year","LAT", "LON"),by.y = c("name", "year","lat", "lon"))
 
 #grow.new <- read.csv("data/pied_all_tmean_ppt_v3.csv")
@@ -31,6 +46,7 @@ grow.monsoon<-na.omit(grow.new) %>%
   mutate(PlotCD=as.numeric(factor(ST_PLT, levels = unique(ST_PLT))),treeCD=as.numeric(factor(name,levels=unique(name))),
          growth2=ifelse(growth==0,0.001,growth),loggrowth=log(growth2))
 
+set.seed(2023)
 split=0.20
 trainIndex <- createDataPartition(grow.monsoon$name, p=split, list=FALSE)
 grow_test <- grow.monsoon[trainIndex,]
@@ -72,7 +88,7 @@ plotfortree<-grow_train %>%
 plotfortree<-plotfortree$Plot
 
 
-sink("pied_grow.stan")
+sink("model_1.stan")
 cat("
     data {
     
@@ -178,18 +194,25 @@ pied_dat <- list(K = K, nG = nG, nGtest = nGtest, yG = yG, xG = xG, xGtest = xGt
 
 
 
-fit_grow <- stan(file = 'pied_grow.stan', data = pied_dat, 
-                 iter = 5000, warmup = 1000, chains = 3, cores = 8, sample_file = "log_normal_monsoonoos_pptoos")
-read_stan_csv(csvfiles, col_major = TRUE)
+csvfiles <- here::here("results", paste0("log_normal_monsoonoos_pptoos_", 1:3, ".csv"))
 
-chain1 <- rstan::read_stan_csv("/home/rstudio/log_normal_monsoonoos_pptoos_1.csv")
-chain2 <- rstan::read_stan_csv("/home/rstudio/log_normal_monsoonoos_pptoos_2.csv")
-chain3 <- rstan::read_stan_csv("/home/rstudio/log_normal_monsoonoos_pptoos_3.csv")
+if (all(file.exists(csvfiles))) {
+  fit_grow <- read_stan_csv(csvfiles, col_major = TRUE) 
+} else {
+  fit_grow <- stan(file = 'model_1.stan', data = pied_dat, 
+                   iter = 5000,
+                   warmup = 1000,
+                   chains = 3, cores = 8, 
+                   sample_file = here::here("results", "log_normal_monsoonoos_pptoos"))
+}
 
-csvfiles <- dir("/home/rstudio/",
-                pattern = 'log_normal_monsoonoos_pptoos_[0-3].csv', full.names = TRUE)
-fit_grow <- rstan::read_stan_csv(csvfiles)
-saveRDS(fit_grow, file = "log_normal_monsoonoos_pptoos.RDS")
+
+# chain1 <- rstan::read_stan_csv("/home/rstudio/log_normal_monsoonoos_pptoos_1.csv")
+# chain2 <- rstan::read_stan_csv("/home/rstudio/log_normal_monsoonoos_pptoos_2.csv")
+# chain3 <- rstan::read_stan_csv("/home/rstudio/log_normal_monsoonoos_pptoos_3.csv")
+# 
+# fit_grow <- rstan::read_stan_csv(csvfiles)
+# saveRDS(fit_grow, file = "log_normal_monsoonoos_pptoos.RDS")
 summary<-summary(fit_grow)
 summary
 
@@ -207,19 +230,24 @@ colnames(plotdatainterval) <- c("u_beta_ppt_norm", "u_beta_tmp_norm", "u_beta_Pr
 
 # get summaries of plotdatainterval:
 
-df <- reshape2::melt(plotdatainterval)
-beta.summaries <- df %>% group_by(variable) %>%
-  summarise(mean = mean(value),
-            ci.lo = quantile(value, 0.025),
-            ci.hi = quantile(value, 0.975))
+if (file.exists(here::here("results", "betasummaries_model1_threechain_PIED.csv"))) {
+  beta.summaries <- read.csv(here::here("results", "betasummaries_model1_threechain_PIED.csv"))
+} else {
+  df <- reshape2::melt(plotdatainterval)
+  beta.summaries <- df %>% group_by(variable) %>%
+    summarise(mean = mean(value),
+              ci.lo = quantile(value, 0.025),
+              ci.hi = quantile(value, 0.975))
+  
+  beta.summaries$allpos <- ifelse(beta.summaries$mean > 0 &  beta.summaries$ci.lo > 0 &  beta.summaries$ci.hi > 0, "yes", "no")
+  beta.summaries$allneg <- ifelse(beta.summaries$mean <= 0 &  beta.summaries$ci.lo <= 0 &  beta.summaries$ci.hi <= 0, "yes", "no")
+  beta.summaries$significant <- ifelse(beta.summaries$allpos == "yes" | beta.summaries$allneg == "yes", "significant", "not significant")
+  write.csv(beta.summaries, here::here("results", "betasummaries_model1_threechain_PIED.csv"), row.names = FALSE)
+}
 
-beta.summaries$allpos <- ifelse(beta.summaries$mean > 0 &  beta.summaries$ci.lo > 0 &  beta.summaries$ci.hi > 0, "yes", "no")
-beta.summaries$allneg <- ifelse(beta.summaries$mean <= 0 &  beta.summaries$ci.lo <= 0 &  beta.summaries$ci.hi <= 0, "yes", "no")
-beta.summaries$significant <- ifelse(beta.summaries$allpos == "yes" | beta.summaries$allneg == "yes", "significant", "not significant")
-write.csv(beta.summaries, "betasummaries_model1_threechain_PIED.csv", row.names = FALSE)
+beta.summaries
 
-
-ppc_dens_overlay(yGtest, as.matrix(plotdata))
+# ppc_dens_overlay(yGtest, as.matrix(plotdata))
 
 ext_fit <- rstan::extract(fit_grow)
 yrep <- ext_fit$yrep

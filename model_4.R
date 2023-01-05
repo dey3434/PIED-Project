@@ -26,8 +26,23 @@ library(maps)
 library(tidyr)
 library(dplyr)
 
-PIED.all <- read.csv(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_all_growth_v7.csv"))
-full.ppt.tmean.norms <- read.csv(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_all_tmean_ppt_v6.csv"))
+# PIED.all <- read.csv(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_all_growth_v7.csv"))
+# full.ppt.tmean.norms <- read.csv(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_all_tmean_ppt_v6.csv"))
+
+if (file.exists(here::here("data", "PIED_data.csv"))) {
+  PIED.all <- read.csv(here::here("data", "PIED_data.csv"))
+} else {
+  PIED.all <- read.csv(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_all_growth_v7.csv"))  
+  write.csv(PIED.all, file = here::here("data", "PIED_data.csv"), row.names = FALSE)
+}
+
+if (file.exists(here::here("data", "climate_data.csv"))) {
+  full.ppt.tmean.norms <- read.csv(here::here("data", "climate_data.csv"))
+} else {
+  full.ppt.tmean.norms <- read.csv(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_all_tmean_ppt_v6.csv"))
+  write.csv(full.ppt.tmean.norms, file = here::here("data", "climate_data.csv"), row.names = FALSE)
+}
+
 grow.new <- left_join(PIED.all, full.ppt.tmean.norms, by.x = c("name", "year","LAT", "LON"),by.y = c("name", "year","lat", "lon"))
 
 hist(full.ppt.tmean.norms$tmp_norm)
@@ -68,6 +83,7 @@ grow.monsoon<-na.omit(grow.new) %>%
 
 
 
+set.seed(2023)
 split=0.20
 trainIndex <- createDataPartition(grow.monsoon$name, p=split, list=FALSE)
 grow_test <- grow.monsoon[trainIndex,]
@@ -117,7 +133,7 @@ plotfortree<-grow_train %>%
 plotfortree<-plotfortree$Plot
 
 
-sink("pied_grow.stan")
+sink("model_4.stan")
 cat("
     data {
     
@@ -223,21 +239,25 @@ pied_dat <- list(K = K, nG = nG, nGtest = nGtest, yG = yG, xG = xG, xGtest = xGt
 
 
 
-fit_grow <- stan(file = 'pied_grow.stan', data = pied_dat, 
-                 iter = 5000, warmup = 1000, chains = 3, cores = 8, sample_file = "ppt_tmp_springfall_sizefix_scale_small.RDS")
-read_stan_csv(csvfiles, col_major = TRUE)
+csvfiles <- here::here("results", paste0("ppt_tmp_springfall_sizefix_scale_small_", 1:3, ".csv"))
 
-chain1 <- rstan::read_stan_csv("/home/rstudio/ppt_tmp_springfall_sizefix_scale_small.RDS_1.csv")
-chain2 <- rstan::read_stan_csv("/home/rstudio/ppt_tmp_springfall_sizefix_scale_small.RDS_2.csv")
-chain3 <- rstan::read_stan_csv("/home/rstudio/ppt_tmp_springfall_sizefix_scale_small.RDS_3.csv")
+if (all(file.exists(csvfiles))) {
+  fit_grow <- read_stan_csv(csvfiles, col_major = TRUE) 
+} else {
+  fit_grow <- stan(file = 'model_4.stan', data = pied_dat, 
+                   iter = 5000,
+                   warmup = 1000,
+                   chains = 3, cores = 8, 
+                   sample_file = here::here("results", "ppt_tmp_springfall_sizefix_scale_small"))
+}
 
-csvfiles <- dir("/home/rstudio/",
-                pattern = 'ppt_tmp_springfall_sizefix_scale_small.RDS_[0-3].csv', full.names = TRUE)
-fit_grow <- rstan::read_stan_csv(csvfiles)
+# chain1 <- rstan::read_stan_csv("/home/rstudio/ppt_tmp_springfall_sizefix_scale_small_1.csv")
+# chain2 <- rstan::read_stan_csv("/home/rstudio/ppt_tmp_springfall_sizefix_scale_small_2.csv")
+# chain3 <- rstan::read_stan_csv("/home/rstudio/ppt_tmp_springfall_sizefix_scale_small_3.csv")
 
-saveRDS(fit_grow, file = "ppt_tmp_springfall_sizefix_scale.RDS")
+# fit_grow <- rstan::read_stan_csv(csvfiles)
+# saveRDS(fit_grow, file = "ppt_tmp_springfall_sizefix_scale.RDS")
 
-fit_grow <- readRDS(url("https://data.cyverse.org/dav-anon/iplant/home/kah5/analyses/rstan64gb_take2-2022-09-19-18-03-26.3/ppt_tmp_springfall_sizefix_scale.RDS"))
 
 #summary<-summary(fit_grow)
 #summary

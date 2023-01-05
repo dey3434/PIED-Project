@@ -2,3 +2,8 @@
 .Rhistory
 .RData
 .Ruserdata
+
+
+data/*
+betasummaries_model1_threechain_PIED.csv
+results/*

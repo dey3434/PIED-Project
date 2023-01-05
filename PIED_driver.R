@@ -3,7 +3,7 @@
 # read in libraries:
 # setting up libraries
 library(here)
-install.packages("rstan", version = "2.19.3", repos = "http://cran.us.r-project.org")
+# install.packages("rstan", version = "2.19.3", repos = "http://cran.us.r-project.org")
 library(rstan)
 options(mc.cores = parallel::detectCores())
 library(parallel) 

@@ -7,7 +7,7 @@ setwd("/home/rstudio")
 load(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_grow_coef2.rda"))
 
 #packages
-install.packages("rstan", version = "2.19.3", repos = "http://cran.us.r-project.org")
+# install.packages("rstan", version = "2.19.3", repos = "http://cran.us.r-project.org")
 library(rstan)
 options(mc.cores = parallel::detectCores())
 library(parallel) 
