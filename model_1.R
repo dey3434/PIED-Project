@@ -15,7 +15,9 @@ library(bayesplot)
 library(here)
 library(gifski)
 library(maps)
-
+####
+library(patchwork)
+library(sp)
 
 # PIED.all <- read.csv(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_all_growth_v7.csv"))
 # full.ppt.tmean.norms <- read.csv(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_all_tmean_ppt_v6.csv"))
@@ -216,7 +218,15 @@ if (all(file.exists(csvfiles))) {
 summary<-summary(fit_grow)
 summary
 
-plotdata<-select(as.data.frame(fit_grow),"yrep[1]":"yrep[8741]")
+#### define the subset of observations for posterior predictive checking
+# 23915 observations
+# plot 1000
+set.seed(404)
+keepers <- sample(1:length(yGtest), size=1000)
+yrep_keep <- paste0("yrep[", keepers, "]")
+
+plotdata < -select(as.data.frame(fit_grow), all_of(yrep_keep))
+
 plotdatainterval<-select(as.data.frame(fit_grow), "u_beta[1]":"u_beta[21]")
 colnames(plotdatainterval) <- c("u_beta_ppt_norm", "u_beta_tmp_norm", "u_beta_Precip_JulAug", "u_beta_Precip_NovDecJanFebMar",
                                 "u_beta_tmp_yr", "u_beta_DIA_prev",
@@ -255,71 +265,108 @@ yrep <- ext_fit$yrep
 mean.pred <- apply(ext_fit$yrep, 2, median)
 p.o.df <- data.frame(predicted = exp(mean.pred), observed = exp(grow_test$loggrowth), error = (exp(mean.pred) - exp(grow_test$loggrowth)))
 meansqrd <- (mean(p.o.df$error))^2
-ggplot(p.o.df, aes(predicted, observed)) + geom_point(alpha = 0.1) + geom_abline(aes(intercept = 0, slope = 1), color = "red", linetype = "dotted") +
+
+####
+p_pred_vs_observed <- ggplot(p.o.df, aes(predicted, observed)) + 
+  geom_point(alpha = 0.1) + 
+  geom_abline(aes(intercept = 0, slope = 1), color = "red", linetype = "dotted") +
   ylim(0, 10) + xlim(0,10)
+p_pred_vs_observed
+ggsave(here::here("images", "model_1", "pred_vs_observed.png"), p_pred_vs_observed)
 
 
+####
 ## Subset posterior predictive plot by size
-size_q<-quantile(grow$DIA_prev)
-sizeq1<-which(grow_test$DIA_prev<=size_q[2])
-sizeq2<-which(grow_test$DIA_prev>size_q[2] & grow_test$DIA_prev<=size_q[3])
-sizeq3<-which(grow_test$DIA_prev>size_q[3] &grow_test$DIA_prev<=size_q[4])
-sizeq4<-which(grow_test$DIA_prev>size_q[4])
+size_q<-quantile(grow.monsoon$DIA_prev)
+sizeq1<-which(grow_test$DIA_prev[keepers]<=size_q[2])
+sizeq2<-which(grow_test$DIA_prev[keepers]>size_q[2] & grow_test$DIA_prev[keepers]<=size_q[3])
+sizeq3<-which(grow_test$DIA_prev[keepers]>size_q[3] & grow_test$DIA_prev[keepers]<=size_q[4])
+sizeq4<-which(grow_test$DIA_prev[keepers]>size_q[4])
 
-ppc_dens_overlay(yGtest[sizeq1], as.matrix(plotdata)[,sizeq1])
-ppc_dens_overlay(yGtest[sizeq2], as.matrix(plotdata)[,sizeq2])
-ppc_dens_overlay(yGtest[sizeq3], as.matrix(plotdata)[,sizeq3])
-ppc_dens_overlay(yGtest[sizeq4], as.matrix(plotdata)[,sizeq4])
+ppc_size1 <- ppc_dens_overlay(yGtest[sizeq1], as.matrix(plotdata)[,sizeq1]) +
+  ggtitle("Q1 trees")
+ppc_size2 <- ppc_dens_overlay(yGtest[sizeq2], as.matrix(plotdata)[,sizeq2]) +
+  ggtitle("Q2 trees")
+ppc_size3 <- ppc_dens_overlay(yGtest[sizeq3], as.matrix(plotdata)[,sizeq3]) +
+  ggtitle("Q3 trees")
+ppc_size4 <- ppc_dens_overlay(yGtest[sizeq4], as.matrix(plotdata)[,sizeq4]) +
+  ggtitle("Q4 trees")
 
+ggsave(here::here("images", "model_1", "ppc_size.png"), 
+       (ppc_size1 + ppc_size2) / (ppc_size3 + ppc_size4),
+       width = 16, height = 9)
+
+####
 ## Subset posterior predicitve plot by ppt_norm
-ppt_norm_q<-quantile(grow$ppt_norm)
-ppt_normq1<-which(grow_test$ppt_norm<=ppt_norm_q[2])
-ppt_normq2<-which(grow_test$ppt_norm>ppt_norm_q[2] & grow_test$ppt_norm<=ppt_norm_q[3])
-ppt_normq3<-which(grow_test$ppt_norm>ppt_norm_q[3] &grow_test$ppt_norm<=ppt_norm_q[4])
-ppt_normq4<-which(grow_test$ppt_norm>ppt_norm_q[4])
+ppt_norm_q<-quantile(grow.monsoon$ppt_norm, na.rm=TRUE)
+ppt_normq1<-which(grow_test$ppt_norm[keepers]<=ppt_norm_q[2])
+ppt_normq2<-which(grow_test$ppt_norm[keepers]>ppt_norm_q[2] & grow_test$ppt_norm[keepers]<=ppt_norm_q[3])
+ppt_normq3<-which(grow_test$ppt_norm[keepers]>ppt_norm_q[3] & grow_test$ppt_norm[keepers]<=ppt_norm_q[4])
+ppt_normq4<-which(grow_test$ppt_norm[keepers]>ppt_norm_q[4])
 
-ppc_dens_overlay(yGtest[ppt_normq1], as.matrix(plotdata)[,ppt_normq1])
-ppc_dens_overlay(yGtest[ppt_normq2], as.matrix(plotdata)[,ppt_normq2])
-ppc_dens_overlay(yGtest[ppt_normq3], as.matrix(plotdata)[,ppt_normq3])
-ppc_dens_overlay(yGtest[ppt_normq4], as.matrix(plotdata)[,ppt_normq4])
+ppc_pptnorm1 <- ppc_dens_overlay(yGtest[ppt_normq1], as.matrix(plotdata)[,ppt_normq1])
+ppc_pptnorm2 <- ppc_dens_overlay(yGtest[ppt_normq2], as.matrix(plotdata)[,ppt_normq2])
+ppc_pptnorm3 <- ppc_dens_overlay(yGtest[ppt_normq3], as.matrix(plotdata)[,ppt_normq3])
+ppc_pptnorm4 <- ppc_dens_overlay(yGtest[ppt_normq4], as.matrix(plotdata)[,ppt_normq4])
 
+ggsave(here::here("images", "model_1", "ppc_pptnorm.png"), 
+       (ppc_pptnorm1 + ppc_pptnorm2) / (ppc_pptnorm3 + ppc_pptnorm4),
+       width = 16, height = 9)
+
+####
 ## Subset posterior predicitve plot by tmp_norm
-tmp_norm_q<-quantile(grow$tmp_norm)
-tmp_normq1<-which(grow_test$tmp_norm<=tmp_norm_q[2])
-tmp_normq2<-which(grow_test$tmp_norm>tmp_norm_q[2] & grow_test$tmp_norm<=tmp_norm_q[3])
-tmp_normq3<-which(grow_test$tmp_norm>tmp_norm_q[3] &grow_test$tmp_norm<=tmp_norm_q[4])
-tmp_normq4<-which(grow_test$tmp_norm>tmp_norm_q[4])
+tmp_norm_q<-quantile(grow.monsoon$tmp_norm, na.rm=TRUE)
+tmp_normq1<-which(grow_test$tmp_norm[keepers]<=tmp_norm_q[2])
+tmp_normq2<-which(grow_test$tmp_norm[keepers]>tmp_norm_q[2] & grow_test$tmp_norm[keepers]<=tmp_norm_q[3])
+tmp_normq3<-which(grow_test$tmp_norm[keepers]>tmp_norm_q[3] & grow_test$tmp_norm[keepers]<=tmp_norm_q[4])
+tmp_normq4<-which(grow_test$tmp_norm[keepers]>tmp_norm_q[4])
 
-ppc_dens_overlay(yGtest[tmp_normq1], as.matrix(plotdata)[,tmp_normq1])
-ppc_dens_overlay(yGtest[tmp_normq2], as.matrix(plotdata)[,tmp_normq2])
-ppc_dens_overlay(yGtest[tmp_normq3], as.matrix(plotdata)[,tmp_normq3])
-ppc_dens_overlay(yGtest[tmp_normq4], as.matrix(plotdata)[,tmp_normq4])
+ppc_tmpnorm1 <- ppc_dens_overlay(yGtest[tmp_normq1], as.matrix(plotdata)[,tmp_normq1])
+ppc_tmpnorm2 <- ppc_dens_overlay(yGtest[tmp_normq2], as.matrix(plotdata)[,tmp_normq2])
+ppc_tmpnorm3 <- ppc_dens_overlay(yGtest[tmp_normq3], as.matrix(plotdata)[,tmp_normq3])
+ppc_tmpnorm4 <- ppc_dens_overlay(yGtest[tmp_normq4], as.matrix(plotdata)[,tmp_normq4])
 
+ggsave(here::here("images", "model_1", "ppc_tmpnorm.png"), 
+       (ppc_tmpnorm1 + ppc_tmpnorm2) / (ppc_tmpnorm3 + ppc_tmpnorm4),
+       width = 16, height = 9)
+
+
+#### 
+fit_grow_df <- as.data.frame(fit_grow)
+yrep_all <- fit_grow_df[,grepl("yrep", colnames(fit_grow_df))]
 
 ##generating a plotting function
 ##ppcdensoverlay
 make_plot <- function() {
+  min_all <- min(min(yGtest), min(yrep_all))
+  max_all <- max(max(yGtest), max(yrep_all))
+  
+  
   for (i in min(grow_test$year):max(grow_test$year)) {
     year<-which(grow_test$year == i)
-    p = ppc_dens_overlay(yGtest[year], as.matrix(plotdata)[,year]) + 
+    p = ppc_dens_overlay(yGtest[year], as.matrix(yrep_all[,year])) + 
       theme(
-        plot.title = element_text(size = rel(2.5), legend.text = element_text(size = 16), 
-                                  axis.text.x = element_text(size = 12),
-                                  legend.key.size = unit(1.2, "lines")
-        ) + xlim(-6.91, 3.96) +
-          ggtitle(
-            paste(i)
-          ))
+        plot.title = element_text(size = rel(2.5)),
+        legend.text = element_text(size = 16), 
+        axis.text.x = element_text(size = 12),
+        legend.key.size = unit(1.2, "lines")
+      ) +
+      # xlim(-6.91, 3.96) +
+      xlim(min_all, max_all) +
+      ggtitle(
+        paste("year", i)
+      )
     print(p)
   }
 }
 
 
-if (!file.exists(here::here("images", "ppc_year-animation.gif"))) {
+####
+if (!file.exists(here::here("images", "model_1", "ppc_year-animation.gif"))) {
   
   gifski::save_gif(
     make_plot(),
-    gif_file = here::here("images", "ppc_year-animation.gif"), 
+    gif_file = here::here("images", "model_1", "ppc_year-animation.gif"), 
     progress = FALSE,
     delay = 0.5, 
     height = 360, width = 640, units = "px"
@@ -335,19 +382,20 @@ make_ppt_plot <- function() {
         plot.title = element_text(size = rel(2.5)),  legend.text = element_text(size = 16),
         axis.text = element_text(size = 12),
         legend.key.size = unit(1.2, "lines")
-      ) + xlim(min(grow_train$ppt_yr), max(grow_train$ppt_yr)) +
+      ) + 
+      xlim(min(grow_train$ppt_yr), max(grow_train$ppt_yr)) +
       ggtitle(
-        paste(i)
+        paste("year", i)
       )
     print(p)
   }
 }
-
-if (!file.exists(here::here("images", "ppt_year-animation.gif"))) {
+####
+if (!file.exists(here::here("images", "model_1", "ppt_year-animation.gif"))) {
   
   gifski::save_gif(
     make_ppt_plot(),
-    gif_file = here::here("images", "ppt_year-animation.gif"), 
+    gif_file = here::here("images", "model_1", "ppt_year-animation.gif"), 
     progress = FALSE,
     delay = 0.5, 
     height = 360, width = 640, units = "px"
@@ -365,17 +413,17 @@ make_ppt_plot <- function() {
         legend.key.size = unit(1.2, "lines")
       ) + xlim(min(grow_train$tmp_yr), max(grow_train$tmp_yr)) +
       ggtitle(
-        paste(i)
+        paste("year", i)
       )
     print(p)
   }
 }
-
-if (!file.exists(here::here("images", "tmp_year-animation.gif"))) {
+####
+if (!file.exists(here::here("images", "model_1", "tmp_year-animation.gif"))) {
   
   gifski::save_gif(
     make_ppt_plot(),
-    gif_file = here::here("images", "tmp_year-animation.gif"), 
+    gif_file = here::here("images", "model_1", "tmp_year-animation.gif"), 
     progress = FALSE,
     delay = 0.5, 
     height = 360, width = 640, units = "px"
@@ -384,26 +432,31 @@ if (!file.exists(here::here("images", "tmp_year-animation.gif"))) {
 
 #MCMC Intervals Plots
 mcmc_intervals(plotdatainterval, prob = 0.5)
-pdf("plotdatainterval_mcmc_intervals.pdf", height = 6, width = 10) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
+####
+pdf(here::here("images", "model_1", "plotdatainterval_mcmc_intervals.pdf"), height = 6, width = 10) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
 mcmc_intervals(plotdatainterval, prob = 0.5) # put the code that makes one of the plots in here
 dev.off() # "device off" tells R to stop printing stuff to the pdf
 
 
 #MCMC Area Plot
-pdf("plotdatainterval_mcmc_areas.pdf", height = 8, width = 20) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
+####
+pdf(here::here("images", "model_1", "plotdatainterval_mcmc_areas.pdf"), height = 8, width = 20) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
 color_scheme_set("purple")
 mcmc_areas(plotdatainterval, prob = 0.8)
 dev.off() # "device off" tells R to stop printing stuff to the pdf
 
 #MCMC Traces
-pdf("plotdatainterval_mcmc_traces.pdf", height = 6, width = 30) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
+####
+pdf(here::here("images", "model_1", "plotdatainterval_mcmc_traces.pdf"), height = 6, width = 30) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
 color_scheme_set("mix-blue-red")
 mcmc_trace(plotdatainterval,
            facet_args = list(nrow = 2))
 #pars = c("alpha", "sigma")
 dev.off() # "device off" tells R to stop printing stuff to the pdf
 
-mcmcplot(As.mcmc.list(fit_grow))
+#### Plots all the yreps so don't want to do
+#mcmcplot(As.mcmc.list(fit_grow))
+
 
 
 
@@ -640,6 +693,7 @@ size_prediction <- sizefun_plotdatainterval(size = size, tmp_norm = tmp_norm, pp
 size_prediction_tr <- exp(size_prediction)
 ci.size <- apply(size_prediction_tr, 2, quantile, c(0.025,0.5,0.975)) #confidence intervals
 ci.size.df <- data.frame(size = size, median = ci.size[2,], ci.low = ci.size[1,], ci.high = ci.size[3,])
+#### This figure fails
 ggplot() + 
   geom_ribbon(data = ci.size.df, aes(x = size, ymin = ci.low, ymax = ci.high), alpha = 0.75, fill = "cadetblue2") + 
   geom_line(data = ci.size.df, aes(x = size, y = median), color = "indianred2") + mytheme + ylab("Predicted Growth") + ylim(0, 2) + 
@@ -1654,7 +1708,8 @@ ggplot(data = tnorm_sizeint, aes(x = tmp_norm, y = median, color = ci.group)) + 
 grow.monsoon$LONbin <- ifelse(grow.monsoon$LON > -111, "-111 to -109", "-114 to -111")
 grow.monsoon$LATbin <- ifelse(grow.monsoon$LAT > 35, "35 to 37", "32 to 35")
 grow.monsoon$LATLONbin <- paste(grow.monsoon$LONbin, grow.monsoon$LATbin)
-ind.samples <- unique(grow.monsoon[,c("LATLONbin", "treeCD")]) %>% group_by(LATLONbin) %>% sample_n(16)
+####
+ind.samples <- unique(grow.monsoon[,c("LATLONbin", "treeCD")]) %>% group_by(LATLONbin) %>% sample_n(15)
 
 #tmp_yr and tmp_norm
 get.ind.tmp.response<- function(j){
@@ -1952,8 +2007,9 @@ class(states)
 proj4string(states) <-CRS("+proj=longlat +datum=NAD83")
 mapdata<-states
 mapdata<-data.frame(mapdata)
+####
 ggplot() + geom_polygon(data=mapdata, aes(x=long, y=lat, group = group), color ="darkgray", fill = "darkgray")+
-  geom_point(data = grow, aes(x = LON, y = LAT, color = tmp_norm))+ scale_color_gradient2(low = "blue", mid = "white", high = "red")+
+  geom_point(data = grow.monsoon, aes(x = LON, y = LAT, color = tmp_norm))+ scale_color_gradient2(low = "blue", mid = "white", high = "red")+
   theme_bw()
 
 
@@ -1965,12 +2021,13 @@ class(states)
 proj4string(states) <-CRS("+proj=longlat +datum=NAD83")
 mapdata<-states
 mapdata<-data.frame(mapdata)
+####
 ggplot() + geom_polygon(data=mapdata, aes(x=long, y=lat, group = group), color ="darkgray", fill = "darkgray")+
-  geom_point(data = grow, aes(x = LON, y = LAT, color = ppt_norm))+ scale_color_gradient2(low = "red", mid = "white", high = "blue")+
+  geom_point(data = grow.monsoon, aes(x = LON, y = LAT, color = ppt_norm))+ scale_color_gradient2(low = "red", mid = "white", high = "blue")+
   theme_bw()
 
 
-
+#### Stopped the plotting here
 
 line_type<-c(NA,"solid","dashed","dotted","dotdash")
 quartiles<-c(NA,"1st quartile","2nd quartile","3rd quartile","4th quartile")

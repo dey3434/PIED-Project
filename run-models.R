@@ -1,3 +1,7 @@
+# Restore the renv environment
+# renv::snapshot()    # Used to create the renv environment. Not to be run by the user
+renv::restore()       # Used to restore the renv environment to improve reproducibility.
+
 # Setup the data and results folder
 library(here) ## make sure the RStudio project is active
 if (!dir.exists(here::here("data"))) {
@@ -6,7 +10,14 @@ if (!dir.exists(here::here("data"))) {
 if (!dir.exists(here::here("results"))) {
   dir.create(here::here("results"))
 }
-  
+if (!dir.exists(here::here("images"))) {
+  dir.create(here::here("images"))
+}
+for (i in 1:9) {
+  if (!dir.exists(here::here("images", paste("model", i, sep="_")))) {
+    dir.create(here::here("images", paste("model", i, sep="_")))
+  }
+}
 # Download the data and save in folder
 # if (file.exists(here::here("data", "PIED_data.csv"))) {
 #   PIED.all <- read.csv(here::here("data", "PIED_data.csv"))
