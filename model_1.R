@@ -10,7 +10,8 @@ library(parallel)
 library(mcmcplots) ; library(lattice) ; library(MASS)
 library(lme4) ; library(nlme) ; library(splines); library(MCMCpack)
 library(ggplot2)
-library(caret) ; library(tidyverse)
+library(caret) ;
+library(tidyverse)
 library(bayesplot)
 library(here)
 library(gifski)
@@ -38,11 +39,12 @@ if (file.exists(here::here("data", "climate_data.csv"))) {
 
 grow.new <- left_join(PIED.all, full.ppt.tmean.norms, by.x = c("name", "year","LAT", "LON"),by.y = c("name", "year","lat", "lon"))
 
+
 #grow.new <- read.csv("data/pied_all_tmean_ppt_v3.csv")
 
 #grow.new <- merge(grow, newclimate, by.x = c("LON", "LAT", "name", "year"), by.y = c("lon", "lat", "name", "year"))
 
-grow.monsoon<-na.omit(grow.new) %>% 
+grow.monsoon <- na.omit(grow.new) %>% 
   mutate_at(scale, .vars = vars(Precip_JulAug, Precip_NovDecJanFebMar, tmp_norm, ppt_norm, tmp_yr)) %>%
   arrange(PLOT,SUBP,name) %>%
   mutate(PlotCD=as.numeric(factor(ST_PLT, levels = unique(ST_PLT))),treeCD=as.numeric(factor(name,levels=unique(name))),
@@ -225,7 +227,7 @@ set.seed(404)
 keepers <- sample(1:length(yGtest), size=1000)
 yrep_keep <- paste0("yrep[", keepers, "]")
 
-plotdata < -select(as.data.frame(fit_grow), all_of(yrep_keep))
+plotdata <- select(as.data.frame(fit_grow), all_of(yrep_keep))
 
 plotdatainterval<-select(as.data.frame(fit_grow), "u_beta[1]":"u_beta[21]")
 colnames(plotdatainterval) <- c("u_beta_ppt_norm", "u_beta_tmp_norm", "u_beta_Precip_JulAug", "u_beta_Precip_NovDecJanFebMar",
@@ -335,100 +337,102 @@ ggsave(here::here("images", "model_1", "ppc_tmpnorm.png"),
 fit_grow_df <- as.data.frame(fit_grow)
 yrep_all <- fit_grow_df[,grepl("yrep", colnames(fit_grow_df))]
 
+#---
+#Not sure we need the animations
 ##generating a plotting function
 ##ppcdensoverlay
-make_plot <- function() {
-  min_all <- min(min(yGtest), min(yrep_all))
-  max_all <- max(max(yGtest), max(yrep_all))
-  
-  
-  for (i in min(grow_test$year):max(grow_test$year)) {
-    year<-which(grow_test$year == i)
-    p = ppc_dens_overlay(yGtest[year], as.matrix(yrep_all[,year])) + 
-      theme(
-        plot.title = element_text(size = rel(2.5)),
-        legend.text = element_text(size = 16), 
-        axis.text.x = element_text(size = 12),
-        legend.key.size = unit(1.2, "lines")
-      ) +
-      # xlim(-6.91, 3.96) +
-      xlim(min_all, max_all) +
-      ggtitle(
-        paste("year", i)
-      )
-    print(p)
-  }
-}
-
-
-####
-if (!file.exists(here::here("images", "model_1", "ppc_year-animation.gif"))) {
-  
-  gifski::save_gif(
-    make_plot(),
-    gif_file = here::here("images", "model_1", "ppc_year-animation.gif"), 
-    progress = FALSE,
-    delay = 0.5, 
-    height = 360, width = 640, units = "px"
-  )
-}
-
-##density function for climate
-make_ppt_plot <- function() {
-  for (i in min(grow_test$year):max(grow_test$year)) {
-    year <- i
-    p = ggplot(grow_train[grow_train$year == year,], aes(x = ppt_yr )) + geom_density() +
-      theme(
-        plot.title = element_text(size = rel(2.5)),  legend.text = element_text(size = 16),
-        axis.text = element_text(size = 12),
-        legend.key.size = unit(1.2, "lines")
-      ) + 
-      xlim(min(grow_train$ppt_yr), max(grow_train$ppt_yr)) +
-      ggtitle(
-        paste("year", i)
-      )
-    print(p)
-  }
-}
-####
-if (!file.exists(here::here("images", "model_1", "ppt_year-animation.gif"))) {
-  
-  gifski::save_gif(
-    make_ppt_plot(),
-    gif_file = here::here("images", "model_1", "ppt_year-animation.gif"), 
-    progress = FALSE,
-    delay = 0.5, 
-    height = 360, width = 640, units = "px"
-  )
-}        
-
-
-make_ppt_plot <- function() {
-  for (i in min(grow_test$year):max(grow_test$year)) {
-    year <- i
-    p = ggplot(grow_train[grow_train$year == year,], aes(x = tmp_yr )) + geom_density() +
-      theme(
-        plot.title = element_text(size = rel(2.5)),  legend.text = element_text(size = 16),
-        axis.text = element_text(size = 12),
-        legend.key.size = unit(1.2, "lines")
-      ) + xlim(min(grow_train$tmp_yr), max(grow_train$tmp_yr)) +
-      ggtitle(
-        paste("year", i)
-      )
-    print(p)
-  }
-}
-####
-if (!file.exists(here::here("images", "model_1", "tmp_year-animation.gif"))) {
-  
-  gifski::save_gif(
-    make_ppt_plot(),
-    gif_file = here::here("images", "model_1", "tmp_year-animation.gif"), 
-    progress = FALSE,
-    delay = 0.5, 
-    height = 360, width = 640, units = "px"
-  )
-}        
+# make_plot <- function() {
+#   min_all <- min(min(yGtest), min(yrep_all))
+#   max_all <- max(max(yGtest), max(yrep_all))
+#   
+#   
+#   for (i in min(grow_test$year):max(grow_test$year)) {
+#     year<-which(grow_test$year == i)
+#     p = ppc_dens_overlay(yGtest[year], as.matrix(yrep_all[,year])) + 
+#       theme(
+#         plot.title = element_text(size = rel(2.5)),
+#         legend.text = element_text(size = 16), 
+#         axis.text.x = element_text(size = 12),
+#         legend.key.size = unit(1.2, "lines")
+#       ) +
+#       # xlim(-6.91, 3.96) +
+#       xlim(min_all, max_all) +
+#       ggtitle(
+#         paste("year", i)
+#       )
+#     print(p)
+#   }
+# }
+# 
+# 
+# ####
+# if (!file.exists(here::here("images", "model_1", "ppc_year-animation.gif"))) {
+#   
+#   gifski::save_gif(
+#     make_plot(),
+#     gif_file = here::here("images", "model_1", "ppc_year-animation.gif"), 
+#     progress = FALSE,
+#     delay = 0.5, 
+#     height = 360, width = 640, units = "px"
+#   )
+# }
+# 
+# ##density function for climate
+# make_ppt_plot <- function() {
+#   for (i in min(grow_test$year):max(grow_test$year)) {
+#     year <- i
+#     p = ggplot(grow_train[grow_train$year == year,], aes(x = ppt_yr )) + geom_density() +
+#       theme(
+#         plot.title = element_text(size = rel(2.5)),  legend.text = element_text(size = 16),
+#         axis.text = element_text(size = 12),
+#         legend.key.size = unit(1.2, "lines")
+#       ) + 
+#       xlim(min(grow_train$ppt_yr), max(grow_train$ppt_yr)) +
+#       ggtitle(
+#         paste("year", i)
+#       )
+#     print(p)
+#   }
+# }
+# ####
+# if (!file.exists(here::here("images", "model_1", "ppt_year-animation.gif"))) {
+#   
+#   gifski::save_gif(
+#     make_ppt_plot(),
+#     gif_file = here::here("images", "model_1", "ppt_year-animation.gif"), 
+#     progress = FALSE,
+#     delay = 0.5, 
+#     height = 360, width = 640, units = "px"
+#   )
+# }        
+# 
+# 
+# make_ppt_plot <- function() {
+#   for (i in min(grow_test$year):max(grow_test$year)) {
+#     year <- i
+#     p = ggplot(grow_train[grow_train$year == year,], aes(x = tmp_yr )) + geom_density() +
+#       theme(
+#         plot.title = element_text(size = rel(2.5)),  legend.text = element_text(size = 16),
+#         axis.text = element_text(size = 12),
+#         legend.key.size = unit(1.2, "lines")
+#       ) + xlim(min(grow_train$tmp_yr), max(grow_train$tmp_yr)) +
+#       ggtitle(
+#         paste("year", i)
+#       )
+#     print(p)
+#   }
+# }
+# ####
+# if (!file.exists(here::here("images", "model_1", "tmp_year-animation.gif"))) {
+#   
+#   gifski::save_gif(
+#     make_ppt_plot(),
+#     gif_file = here::here("images", "model_1", "tmp_year-animation.gif"), 
+#     progress = FALSE,
+#     delay = 0.5, 
+#     height = 360, width = 640, units = "px"
+#   )
+# }        
 
 #MCMC Intervals Plots
 mcmc_intervals(plotdatainterval, prob = 0.5)
