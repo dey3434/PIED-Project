@@ -45,7 +45,7 @@ grow.new <- left_join(PIED.all, full.ppt.tmean.norms, by.x = c("name", "year","L
 #grow.new <- merge(grow, newclimate, by.x = c("LON", "LAT", "name", "year"), by.y = c("lon", "lat", "name", "year"))
 
 grow.monsoon <- na.omit(grow.new) %>% 
-  mutate_at(scale, .vars = vars(Precip_JulAug, Precip_NovDecJanFebMar, tmp_norm, ppt_norm, tmp_yr)) %>%
+  mutate_at(scale, .vars = vars(ppt_yr, tmp_norm, ppt_norm, tmp_yr)) %>%
   arrange(PLOT,SUBP,name) %>%
   mutate(PlotCD=as.numeric(factor(ST_PLT, levels = unique(ST_PLT))),treeCD=as.numeric(factor(name,levels=unique(name))),
          growth2=ifelse(growth==0,0.001,growth),loggrowth=log(growth2))
@@ -56,15 +56,19 @@ trainIndex <- createDataPartition(grow.monsoon$name, p=split, list=FALSE)
 grow_test <- grow.monsoon[trainIndex,]
 grow_train <- grow.monsoon[-trainIndex,]
 
-
+# right not the null model listed in the manuscript has annually varying precip (ppt_yr) and temperature (tmp_yr), but not separated by season:
 
 xG<-as.matrix(cbind(grow_train$ppt_norm, grow_train$tmp_norm, #grow_train$Precip_JulAug, grow_train$Precip_NovDecJanFebMar,
                     grow_train$tmp_yr, grow_train$DIA_prev,
+                    grow_train$ppt_yr,
                     grow_train$ppt_norm*grow_train$tmp_norm, 
                     grow_train$ppt_norm*grow_train$tmp_yr, 
-                    #grow_train$ppt_norm*grow_train$Precip_JulAug, 
+                    grow_train$ppt_norm*grow_train$ppt_yr, 
                     grow_train$ppt_norm*grow_train$DIA_prev,
-                    #grow_train$Precip_JulAug*grow_train$tmp_yr, grow_train$Precip_JulAug*grow_train$tmp_norm, grow_train$Precip_JulAug*grow_train$DIA_prev, 
+                    grow_train$ppt_yr*grow_train$tmp_yr, 
+                    grow_train$ppt_yr*grow_train$tmp_norm, 
+                    grow_train$ppt_yr*grow_train$DIA_prev,
+                    grow_train$ppt_yr*grow_train$ppt_norm, 
                     grow_train$tmp_norm*grow_train$tmp_yr, 
                     grow_train$tmp_norm*grow_train$DIA_prev,
                     grow_train$tmp_yr*grow_train$DIA_prev))#, #grow_train$Precip_NovDecJanFebMar*grow_train$ppt_norm,
@@ -72,12 +76,17 @@ xG<-as.matrix(cbind(grow_train$ppt_norm, grow_train$tmp_norm, #grow_train$Precip
                     #grow_train$Precip_NovDecJanFebMar*grow_train$tmp_yr, grow_train$Precip_NovDecJanFebMar*grow_train$DIA_prev))
 xGtest<-as.matrix(cbind(grow_test$ppt_norm, grow_test$tmp_norm, #grow_test$Precip_JulAug, grow_test$Precip_NovDecJanFebMar,
                         grow_test$tmp_yr, grow_test$DIA_prev,
+                        grow_test$ppt_yr,
                         grow_test$ppt_norm*grow_test$tmp_norm, 
                         grow_test$ppt_norm*grow_test$tmp_yr, 
-                        #grow_test$ppt_norm*grow_test$Precip_JulAug, 
+                        grow_test$ppt_norm*grow_test$ppt_yr, 
                         grow_test$ppt_norm*grow_test$DIA_prev,
-                        #grow_test$Precip_JulAug*grow_test$tmp_yr, grow_test$Precip_JulAug*grow_test$tmp_norm, grow_test$Precip_JulAug*grow_test$DIA_prev, 
-                        grow_test$tmp_norm*grow_test$tmp_yr, grow_test$tmp_norm*grow_test$DIA_prev, 
+                        grow_test$ppt_yr*grow_test$tmp_yr, 
+                        grow_test$ppt_yr*grow_test$tmp_norm, 
+                        grow_test$ppt_yr*grow_test$DIA_prev,
+                        grow_test$ppt_yr*grow_test$ppt_norm, 
+                        grow_test$tmp_norm*grow_test$tmp_yr, 
+                        grow_test$tmp_norm*grow_test$DIA_prev,
                         grow_test$tmp_yr*grow_test$DIA_prev)) #, #grow_test$Precip_NovDecJanFebMar*grow_test$ppt_norm,
                         #grow_test$Precip_NovDecJanFebMar*grow_test$tmp_norm, #grow_test$Precip_NovDecJanFebMar*grow_test$Precip_JulAug,
                         #grow_test$Precip_NovDecJanFebMar*grow_test$tmp_yr, grow_test$Precip_NovDecJanFebMar*grow_test$DIA_prev))
