@@ -301,8 +301,16 @@ yrep <- ext_fit$yrep
 mean.pred <- apply(ext_fit$yrep, 2, median)
 p.o.df <- data.frame(predicted = exp(mean.pred), observed = exp(grow_test$loggrowth), error = (exp(mean.pred) - exp(grow_test$loggrowth)))
 meansqrd <- (mean(p.o.df$error))^2
-ggplot(p.o.df, aes(predicted, observed)) + geom_point(alpha = 0.1) + geom_abline(aes(intercept = 0, slope = 1), color = "red", linetype = "dotted") +
+# ggplot(p.o.df, aes(predicted, observed)) + geom_point(alpha = 0.1) + geom_abline(aes(intercept = 0, slope = 1), color = "red", linetype = "dotted") +
+#   ylim(0, 10) + xlim(0,10)
+
+####
+p_pred_vs_observed <- ggplot(p.o.df, aes(predicted, observed)) + 
+  geom_point(alpha = 0.1) + 
+  geom_abline(aes(intercept = 0, slope = 1), color = "red", linetype = "dotted") +
   ylim(0, 10) + xlim(0,10)
+p_pred_vs_observed
+ggsave(here::here("images", "model_4", "pred_vs_observed.png"), p_pred_vs_observed)
 
 
 
@@ -343,6 +351,7 @@ p.o.df <- data.frame(ci.low = yrep_ci.low, mean = yrep_mean, ci.high = yrep_ci.h
                      name = grow_train$name)
 p.o.df$overpredicted <- ifelse(p.o.df$observed <= p.o.df$ci.low, "over predicted", "within confidence interval")
 overpredictedpoints <- p.o.df %>% filter(observed <= ci.low)
+
 
 
 # Pairs plots to evaluate--commented out here
@@ -531,18 +540,18 @@ mytheme<-theme(panel.grid.major = element_blank(), panel.grid.minor = element_bl
 
 #New interaction plots
 
-biggrid <- expand_grid(ppt_norm = as.vector(quantile(grow_train$ppt_norm, c(0.05, .2, .6, .8, .95))), tmp_norm = as.vector(quantile(grow_train$tmp_norm, c(0.05, .2, .6, .8, .95))),
-                       Precip_NovDecJanFebMar = as.vector(quantile(grow_train$Precip_NovDecJanFebMar, c(0.05, .2, .6, .8, .95))), Precip_JulAug = as.vector(quantile(grow_train$Precip_JulAug, c(0.05, .2, .6, .8, .95))),
-                       Tmean_AprMayJun = as.vector(quantile(grow_train$Tmean_AprMayJun, c(0.05, .2, .6, .8, .95))), Tmean_SepOct = as.vector(quantile(grow_train$Tmean_SepOct, c(0.05, .2, .6, .8, .95))),
-                       DIA_prev = as.vector(quantile(grow_train$DIA_prev, c(0.05, .2, .6, .8, .95))))
-
-ppt_norm <- biggrid$ppt_norm
-tmp_norm <- biggrid$tmp_norm
-Precip_NovDecJanFebMar <- biggrid$Precip_NovDecJanFebMar
-Precip_JulAug <- biggrid$Precip_JulAug
-Tmean_AprMayJun <- biggrid$Tmean_AprMayJun
-Tmean_SepOct <- biggrid$Tmean_SepOct
-x <- biggrid$DIA_prev
+# biggrid <- expand_grid(ppt_norm = as.vector(quantile(grow_train$ppt_norm, c(0.05, .2, .6, .8, .95))), tmp_norm = as.vector(quantile(grow_train$tmp_norm, c(0.05, .2, .6, .8, .95))),
+#                        Precip_NovDecJanFebMar = as.vector(quantile(grow_train$Precip_NovDecJanFebMar, c(0.05, .2, .6, .8, .95))), Precip_JulAug = as.vector(quantile(grow_train$Precip_JulAug, c(0.05, .2, .6, .8, .95))),
+#                        Tmean_AprMayJun = as.vector(quantile(grow_train$Tmean_AprMayJun, c(0.05, .2, .6, .8, .95))), Tmean_SepOct = as.vector(quantile(grow_train$Tmean_SepOct, c(0.05, .2, .6, .8, .95))),
+#                        DIA_prev = as.vector(quantile(grow_train$DIA_prev, c(0.05, .2, .6, .8, .95))))
+# 
+# ppt_norm <- biggrid$ppt_norm
+# tmp_norm <- biggrid$tmp_norm
+# Precip_NovDecJanFebMar <- biggrid$Precip_NovDecJanFebMar
+# Precip_JulAug <- biggrid$Precip_JulAug
+# Tmean_AprMayJun <- biggrid$Tmean_AprMayJun
+# Tmean_SepOct <- biggrid$Tmean_SepOct
+# x <- biggrid$DIA_prev
 
 # png("pptnormhist.png", units = "in", height = 5, width = 5, res = 200)
 # ggplot(data = grow.monsoon, aes(ppt_norm)) + geom_histogram() + geom_vline(xintercept = quantile(grow_train$ppt_norm, c(0.05, .2, .6, .8, .95)))
@@ -825,7 +834,7 @@ grow.monsoon$ppt_norm_q <- ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon
                                          ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.75), "50-75% quantile",
                                                 "75-100% quantile")))
 
-ind.samples <- unique(grow.monsoon[,c("LATLONbin", "tmp_norm_q", "ppt_norm_q", "treeCD")])
+ind.samples <- unique(grow.monsoon[,c("LATLONbin", "tmp_norm_q", "ppt_norm_q", "treeCD", "ppt_norm")])
 
 get.ind.tmp.response<- function(j){
   tree.subset <- ind.samples[j,]
@@ -886,22 +895,8 @@ Precip_JulAug_tree_response.df <- do.call(rbind, Precip_JulAug_tree_response)
 merged.response.samples <- merge(Precip_JulAug_tree_response.df, ind.samples, by.x = "ci.group", by.y = "treeCD")
 merged.response.samples$ci.group <- as.character(merged.response.samples$ci.group)
 #color by group
-ggplot(data = merged.response.samples, aes(x = Precip_JulAug, y = median, color = ci.group)) + geom_ribbon(aes(x = Precip_JulAug, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
-  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
-#color by LATLONbin
-ggplot(data = merged.response.samples, aes(x = Precip_JulAug, y = median, color = LATLONbin, group = ci.group)) + geom_ribbon(aes(x = Precip_JulAug, ymin = ci.low, ymax = ci.high, fill = LATLONbin, group = ci.group),color = NA, alpha = 0.5) + 
-  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
-#tmp_norm quantiles
-ggplot(data = merged.response.samples, aes(x = Precip_JulAug, y = median, color = tmp_norm, group = ci.group)) + geom_line(alpha = 0.5) + 
-  mytheme + ylab("Predicted Growth") + ylim(0, 2) + scale_color_gradient2(low = "#4575b4", mid = "#fddbc7", high = "#b2182b") + facet_wrap(~tmp_norm_q)
-#color by tmp_norm
-ggplot(data = merged.response.samples, aes(x = Precip_JulAug, y = median, color = tmp_norm, group = ci.group)) + geom_line(alpha = 0.5) + 
-  mytheme + ylab("Predicted Growth") + ylim(0, 2) + scale_color_gradient2(low = "#4575b4", mid = "#fddbc7", high = "#b2182b") + facet_wrap(~ppt_norm_q)
-colnames(merged.response.samples)[3] <- "MAP"
-
-
-
-colnames(merged.response.samples)[3] <- "MAP"
+colnames(merged.response.samples)[3] <- "MAT"
+colnames(merged.response.samples)[10] <- "MAP"
 
 #color by ppt_norm & use tmp_norm bins
 png(here::here("images", "model_4", "individual_response_Precip_JulAug_MAP.png"), height = 5, width = 6, units = "in", res = 300) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
@@ -926,7 +921,7 @@ grow.monsoon$ppt_norm_q <- ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon
                                          ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.75), "50-75% quantile",
                                                 "75-100% quantile")))
 
-ind.samples <- unique(grow.monsoon[,c("LATLONbin", "tmp_norm_q", "ppt_norm_q", "treeCD")])
+ind.samples <- unique(grow.monsoon[,c("LATLONbin", "tmp_norm_q", "ppt_norm_q", "treeCD", "ppt_norm")])
 
 
 get.ind.tmp.response<- function(j){
@@ -987,19 +982,8 @@ Precip_NovDecJanFebMar_tree_response <- lapply(1:length(ind.samples$treeCD), FUN
 Precip_NovDecJanFebMar_tree_response.df <- do.call(rbind, Precip_NovDecJanFebMar_tree_response)
 merged.response.samples <- merge(Precip_NovDecJanFebMar_tree_response.df, ind.samples, by.x = "ci.group", by.y = "treeCD")
 merged.response.samples$ci.group <- as.character(merged.response.samples$ci.group)
-#color by group
-ggplot(data = merged.response.samples, aes(x = Precip_NovDecJanFebMar, y = median, color = ci.group)) + geom_ribbon(aes(x = Precip_NovDecJanFebMar, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
-  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
-#color by LATLONbin
-ggplot(data = merged.response.samples, aes(x = Precip_NovDecJanFebMar, y = median, color = LATLONbin, group = ci.group)) + geom_ribbon(aes(x = Precip_NovDecJanFebMar, ymin = ci.low, ymax = ci.high, fill = LATLONbin, group = ci.group),color = NA, alpha = 0.5) + 
-  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
-#tmp_norm quantiles
-ggplot(data = merged.response.samples, aes(x = Precip_NovDecJanFebMar, y = median, color = tmp_norm, group = ci.group)) + geom_line(alpha = 0.5) + 
-  mytheme + ylab("Predicted Growth") + ylim(0, 2) + scale_color_gradient2(low = "#4575b4", mid = "#fddbc7", high = "#b2182b") + facet_wrap(~tmp_norm_q)
-#color by tmp_norm
-ggplot(data = merged.response.samples, aes(x = Precip_NovDecJanFebMar, y = median, color = tmp_norm, group = ci.group)) + geom_line(alpha = 0.5) + 
-  mytheme + ylab("Predicted Growth") + ylim(0, 2) + scale_color_gradient2(low = "#4575b4", mid = "#fddbc7", high = "#b2182b") + facet_wrap(~ppt_norm_q)
 
+colnames(merged.response.samples)[10] <- "MAP"
 #color by ppt_norm & use tmp_norm bins
 png(here::here("images", "model_4", "individual_response_Precip_NovDecJanFebMar_MAP.png"), height = 5, width = 6, units = "in", res = 300) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
 ggplot(data = merged.response.samples, aes(x = Precip_NovDecJanFebMar, y = median, color = MAP, group = ci.group)) + geom_line(alpha = 0.5) + 
@@ -1025,7 +1009,7 @@ grow.monsoon$ppt_norm_q <- ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon
                                          ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.75), "50-75% quantile",
                                                 "75-100% quantile")))
 
-ind.samples <- unique(grow.monsoon[,c("LATLONbin", "tmp_norm_q", "ppt_norm_q", "treeCD")])
+ind.samples <- unique(grow.monsoon[,c("LATLONbin", "tmp_norm_q", "ppt_norm_q", "treeCD", "ppt_norm")])
 
 
 get.ind.tmp.response<- function(j){
@@ -1086,17 +1070,8 @@ Tmean_SepOct_tree_response <- lapply(1:length(ind.samples$treeCD), FUN = get.ind
 Tmean_SepOct_tree_response.df <- do.call(rbind, Tmean_SepOct_tree_response)
 merged.response.samples <- merge(Tmean_SepOct_tree_response.df, ind.samples, by.x = "ci.group", by.y = "treeCD")
 merged.response.samples$ci.group <- as.character(merged.response.samples$ci.group)
-#color by group
-ggplot(data = merged.response.samples, aes(x = Tmean_SepOct, y = median, color = ci.group)) + geom_ribbon(aes(x = Tmean_SepOct, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) + 
-  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
-#color by LATLONbin
-ggplot(data = merged.response.samples, aes(x = Tmean_SepOct, y = median, color = LATLONbin, group = ci.group)) + geom_ribbon(aes(x = Tmean_SepOct, ymin = ci.low, ymax = ci.high, fill = LATLONbin, group = ci.group),color = NA, alpha = 0.5) + 
-  geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
-#color by tmp_norm
-ggplot(data = merged.response.samples, aes(x = Tmean_SepOct, y = median, color = tmp_norm, group = ci.group))  + geom_line(alpha = 0.5) + 
-  mytheme + ylab("Predicted Growth") + ylim(0, 2) + scale_color_gradient2(low = "#4575b4", mid = "#fddbc7", high = "#b2182b")
 
-
+colnames(merged.response.samples)[10]<- "MAP"
 #color by ppt_norm & use tmp_norm bins
 png(here::here("images", "model_4", "individual_response_Tmean_SepOct_MAP.png"), height = 5, width = 6, units = "in", res = 300) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
 ggplot(data = merged.response.samples, aes(x = Tmean_SepOct, y = median, color = MAP, group = ci.group)) + geom_line(alpha = 0.5) + 
