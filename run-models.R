@@ -36,6 +36,7 @@ for (i in 1:9) {
 
 # Run the models with RStudioAPI
 library(rstudioapi)
+rstudioapi::jobRunScript("model_0.R")
 rstudioapi::jobRunScript("model_1.R")
 rstudioapi::jobRunScript("model_2.R")
 rstudioapi::jobRunScript("model_3.R")

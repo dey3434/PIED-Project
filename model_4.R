@@ -25,6 +25,12 @@ library(gifski)
 library(maps)
 library(tidyr)
 library(dplyr)
+####
+library(patchwork)
+library(sp)
+library(loo)
+library(rstantools)
+
 
 # PIED.all <- read.csv(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_all_growth_v7.csv"))
 # full.ppt.tmean.norms <- read.csv(url("https://data.cyverse.org/dav-anon/iplant/home/smdey/data/pied_all_tmean_ppt_v6.csv"))
@@ -298,9 +304,13 @@ if (file.exists(here::here("results", "betasummaries_model4_threechain_PIED.csv"
 ext_fit <- rstan::extract(fit_grow)
 yrep <- ext_fit$yrep
 #yrep <- exp(yrep)
-mean.pred <- apply(ext_fit$yrep, 2, median)
+mean.pred <- apply(ext_fit$yrep, 2, mean)
 p.o.df <- data.frame(predicted = exp(mean.pred), observed = exp(grow_test$loggrowth), error = (exp(mean.pred) - exp(grow_test$loggrowth)))
 meansqrd <- (mean(p.o.df$error))^2
+
+##### 
+save(p.o.df, file = here::here("results", "model-4-pred-obs.RData"))
+
 # ggplot(p.o.df, aes(predicted, observed)) + geom_point(alpha = 0.1) + geom_abline(aes(intercept = 0, slope = 1), color = "red", linetype = "dotted") +
 #   ylim(0, 10) + xlim(0,10)
 
@@ -321,8 +331,10 @@ for(i in 1:length(sigma)){
   ll[i,] <- dnorm(yG, mu[i,], sd = sigma[i], log = TRUE)
 }
 newll <- as.matrix(ll)
-r_eff <- relative_eff(exp(ll), chain_id = rep(1:3, each = 4000), cores = 8)
-leaveoneout <- loo(as.matrix(ll), r_eff = r_eff, save_psis = TRUE, cores = 8)
+r_eff <- relative_eff(exp(ll), chain_id = rep(1:3, each = 4000), cores = 1)
+leaveoneout <- loo::loo(as.matrix(ll), r_eff = r_eff, save_psis = TRUE, cores = 1)
+
+save(ll, r_eff, leaveoneout, file = here::here("results", "model-4-loo.RData"))
 
 yrep <- matrix(0, length(sigma), length(yG))
 for(i in 1:length(sigma)){
@@ -331,9 +343,16 @@ for(i in 1:length(sigma)){
 psis <- leaveoneout$psis_object
 keep_obs <- sample(1:length(yG), 100)
 lw <- weights(psis)
-ppc_loo_intervals(yG, yrep = yrep, psis_object = psis, subset = keep_obs, order = "median") 
-ppc_loo_pit_overlay(yG, yrep = yrep, lw = lw)
-ppc_loo_pit_qq(yG, yrep = yrep, lw = lw)
+ppc1 <- ppc_loo_intervals(yG, yrep = yrep, psis_object = psis, subset = keep_obs, order = "median") 
+ppc2 <- ppc_loo_pit_overlay(yG, yrep = yrep, lw = lw)
+ppc3 <- ppc_loo_pit_qq(yG, yrep = yrep, lw = lw)
+
+ggsave(here::here("images", "model_4", "ppc-plot-1.png"),
+       ppc1, width = 16/3, height = 9)
+ggsave(here::here("images", "model_4", "ppc-plot-2.png"),
+       ppc2, width = 16/3, height = 9)
+ggsave(here::here("images", "model_4", "ppc-plot-3.png"),
+       ppc3, width = 16/3, height = 9)
 
 waic(ll)
 
