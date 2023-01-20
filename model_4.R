@@ -269,7 +269,8 @@ if (all(file.exists(csvfiles))) {
 #summary
 
 plotdata<-select(as.data.frame(fit_grow),"yrep[1]":"yrep[8780]")
-plotdatainterval<-dplyr::select(as.data.frame(fit_grow), "u_beta[1]":"u_beta[28]")
+plotdatainterval<-select(as.data.frame(fit_grow), "u_beta[1]":paste0("u_beta[", ncol(xG), "]"))
+# plotdatainterval<-dplyr::select(as.data.frame(fit_grow), "u_beta[1]":"u_beta[28]")
 colnames(plotdatainterval) <- c("MAP", "MAT","MAP*MAT", "monsoon precip", "winter precip", 
                                 "spring temp", "fall temp", "tree size",
                                 "tree size*MAP", "tree size*MAT", "tree size*Precip_JulAug",

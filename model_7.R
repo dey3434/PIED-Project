@@ -232,20 +232,21 @@ summary<-summary(fit_grow)
 summary
 
 plotdata<-select(as.data.frame(fit_grow),"yrep[1]":"yrep[8780]")
-plotdatainterval<-select(as.data.frame(fit_grow), "u_beta[1]":"u_beta[28]")
-colnames(plotdatainterval) <- c("u_beta_ppt_norm", "u_beta_tmp_norm", "u_beta_Precip_JulAug", "u_beta_Precip_NovDecJanFebMar", 
-                                "u_beta_Tmean_AprMayJun", "u_beta_Tmean_SepOct", "u_beta_DIA_prev",
-                                "u_beta_ppt_norm_tmp_norm", "u_beta_ppt_norm_Precip_JulAug", 
-                                "u_beta_ppt_norm_DIA_prev", "u_beta_ppt_norm_Precip_NovDecJanFebMar",
-                                "u_beta_ppt_norm_Tmean_AprMayJun", "u_beta_ppt_norm_Tmean_SepOct",
-                                "u_beta_tmp_norm_DIA_prev", "u_beta_tmp_norm_Precip_JulAug",
-                                "u_beta_tmp_norm_Precip_NovDecJanFebMar", "u_beta_tmp_norm_Tmean_AprMayJun",
-                                "u_beta_tmp_norm_Tmean_SepOct", "u_beta_DIA_prev_Precip_JulAug",
-                                "u_beta_DIA_prev_Precip_NovDecJanFebMar", "u_beta_DIA_prev_Tmean_AprMayJun",
-                                "u_beta_DIA_prev_Tmean_SepOct", "u_beta_Precip_JulAug_Precip_NovDecJanFebMar",
-                                "u_beta_Precip_JulAug_Tmean_AprMayJun", "u_beta_Precip_JulAug_Tmean_SepOct",
-                                "u_beta_Precip_NovDecJanFebMar_Tmean_AprMayJun", "u_beta_Precip_NovDecJanFebMar_Tmean_SepOct",
-                                "u_beta_Tmean_AprMayJun_Tmean_SepOct")
+plotdatainterval<-select(as.data.frame(fit_grow), "u_beta[1]":paste0("u_beta[", ncol(xG), "]"))
+# plotdatainterval<-select(as.data.frame(fit_grow), "u_beta[1]":"u_beta[28]")
+# colnames(plotdatainterval) <- c("u_beta_ppt_norm", "u_beta_tmp_norm", "u_beta_Precip_JulAug", "u_beta_Precip_NovDecJanFebMar", 
+#                                 "u_beta_Tmean_AprMayJun", "u_beta_Tmean_SepOct", "u_beta_DIA_prev",
+#                                 "u_beta_ppt_norm_tmp_norm", "u_beta_ppt_norm_Precip_JulAug", 
+#                                 "u_beta_ppt_norm_DIA_prev", "u_beta_ppt_norm_Precip_NovDecJanFebMar",
+#                                 "u_beta_ppt_norm_Tmean_AprMayJun", "u_beta_ppt_norm_Tmean_SepOct",
+#                                 "u_beta_tmp_norm_DIA_prev", "u_beta_tmp_norm_Precip_JulAug",
+#                                 "u_beta_tmp_norm_Precip_NovDecJanFebMar", "u_beta_tmp_norm_Tmean_AprMayJun",
+#                                 "u_beta_tmp_norm_Tmean_SepOct", "u_beta_DIA_prev_Precip_JulAug",
+#                                 "u_beta_DIA_prev_Precip_NovDecJanFebMar", "u_beta_DIA_prev_Tmean_AprMayJun",
+#                                 "u_beta_DIA_prev_Tmean_SepOct", "u_beta_Precip_JulAug_Precip_NovDecJanFebMar",
+#                                 "u_beta_Precip_JulAug_Tmean_AprMayJun", "u_beta_Precip_JulAug_Tmean_SepOct",
+#                                 "u_beta_Precip_NovDecJanFebMar_Tmean_AprMayJun", "u_beta_Precip_NovDecJanFebMar_Tmean_SepOct",
+#                                 "u_beta_Tmean_AprMayJun_Tmean_SepOct")
 
 # get summaries of plotdatainterval:
 

@@ -231,7 +231,10 @@ yrep_keep <- paste0("yrep[", keepers, "]")
 
 plotdata <- select(as.data.frame(fit_grow), all_of(yrep_keep))
 
-plotdatainterval<-select(as.data.frame(fit_grow), "u_beta[1]":"u_beta[21]")
+ncol(xG)
+
+plotdatainterval<-select(as.data.frame(fit_grow), "u_beta[1]":paste0("u_beta[", ncol(xG), "]"))
+# plotdatainterval<-select(as.data.frame(fit_grow), "u_beta[1]":"u_beta[21]")
 colnames(plotdatainterval) <- c("u_beta_ppt_norm", "u_beta_tmp_norm", "u_beta_Precip_JulAug", "u_beta_Precip_NovDecJanFebMar",
                                 "u_beta_tmp_yr", "u_beta_DIA_prev",
                                 "u_beta_ppt_norm_tmp_norm", "u_beta_ppt_norm_tmp_yr", 

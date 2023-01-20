@@ -206,7 +206,7 @@ pied_dat <- list(K = K, nG = nG, nGtest = nGtest, yG = yG, xG = xG, xGtest = xGt
 
 
 
-csvfiles <- here::here("results", paste0("ppt_tmp_springfall_sizefix_", 1:3, ".csv"))
+csvfiles <- here::here("results", paste0("model_3_", 1:3, ".csv"))
 
 if (all(file.exists(csvfiles))) {
   fit_grow <- read_stan_csv(csvfiles, col_major = TRUE) 
@@ -215,7 +215,7 @@ if (all(file.exists(csvfiles))) {
                    iter = 5000,
                    warmup = 1000,
                    chains = 3, cores = 8, 
-                   sample_file = here::here("results", "ppt_tmp_springfall_sizefix"))
+                   sample_file = here::here("results", "model_3_sizefix"))
 }
 
 # chain1 <- rstan::read_stan_csv("/home/rstudio/ppt_tmp_springfall_sizefix_1.csv")
@@ -228,7 +228,8 @@ summary<-summary(fit_grow)
 summary
 
 plotdata<-select(as.data.frame(fit_grow),"yrep[1]":"yrep[8780]")
-plotdatainterval<-select(as.data.frame(fit_grow), "u_beta[1]":"u_beta[28]")
+plotdatainterval<-select(as.data.frame(fit_grow), "u_beta[1]":paste0("u_beta[", ncol(xG), "]"))
+# plotdatainterval<-select(as.data.frame(fit_grow), "u_beta[1]":"u_beta[28]")
 colnames(plotdatainterval) <- c("u_beta_ppt_norm", "u_beta_tmp_norm", "u_beta_Precip_JulAug", "u_beta_Precip_NovDecJanFebMar", 
                                 "u_beta_Tmean_AprMayJun", "u_beta_Tmean_SepOct", "u_beta_DIA_prev",
                                 "u_beta_ppt_norm_tmp_norm", "u_beta_ppt_norm_Precip_JulAug", 
