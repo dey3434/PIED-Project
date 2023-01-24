@@ -273,7 +273,7 @@ for(i in 1:length(sigma)){
 }
 newll <- as.matrix(ll)
 r_eff <- relative_eff(exp(ll), chain_id = rep(1:3, each = 4000), cores = 1)
-leaveoneout <- loo::loo(as.matrix(ll), r_eff = r_eff, save_psis = TRUE, cores = )
+leaveoneout <- loo::loo(as.matrix(ll), r_eff = r_eff, save_psis = TRUE, cores = 1)
 
 save(ll, r_eff, leaveoneout, file = here::here("results", "model-0-loo.RData"))
 
@@ -294,3 +294,4 @@ ggsave(here::here("images", "model_0", "ppc-plot-2.png"),
        ppc2, width = 16/3, height = 9)
 ggsave(here::here("images", "model_0", "ppc-plot-3.png"),
        ppc3, width = 16/3, height = 9)
+

@@ -13,9 +13,9 @@ if (!dir.exists(here::here("results"))) {
 if (!dir.exists(here::here("images"))) {
   dir.create(here::here("images"))
 }
-for (i in 1:9) {
-  if (!dir.exists(here::here("images", paste("model", i, sep="_")))) {
-    dir.create(here::here("images", paste("model", i, sep="_")))
+for (i in 1:10) {
+  if (!dir.exists(here::here("images", paste("model", i-1, sep="_")))) {
+    dir.create(here::here("images", paste("model", i-1, sep="_")))
   }
 }
 # Download the data and save in folder
