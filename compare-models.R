@@ -1,5 +1,6 @@
 library(loo)
 library(tidyverse)
+library(kableExtra)
 # Load each of the models and evaluate predictive performance
 
 MSE <- rep(NA, 10)
@@ -13,8 +14,8 @@ for (i in 1:10) {
   # }
 }
 
-dat <- data.frame(model = paste0("model_", 0:9), MSE = MSE)
-p_mse <- ggplot(dat, aes(x = model, y = MSE)) +
+dat_MSE <- data.frame(model = paste0("model ", 0:9), MSE = MSE)
+p_mse <- ggplot(dat_MSE, aes(x = model, y = MSE)) +
   geom_point()
 
 ggsave(here::here("images", "compare-mse.png"), p_mse,
@@ -32,7 +33,7 @@ for (i in 1:10) {
   # }
 }
 
-names(loos) <- paste0("model_", 0:9)
+names(loos) <- paste0("model ", 0:9)
 # drop the empty loos for now
 # loos <- loos[lapply(loos, length) > 0]
 comp <- loo::loo_compare((loos))
@@ -46,6 +47,7 @@ print(comp, digits = 4, simplify = FALSE)
 
 models <- rep(NA, 10)
 means <- rep(NA, 10)
+ses <- rep(NA, 10)
 lowers <- rep(NA, 10)
 uppers <- rep(NA, 10)
 lowers50 <- rep(NA, 10)
@@ -53,6 +55,7 @@ uppers50 <- rep(NA, 10)
 for (i in 1:10) {
   models[i]  <- paste0("model_", i-1)
   means[i] <- loos[[i]]$estimates[1, 1]
+  ses[i] <- loos[[i]]$estimates[1, 2]
   lowers50[i] <- loos[[i]]$estimates[1, 1] + qnorm(0.25) * loos[[i]]$estimates[1, 2]
   uppers50[i] <- loos[[i]]$estimates[1, 1] + qnorm(0.75) * loos[[i]]$estimates[1, 2]
   lowers[i] <- loos[[i]]$estimates[1, 1] + qnorm(0.025) * loos[[i]]$estimates[1, 2]
@@ -71,3 +74,11 @@ p_looic <- ggplot(dat, aes(x = model, y = mean)) +
 
 ggsave(here::here("images", "compare-loo.png"), p_looic,
        width = 16, height = 9)
+
+dat_metrics <- data.frame(
+  model = models,
+  MSE = MSE, 
+  loo = means, 
+  se = ses)
+
+write_csv(dat_metrics, file = here::here("results", "model-results.csv"))

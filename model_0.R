@@ -227,8 +227,10 @@ if (all(file.exists(csvfiles))) {
                    sample_file = here::here("results", "log_normal_null"))
 }
 
-plotdata<-select(as.data.frame(fit_grow),"yrep[1]":"yrep[8780]")
-plotdatainterval<-select(as.data.frame(fit_grow), "u_beta[1]":paste0("u_beta[", ncol(xG), "]"))
+# Updated code below -----
+fit_grow_df <- as.data.frame(fit_grow)
+plotdata<-select(fit_grow_df, "yrep[1]":"yrep[8780]")
+plotdatainterval<-select(fit_grow_df, "u_beta[1]":paste0("u_beta[", ncol(xG), "]"))
 # plotdatainterval<-select(as.data.frame(fit_grow), "u_beta[1]":"u_beta[28]")
 # colnames(plotdatainterval) <- c("u_beta_Precip_JulAug", "u_beta_Precip_NovDecJanFebMar", 
 #                                 "u_beta_Tmean_AprMayJun", "u_beta_Tmean_SepOct", "u_beta_DIA_prev",
@@ -264,9 +266,17 @@ p_pred_vs_observed
 ggsave(here::here("images", "model_0", "pred_vs_observed.png"), p_pred_vs_observed)
 
 
-
-sigma <- as.data.frame(fit_grow)[,"sigma_y"]
-mu <- as.matrix(plotdatainterval) %*% t(xG)
+# Updated code below ------
+## Modified this -----
+sigma <- fit_grow_df[,"sigma_y"]
+# Plot-level random effects (not included in the current version) ----
+beta_0ps <- select(fit_grow_df, "beta0_p[1]":paste0("beta0_p[", nplot, "]"))
+# Tree-level random effects ------
+beta_0ts <- select(fit_grow_df, "beta0_t[1]":paste0("beta0_t[", ntree, "]"))
+# Modify mu to include the tree-level and plot-level random effects ------
+mu <- as.matrix(plotdatainterval) %*% t(xG) + as.matrix(beta_0ts[, tree])
+# sigma <- as.data.frame(fit_grow)[,"sigma_y"]
+# mu <- as.matrix(plotdatainterval) %*% t(xG)
 ll <- matrix(0, length(sigma), length(yG))
 for(i in 1:length(sigma)){
   ll[i,] <- dnorm(yG, mu[i,], sd = sigma[i], log = TRUE)
@@ -279,14 +289,18 @@ save(ll, r_eff, leaveoneout, file = here::here("results", "model-0-loo.RData"))
 
 yrep <- matrix(0, length(sigma), length(yG))
 for(i in 1:length(sigma)){
-  yrep[i,] <- rnorm(yG, mu[i,], sd = sigma[i])
+  # Modified this to be correct ------
+  yrep[i,] <- rnorm(length(yG), mu[i,], sd = sigma[i])
 }
 psis <- leaveoneout$psis_object
 keep_obs <- sample(1:length(yG), 100)
 lw <- weights(psis)
-ppc1 <- ppc_loo_intervals(yG, yrep = yrep, psis_object = psis, subset = keep_obs, order = "median") 
-ppc2 <- ppc_loo_pit_overlay(yG, yrep = yrep, lw = lw)
-ppc3 <- ppc_loo_pit_qq(yG, yrep = yrep, lw = lw)
+ppc1 <- ppc_loo_intervals(yG, yrep = yrep, psis_object = psis, subset = keep_obs, order = "median") +
+    theme(axis.text.y = element_text())
+ppc2 <- ppc_loo_pit_overlay(yG, yrep = yrep, lw = lw) + 
+    theme(axis.text.y = element_text())
+ppc3 <- ppc_loo_pit_qq(yG, yrep = yrep, lw = lw) + 
+  theme(axis.text.y = element_text())
 
 ggsave(here::here("images", "model_0", "ppc-plot-1.png"),
        ppc1, width = 16/3, height = 9)
