@@ -2,6 +2,8 @@
 library(raster)
 library(tidyverse)
 library(dplyr)
+library(arm)
+library(mgcv)
 
 fiadb <- readRDS("data/InWeUS_FIAdb.rds") # this was pulled using the fiadb package
 TREE <- fiadb$TREE
@@ -26,31 +28,19 @@ all <- all[, c("PLT_CN", "SPCD")]
 plots <- read.csv("data/PLOT_COMBINED.csv")
 plots <- plots[, c("CN", "LAT", "LON")]
 
-# Processing
-# KH notes....this is taking awhile...trying to speed up
+# Pre-Processing
+
 all$LAT <- NA
 all$LON <- NA
-# progress <- 1
-# no <- length(plots$CN)
-# for (i in plots$CN) {
-#   if (nrow(all[all$PLT_CN == i,]) > 0) {
-#     all[all$PLT_CN == i,]$LAT <- subset(plots, CN == i)$LAT
-#     all[all$PLT_CN == i,]$LON <- subset(plots, CN == i)$LON
-#   }
-#   progress <- progress + 1
-#   print(progress / no * 100)
-# }
 
-# I think we just want lat and lon: so we can match it up
+#we just want lat and lon: so we can match it up
 all$LAT <- plots$LAT[match(all$PLT_CN, plots$CN)]
 all$LON <- plots$LON[match(all$PLT_CN, plots$CN)]
 
-
-
-# Export
-#write.csv(all, "Processed/validationRecords.csv", row.names = F)
-
-# Read in a raster for alignment
+#------------------------------------------------
+# Generate Presence/absesnce Raster
+#------------------------------------------------
+# Read in a raster (created by Emily Schultz) for alignment
 #pres <- raster("./Output/tifs/PIED.clim_lambda_gam.tif")# I dont have this (KH), but is shoudl be the same size as the file emily sent
 pres <- raster("presenceAbsenceRaster2.tif")
 pres <- setValues(pres, NA)
@@ -61,20 +51,12 @@ allSp <- SpatialPointsDataFrame(all[, c("LON", "LAT")], as.data.frame(all[, "SPC
 
 # For each tree, find in which raster cell it falls
 allSp$cellNumber <- NA
-# progress <- 1
-# no <- nrow(allSp)
-# for (i in 1:nrow(allSp)) {
-#  tmp <- as.integer(extract(pres, allSp[i,], cellnumbers = T)[[1]])
-#  allSp[i, "cellNumber"] <- tmp
-#  progress <- progress + 1
-#  print(progress / no * 100)
-# } 
 
 
-# i dont think we need to individually do the extraction...kh...extract should allow us to do this all at once
+# raster::extract should allow us to do this all at once; Terra would also work here
 tmp <- raster::extract(pres, allSp, cellnumbers = T)
 allSp$cellNumber <- tmp[,"cells"]
-# trying to convert to a raster for each tree
+
 
 # For each raster cell, find whether it contains PIED (SPCD = 106)
 names(allSp) <- c("SPCD", "cellNumber")
@@ -98,26 +80,13 @@ writeRaster(pres, "data/presenceAbsenceRasterNA.tif", overwrite = T)
 raster::plot(pres) # so now NAs mean there is no FIA data, zeros mean there is no PIED presernce and 1's mean there is PIED presence
 
 
-# not sure we needed this code for Sharmilas project so commenting out (KH)
-# climate_wna<-plots %>%
-#   group_by(PLOT) %>%
-#   summarise(lat=mean(LAT,na.rm=T),long=mean(LON,na.rm=T),el=(mean(ELEV,na.rm=T)*0.3048)) %>%
-#   mutate(ID2=".")
-# 
-# names(climate_wna)[1]<-"ID1"
-# 
-# write.csv(climate_wna[1:4215,],"./ClimateData/FIA_climateWNA1.csv",row.names=F)
-# write.csv(climate_wna[4216:8430,],"./ClimateData/FIA_climateWNA2.csv",row.names=F)
-# write.csv(climate_wna[8431:12645,],"./ClimateData/FIA_climateWNA3.csv",row.names=F)
-# write.csv(climate_wna[12646:16863,],"./ClimateData/FIA_climateWNA4.csv",row.names=F)
-# 
-
-# now extract climate data for those points:
-
+#-------------------------------------------------------
+# now extract climate data for these grid cells
+#-------------------------------------------------------
 
 #### Use PRISM climate data to create rasters of monthly climate variables in PIED study region
 # from emily's code:https://github.com/emilylschultz/DemographicRangeModel/blob/master/Code/ClimateProcessing/historic.R
-library(raster)
+
 
 ### PRISM download January 22, 2019
 ### January 1981 through June 2018
@@ -125,20 +94,21 @@ library(raster)
 
 # Search for PRISM files
 PRISM.path <-  "./PRISM_data/"
-ppt.path <-  "/Users/kah/Documents/docker_pecan/pecan/PRISM_data/PRISM_ppt_stable_4kmM2_189501_198012_bil/"
-ppt.path.new <-  "/Users/kah/Documents/docker_pecan/pecan/PRISM_data/PRISM_ppt_stable_4kmM3_198101_201910_bil/"
+ppt.path <-  paste0(getwd(),"/PRISM_data/PRISM_ppt_stable_4kmM2_189501_198012_bil/")
+ppt.path.new <-  paste0(getwd(),"/PRISM_data/PRISM_ppt_stable_4kmM3_198101_201910_bil/")
 
+#list.files(ppt.path)
 
 pptFiles.old <- list.files(path = ppt.path, pattern = glob2rx("*ppt*.bil"), full.names = TRUE)
 pptFiles.new <- list.files(path = ppt.path.new, pattern = glob2rx("*ppt*.bil"), full.names = TRUE)
-pptFiles<- c(pptFiles.old, pptFiles.new)
+pptFiles <- c(pptFiles.old, pptFiles.new)
 
-temp.path <-  "/Users/kah/Documents/docker_pecan/pecan/PRISM_data/PRISM_tmean_stable_4kmM3_189501_198012_bil/"
-temp.path.new <-  "/Users/kah/Documents/docker_pecan/pecan/PRISM_data/PRISM_tmean_stable_4kmM3_198101_202002_bil/"
-
+temp.path <-  "PRISM_data/PRISM_tmean_stable_4kmM3_189501_198012_bil/"
+temp.path.new <-  "PRISM_data/PRISM_tmean_stable_4kmM3_198101_202002_bil/"
+list.files(temp.path)
 tempFiles.old <- list.files(path = temp.path, pattern = glob2rx("*tmean*.bil"), full.names = TRUE)
 tempFiles.new <- list.files(path = temp.path.new, pattern = glob2rx("*tmean*.bil"), full.names = TRUE)
-tempFiles<- c(tempFiles.old, tempFiles.new)
+tempFiles <- c(tempFiles.old, tempFiles.new)
 
 #tmpFiles <- list.files(path = PRISM.path, pattern = glob2rx("*tmean*.bil"), full.names = TRUE)
 
@@ -185,7 +155,7 @@ PApied <- projectRaster(PApied, crs = crs(pptStack))
 FIA_PApied <- as.data.frame(PApied,xy=TRUE)
 names(FIA_PApied )<-c("lon","lat","PApied")
 
-ppt.extracted <- data.frame(extract(pptStack, FIA_PApied[,c("lon", "lat")]))
+ppt.extracted <- data.frame(raster::extract(pptStack, FIA_PApied[,c("lon", "lat")]))
 ppt.extracted$lon <- FIA_PApied$lon
 ppt.extracted$lat <- FIA_PApied$lat
 #ppt.extracted$name<- FIA_PApied$PApied
@@ -244,8 +214,8 @@ ppt.m$month <- var.split[,2]
 ppt.long <- ppt.m
 colnames(ppt.long) <- c("lon", "lat", "variable", "ppt", "year", "month")
 
-ppt.long <- ppt.long %>% select(-variable)
-temp.long <- temp.long %>% select(-variable)
+ppt.long <- ppt.long %>% dplyr::select(-variable)
+temp.long <- temp.long %>% dplyr::select(-variable)
 temp.ppt <- left_join(temp.long, ppt.long, by =c("lon", "lat", "year", "month"))
 
 
@@ -355,10 +325,10 @@ mergeCols = c("lon", "lat", "year")
 fall.wint <- left_join(winter, fall, by = mergeCols)
 mons.fall.wint <- left_join(monsoon, fall.wint, by = mergeCols)
 all.tmean <- left_join(foresummer, mons.fall.wint, by = mergeCols)
-all.tmean.2 <- left_join(all.tmean, nov_mar, by = mergeCols)
-all.tmean.3 <- left_join(all.tmean.2, sep_oct, by = mergeCols)
-all.tmean.4 <- left_join(all.tmean.3, apr_may_jun, by = mergeCols)
-all.tmean.5 <- left_join(all.tmean.4, ppt.wide, by = mergeCols)
+#all.tmean.2 <- left_join(all.tmean, nov_mar, by = mergeCols)
+#all.tmean.3 <- left_join(all.tmean.2, sep_oct, by = mergeCols)
+#all.tmean.4 <- left_join(all.tmean, apr_may_jun, by = mergeCols)
+all.tmean.5 <- left_join(all.tmean, ppt.wide, by = mergeCols)
 all.tmean.6 <- left_join(all.tmean.5, ppt.previous, by = mergeCols)
 all.tmean.7 <- left_join(all.tmean.6, temp.wide, by = mergeCols)
 full.ppt.tmean <- left_join(all.tmean.7, temp.previous, by = mergeCols)
@@ -366,7 +336,12 @@ full.ppt.tmean2 <- left_join(full.ppt.tmean, wateryr, by = mergeCols)
 
 
 
-write.csv(full.ppt.tmean2, "data/FIAPIED_ll_climate.csv", row.names = FALSE)
+write.csv(full.ppt.tmean2 , "data/FIAPIED_ll_climate.csv", row.names = FALSE)
+
+#------------------------------------------------------------
+# Combine together and make presence absence models
+#------------------------------------------------------------
+full.ppt.tmean2 <- read.csv( "data/FIAPIED_ll_climate.csv")
 
 
 # calculate NORMALS FOR ALL VARIABLES
@@ -389,9 +364,11 @@ ggplot(NORMALS, aes(x = lon, y = lat, fill = MATspring))+geom_raster()
 FIA_PApied <- read.csv( "data/PresenceAbsernce_PIEDFIA.csv")
 climate.PApied <- left_join(FIA_PApied, NORMALS, by = c("lat", "lon"))
 write.csv(climate.PApied, "data/Normals_PA_PIED.csv", row.names = FALSE)
+summary(climate.PApied)
+length(climate.PApied$PApied)
 
-
-FIA_PApied <- read.csv("work/PIED-Project/Normals_PA_PIED.csv")
+FIA_PApied <- read.csv("data/Normals_PA_PIED.csv")
+FIA_PApied <- FIA_PApied[!is.na(FIA_PApied$PApied),]
 ## Logistic models (lambda vs occurrence)
 k=5
 pa_monsoonp <- gam(PApied~s(MAPmonsoon,k=k),family=binomial(link = cloglog),
@@ -459,62 +436,72 @@ pres_binned<-data.frame(count_lam=c(count_binned_lam_monsoonp,count_binned_lam_w
                         model=c(rep("monsoonp",ncuts),rep("winterp",ncuts),rep("springt",ncuts),rep("fallt", ncuts),
                                 rep("map", ncuts), rep("mat", ncuts)))
 
-# Plot
-pres_plot_monsoonp<-ggplot(data=subset(pres_binned,model=="monsoonp"),aes(x=lam,y=pres))+
+# Plot up the results:
+
+# make sure we have our theme:
+mytheme<-theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+               panel.background = element_blank(), axis.line = element_line(colour = "black"),
+               legend.text=element_text(size=11),legend.title=element_text(size=16),
+               legend.key = element_rect(fill = "white"),axis.text=element_text(size=16),
+               axis.title.x=element_text(size=14),axis.title.y=element_text(size=16),
+               axis.line.x = element_line(color="black", size = 0.3),
+               axis.line.y = element_line(color="black", size = 0.3))
+
+pres_plot_monsoonp <- ggplot(data=subset(pres_binned,model=="monsoonp"),aes(x=lam,y=pres))+
   geom_point(aes(size=count_lam))+
   geom_line(aes(y=pred),size=1)+
-  annotate("label", x = 75, y = 0.25, 
-           label = paste("Deviance=",round(pa_monsoonp$deviance,2),
-                         "\nAIC =",round(pa_monsoonp$aic,2)),
-           hjust = 0, vjust = 1, size=5)+
+  # annotate("label", x = 75, y = 0.25, 
+  #          label = paste("Deviance=",round(pa_monsoonp$deviance,2),
+  #                        "\nAIC =",round(pa_monsoonp$aic,2)),
+  #          hjust = 0, vjust = 1, size=5)+
   guides(size=guide_legend(title="Count")) +
-  mytheme+labs(x = "Monsoon Precip", y = "Probability of occurrence")
+  mytheme+labs(x = "Monsoon Precipitation (mm)", y = "Probability of occurrence")
 
 
-pres_plot_winterp<-ggplot(data=subset(pres_binned,model=="winterp"),aes(x=lam,y=pres))+
+pres_plot_winterp <- ggplot(data=subset(pres_binned,model=="winterp"),aes(x=lam,y=pres))+
   geom_point(aes(size=count_lam))+
   geom_line(aes(y=pred),size=1)+
-  annotate("label", x = 100, y = 0.75, 
-           label = paste("Deviance=",round(pa_winterp$deviance,2),
-                         "\nAIC =",round(pa_winterp$aic,2)),
-           hjust = 0, vjust = 1, size=5)+
+  # annotate("label", x = 100, y = 0.75, 
+  #          label = paste("Deviance=",round(pa_winterp$deviance,2),
+  #                        "\nAIC =",round(pa_winterp$aic,2)),
+  #          hjust = 0, vjust = 1, size=5)+
   guides(size=guide_legend(title="Count")) +
-  mytheme+labs(x = "Winter Precip", y = "Probability of occurrence")
+  mytheme+labs(x = "Winter Precipitation (mm)", y = "Probability of occurrence")
 
 
-pres_plot_springt<-ggplot(data=subset(pres_binned,model=="springt"),aes(x=lam,y=pres))+
+pres_plot_springt <- ggplot(data=subset(pres_binned,model=="springt"),aes(x=lam,y=pres))+
   geom_point(aes(size=count_lam))+
   geom_line(aes(y=pred),size=1)+
-  annotate("label", x = 0, y = 1, 
-           label = paste("Deviance=",round(pa_springt$deviance,2),
-                         "\nAIC =",round(pa_springt$aic,2)),
-           hjust = 0, vjust = 1, size=5)+
+  # annotate("label", x = 0, y = 1, 
+  #          label = paste("Deviance=",round(pa_springt$deviance,2),
+  #                        "\nAIC =",round(pa_springt$aic,2)),
+  #          hjust = 0, vjust = 1, size=5)+
   guides(size=guide_legend(title="Count")) +
-  mytheme+labs(x = "Spring Temp", y = "Probability of occurrence")
+  mytheme+labs(x = "Spring Temperature", y = "Probability of occurrence")
 
 
-pres_plot_fallt<-ggplot(data=subset(pres_binned,model=="fallt"),aes(x=lam,y=pres))+
+pres_plot_fallt <- ggplot(data=subset(pres_binned,model=="fallt"),aes(x=lam,y=pres))+
   geom_point(aes(size=count_lam))+
   geom_line(aes(y=pred),size=1)+
-  annotate("label", x = 0, y = 1, 
-           label = paste("Deviance=",round(pa_fallt$deviance,2),
-                         "\nAIC =",round(pa_fallt$aic,2)),
-           hjust = 0, vjust = 1, size=5)+
+  # annotate("label", x = 0, y = 1, 
+  #          label = paste("Deviance=",round(pa_fallt$deviance,2),
+  #                        "\nAIC =",round(pa_fallt$aic,2)),
+  #          hjust = 0, vjust = 1, size=5)+
   guides(size=guide_legend(title="Count")) +
-  mytheme+labs(x = "Fall Temp", y = "Probability of occurrence")
+  mytheme+labs(x = "Fall Temperature", y = "Probability of occurrence")
 
-pres_plot_map<-ggplot(data=subset(pres_binned,model=="map"),aes(x=lam,y=pres))+
+pres_plot_map <- ggplot(data=subset(pres_binned,model=="map"),aes(x=lam,y=pres))+
   geom_point(aes(size=count_lam))+
   geom_line(aes(y=pred),size=1)+
-  annotate("label", x = 0, y = 1, 
-           label = paste("Deviance=",round(pa_map$deviance,2),
-                         "\nAIC =",round(pa_map$aic,2)),
-           hjust = 0, vjust = 1, size=5)+
+  # annotate("label", x = 0, y = 1, 
+  #          label = paste("Deviance=",round(pa_map$deviance,2),
+  #                        "\nAIC =",round(pa_map$aic,2)),
+  #          hjust = 0, vjust = 1, size=5)+
   guides(size=guide_legend(title="Count")) +
-  mytheme+labs(x = "MAP", y = "Probability of occurrence")
+  mytheme+labs(x = "Mean Annual Precipitation", y = "Probability of occurrence")
 
 
-pres_plot_mat<-ggplot(data=subset(pres_binned,model=="mat"),aes(x=lam,y=pres))+
+pres_plot_mat <- ggplot(data=subset(pres_binned,model=="mat"),aes(x=lam,y=pres))+
   geom_point(aes(size=count_lam))+
   geom_line(aes(y=pred),size=1)+
   annotate("label", x = 15, y = 1, 
@@ -522,4 +509,5 @@ pres_plot_mat<-ggplot(data=subset(pres_binned,model=="mat"),aes(x=lam,y=pres))+
                          "\nAIC =",round(pa_mat$aic,2)),
            hjust = 0, vjust = 1, size=5)+
   guides(size=guide_legend(title="Count")) +
-  mytheme+labs(x = "MAT", y = "Probability of occurrence")
+  mytheme+labs(x = "Mean Annual Temperature", y = "Probability of occurrence")
+
