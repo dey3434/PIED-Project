@@ -469,45 +469,90 @@ pres_plot_winterp <- ggplot(data=subset(pres_binned,model=="winterp"),aes(x=lam,
   mytheme+labs(x = "Winter Precipitation (mm)", y = "Probability of occurrence")
 
 
-pres_plot_springt <- ggplot(data=subset(pres_binned,model=="springt"),aes(x=lam,y=pres))+
-  geom_point(aes(size=count_lam))+
-  geom_line(aes(y=pred),size=1)+
+pres_plot_springt <- ggplot()+
+  geom_rect(data=NULL,aes(xmin=0,xmax=13.5,ymin=-Inf,ymax=Inf),
+            fill="lightgrey")+
+  geom_point(data=subset(pres_binned,model=="springt"),aes(x=lam,y=pres,size=count_lam))+
+  geom_line(data=subset(pres_binned,model=="springt"),aes(x = lam, y=pred),size=1)+
   # annotate("label", x = 0, y = 1, 
   #          label = paste("Deviance=",round(pa_springt$deviance,2),
   #                        "\nAIC =",round(pa_springt$aic,2)),
   #          hjust = 0, vjust = 1, size=5)+
   guides(size=guide_legend(title="Count")) +
-  mytheme+labs(x = "Spring Temperature", y = "Probability of occurrence")
+  mytheme+labs(x = expression("Spring Temperature " ( degree*C)), y = "Probability of occurrence")
+pres_plot_springt
 
-
-pres_plot_fallt <- ggplot(data=subset(pres_binned,model=="fallt"),aes(x=lam,y=pres))+
-  geom_point(aes(size=count_lam))+
-  geom_line(aes(y=pred),size=1)+
+pres_plot_fallt <- ggplot()+
+  geom_rect(data=NULL,aes(xmin=0,xmax=13.5,ymin=-Inf,ymax=Inf),
+            fill="lightgrey")+
+  geom_point(data=subset(pres_binned,model=="fallt"),aes(x=lam,y=pres,size=count_lam))+
+  geom_line(data=subset(pres_binned,model=="fallt"),aes(x = lam, y=pred),size=1)+
   # annotate("label", x = 0, y = 1, 
   #          label = paste("Deviance=",round(pa_fallt$deviance,2),
   #                        "\nAIC =",round(pa_fallt$aic,2)),
   #          hjust = 0, vjust = 1, size=5)+
   guides(size=guide_legend(title="Count")) +
-  mytheme+labs(x = "Fall Temperature", y = "Probability of occurrence")
+  mytheme+labs(x = expression("Fall Temperature " ( degree*C)), y = "Probability of occurrence")
+pres_plot_fallt
 
-pres_plot_map <- ggplot(data=subset(pres_binned,model=="map"),aes(x=lam,y=pres))+
-  geom_point(aes(size=count_lam))+
-  geom_line(aes(y=pred),size=1)+
+
+pres_plot_map <- ggplot()+
+  # geom_rect(data=NULL,aes(xmin=0,xmax=13.5,ymin=-Inf,ymax=Inf),
+  #           fill="lightgrey")+
+
+  geom_point(data=subset(pres_binned,model=="map"),aes(x=lam,y=pres, size=count_lam))+
+  geom_line(data=subset(pres_binned,model=="map"),aes(x=lam,y=pred),size=1)+
   # annotate("label", x = 0, y = 1, 
   #          label = paste("Deviance=",round(pa_map$deviance,2),
   #                        "\nAIC =",round(pa_map$aic,2)),
   #          hjust = 0, vjust = 1, size=5)+
   guides(size=guide_legend(title="Count")) +
-  mytheme+labs(x = "Mean Annual Precipitation", y = "Probability of occurrence")
+  mytheme+labs(x = "Mean Annual Precipitation (mm)", y = "Probability of occurrence")
+pres_plot_map 
+
+pres_plot_mat <- ggplot()+
+  geom_rect(data=NULL,aes(xmin=-3,xmax=9.5,ymin=-Inf,ymax=Inf),fill="lightgrey")+
+  geom_point(data=subset(pres_binned,model=="mat"),aes(x=lam,y=pres, size=count_lam))+
+  geom_line(data=subset(pres_binned,model=="mat"),aes(x = lam, y=pred),size=1)+
+  
+  # annotate("label", x = 15, y = 1, 
+  #          label = paste("Deviance=",round(pa_mat$deviance,2),
+  #                        "\nAIC =",round(pa_mat$aic,2)),
+  #          hjust = 0, vjust = 1, size=5)+
+   guides(size=guide_legend(title="Count")) +
+  mytheme+labs(x = expression("Mean Annual Temperature " ( degree*C)), y = "Probability of occurrence")
+
+pres_plot_mat
+
+# save individual plots:
+png(height = 4, width = 6, units = "in", res = 300, "PAfigures/MAT_occurance_probability.png")
+pres_plot_mat
+dev.off()
+
+png(height = 4, width = 6, units = "in", res = 300, "PAfigures/MAP_occurance_probability.png")
+pres_plot_map
+dev.off()
 
 
-pres_plot_mat <- ggplot(data=subset(pres_binned,model=="mat"),aes(x=lam,y=pres))+
-  geom_point(aes(size=count_lam))+
-  geom_line(aes(y=pred),size=1)+
-  annotate("label", x = 15, y = 1, 
-           label = paste("Deviance=",round(pa_mat$deviance,2),
-                         "\nAIC =",round(pa_mat$aic,2)),
-           hjust = 0, vjust = 1, size=5)+
-  guides(size=guide_legend(title="Count")) +
-  mytheme+labs(x = "Mean Annual Temperature", y = "Probability of occurrence")
+png(height = 4, width = 6, units = "in", res = 300, "PAfigures/FALLt_occurance_probability.png")
+pres_plot_fallt
+dev.off()
 
+png(height = 4, width = 6, units = "in", res = 300, "PAfigures/SPRINGt_occurance_probability.png")
+pres_plot_springt
+dev.off()
+
+png(height = 4, width = 6, units = "in", res = 300, "PAfigures/MONSOONp_occurance_probability.png")
+pres_plot_monsoonp
+dev.off()
+
+
+png(height = 4, width = 6, units = "in", res = 300, "PAfigures/WINTERp_occurance_probability.png")
+pres_plot_winterp
+dev.off()
+
+png(height = 12, width = 6, units = "in", res = 300, "PAfigures/allTemp_3row_occurance_probability.png")
+
+cowplot::plot_grid(pres_plot_mat, pres_plot_springt, pres_plot_fallt, 
+        ncol = 1, align = "hv")
+dev.off()
