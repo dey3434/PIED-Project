@@ -294,15 +294,20 @@ beta_0ts <- select(fit_grow_df, "beta0_t[1]":paste0("beta0_t[", ntree, "]"))
 # Modify mu to include the tree-level and plot-level random effects ------
 mu <- as.matrix(plotdatainterval) %*% t(xG) + as.matrix(beta_0ts[, tree])
 # mu <- as.matrix(plotdatainterval) %*% t(xG)
-ll <- matrix(0, length(sigma), length(yG))
-for(i in 1:length(sigma)){
-  ll[i,] <- dnorm(yG, mu[i,], sd = sigma[i], log = TRUE)
-}
-newll <- as.matrix(ll)
-r_eff <- relative_eff(exp(ll), chain_id = rep(1:3, each = 4000), cores = 1)
-leaveoneout <- loo::loo(as.matrix(ll), r_eff = r_eff, save_psis = TRUE, cores = 1)
 
-save(ll, r_eff, leaveoneout, file = here::here("results", "model-3-loo.RData"))
+if (file.exists(here::here("results", "model-3-loo.RData"))) {
+  load(here::here("results", "model-3-loo.RData"))
+} else {
+  ll <- matrix(0, length(sigma), length(yG))
+  for(i in 1:length(sigma)){
+    ll[i,] <- dnorm(yG, mu[i,], sd = sigma[i], log = TRUE)
+  }
+  newll <- as.matrix(ll)
+  r_eff <- relative_eff(exp(ll), chain_id = rep(1:3, each = 4000), cores = 1)
+  leaveoneout <- loo::loo(as.matrix(ll), r_eff = r_eff, save_psis = TRUE, cores = 1)
+  
+  save(ll, r_eff, leaveoneout, file = here::here("results", "model-3-loo.RData"))
+}
 
 yrep <- matrix(0, length(sigma), length(yG))
 for(i in 1:length(sigma)){
@@ -322,6 +327,414 @@ ggsave(here::here("images", "model_3", "ppc-plot-2.png"),
        ppc2, width = 16/3, height = 9)
 ggsave(here::here("images", "model_3", "ppc-plot-3.png"),
        ppc3, width = 16/3, height = 9)
+
+
+
+
+
+# yrep_mean <- apply(yrep, MARGIN = 2, FUN = mean)
+# yrep_ci.low <- apply(yrep, MARGIN = 2, FUN = function(x){quantile(x, 0.025)})
+# yrep_ci.high <- apply(yrep, MARGIN = 2, FUN = function(x){quantile(x, 0.975)})
+# 
+# p.o.df <- data.frame(ci.low = yrep_ci.low, mean = yrep_mean, ci.high = yrep_ci.high, observed = yG,
+#                      ppt_norm = grow_train$ppt_norm, tmp_norm = grow_train$tmp_norm, Precip_JulAug = grow_train$Precip_JulAug,
+#                      Precip_NovDecJanFebMar = grow_train$Precip_NovDecJanFebMar, Tmean_AprMayJun = grow_train$Tmean_AprMayJun,
+#                      Tmean_SepOct = grow_train$Tmean_SepOct, DIA_prev = grow_train$DIA_prev, ELEV = grow_train$ELEV,
+#                      SLOPE = grow_train$SLOPE, ASPECT = grow_train$ASPECT, tmp_yr = grow_train$tmp_yr, ppt_yr = grow_train$ppt_yr,
+#                      year = grow_train$year, PlotCD = grow_train$PlotCD, treeCD = grow_train$treeCD,
+#                      name = grow_train$name)
+# p.o.df$overpredicted <- ifelse(p.o.df$observed <= p.o.df$ci.low, "over predicted", "within confidence interval")
+# overpredictedpoints <- p.o.df %>% filter(observed <= ci.low)
+# 
+# 
+
+# Pairs plots to evaluate--commented out here
+# library(psych)
+# xGpanels <- data.frame(xG[,1:7])
+# colnames(xGpanels) <- c("ppt_norm", "tmp_norm", "Precip_JulAug", "Precip_NovDecJanFebMar", "Tmean_AprMayJun", "Tmean_SepOct", "DIA_prev")
+# png("ls_pairs_panels.png", width = 8, height = 8, units = "in", res = 200)
+# pairs.panels(xGpanels)
+# dev.off()
+#
+# plotdataintervalpanels <- data.frame(plotdatainterval)
+# colnames(plotdataintervalpanels) <- c("ppt_norm", "tmp_norm", "Precip_JA", "Precip_NDJFM", "Tmean_AMJ", "Tmean_SO", "size",
+#                                       "pn_tn", "pn_PJA", "pn_size", "pn_PNDJFM", "pn_TAMJ", "pn_TSO", "tn_size", "tn_PJA",
+#                                       "tn_PNDJFM", "tn_TAMJ", "tn_TSO", "size_PJA", "size_PNDJFM", "size_TAMJ",
+#                                       "size_TSO", "PJA_PNDJFM", "PJA_TAMJ", "PJA_TSO", "PNDJFM_TAMJ", "PNDJFM_TSO", "TAMJ_TSO")
+# png("ppc_pairs_panels.png", width = 15, height = 15, units = "in", res = 200)
+# pairs.panels(plotdataintervalpanels)
+# dev.off()
+#
+#
+
+
+# posterior predictive checks
+# ## Subset posterior predictive plot by size
+# size_q<-quantile(grow$DIA_prev)
+# sizeq1<-which(grow_test$DIA_prev<=size_q[2])
+# sizeq2<-which(grow_test$DIA_prev>size_q[2] & grow_test$DIA_prev<=size_q[3])
+# sizeq3<-which(grow_test$DIA_prev>size_q[3] &grow_test$DIA_prev<=size_q[4])
+# sizeq4<-which(grow_test$DIA_prev>size_q[4])
+#
+# ppc_dens_overlay(yGtest[sizeq1], as.matrix(plotdata)[,sizeq1])
+# ppc_dens_overlay(yGtest[sizeq2], as.matrix(plotdata)[,sizeq2])
+# ppc_dens_overlay(yGtest[sizeq3], as.matrix(plotdata)[,sizeq3])
+# ppc_dens_overlay(yGtest[sizeq4], as.matrix(plotdata)[,sizeq4])
+#
+# ## Subset posterior predicitve plot by ppt_norm
+# ppt_norm_q<-quantile(grow$ppt_norm)
+# ppt_normq1<-which(grow_test$ppt_norm<=ppt_norm_q[2])
+# ppt_normq2<-which(grow_test$ppt_norm>ppt_norm_q[2] & grow_test$ppt_norm<=ppt_norm_q[3])
+# ppt_normq3<-which(grow_test$ppt_norm>ppt_norm_q[3] &grow_test$ppt_norm<=ppt_norm_q[4])
+# ppt_normq4<-which(grow_test$ppt_norm>ppt_norm_q[4])
+#
+# ppc_dens_overlay(yGtest[ppt_normq1], as.matrix(plotdata)[,ppt_normq1])
+# ppc_dens_overlay(yGtest[ppt_normq2], as.matrix(plotdata)[,ppt_normq2])
+# ppc_dens_overlay(yGtest[ppt_normq3], as.matrix(plotdata)[,ppt_normq3])
+# ppc_dens_overlay(yGtest[ppt_normq4], as.matrix(plotdata)[,ppt_normq4])
+#
+# ## Subset posterior predicitve plot by ppt_norm
+# tmp_norm_q<-quantile(grow$tmp_norm)
+# tmp_normq1<-which(grow_test$tmp_norm<=tmp_norm_q[2])
+# tmp_normq2<-which(grow_test$tmp_norm>tmp_norm_q[2] & grow_test$tmp_norm<=tmp_norm_q[3])
+# tmp_normq3<-which(grow_test$tmp_norm>tmp_norm_q[3] &grow_test$tmp_norm<=tmp_norm_q[4])
+# tmp_normq4<-which(grow_test$tmp_norm>tmp_norm_q[4])
+#
+# ppc_dens_overlay(yGtest[tmp_normq1], as.matrix(plotdata)[,tmp_normq1])
+# ppc_dens_overlay(yGtest[tmp_normq2], as.matrix(plotdata)[,tmp_normq2])
+# ppc_dens_overlay(yGtest[tmp_normq3], as.matrix(plotdata)[,tmp_normq3])
+# ppc_dens_overlay(yGtest[tmp_normq4], as.matrix(plotdata)[,tmp_normq4])
+#
+#
+# ##generating a plotting function
+# ##ppcdensoverlay
+# make_plot <- function() {
+#   for (i in min(grow_test$year):max(grow_test$year)) {
+#     year<-which(grow_test$year == i)
+#     p = ppc_dens_overlay(yGtest[year], as.matrix(plotdata)[,year]) +
+#       theme(
+#         plot.title = element_text(size = rel(2.5), legend.text = element_text(size = 16),
+#                                   axis.text.x = element_text(size = 12),
+#                                   legend.key.size = unit(1.2, "lines")
+#         ) + xlim(-6.91, 3.96) +
+#           ggtitle(
+#             paste(i)
+#           ))
+#     print(p)
+#   }
+# }
+#
+#
+# if (!file.exists(here::here("images", "ppc_year-animation.gif"))) {
+#
+#   gifski::save_gif(
+#     make_plot(),
+#     gif_file = here::here("images", "ppc_year-animation.gif"),
+#     progress = FALSE,
+#     delay = 0.5,
+#     height = 360, width = 640, units = "px"
+#   )
+# }
+#
+# ##density function for climate
+# make_ppt_plot <- function() {
+#   for (i in min(grow_test$year):max(grow_test$year)) {
+#     year <- i
+#     p = ggplot(grow_train[grow_train$year == year,], aes(x = ppt_yr )) + geom_density() +
+#       theme(
+#         plot.title = element_text(size = rel(2.5)),  legend.text = element_text(size = 16),
+#         axis.text = element_text(size = 12),
+#         legend.key.size = unit(1.2, "lines")
+#       ) + xlim(min(grow_train$ppt_yr), max(grow_train$ppt_yr)) +
+#       ggtitle(
+#         paste(i)
+#       )
+#     print(p)
+#   }
+# }
+#
+# if (!file.exists(here::here("images", "ppt_year-animation.gif"))) {
+#
+#   gifski::save_gif(
+#     make_ppt_plot(),
+#     gif_file = here::here("images", "ppt_year-animation.gif"),
+#     progress = FALSE,
+#     delay = 0.5,
+#     height = 360, width = 640, units = "px"
+#   )
+# }
+#
+#
+# make_ppt_plot <- function() {
+#   for (i in min(grow_test$year):max(grow_test$year)) {
+#     year <- i
+#     p = ggplot(grow_train[grow_train$year == year,], aes(x = tmp_yr )) + geom_density() +
+#       theme(
+#         plot.title = element_text(size = rel(2.5)),  legend.text = element_text(size = 16),
+#         axis.text = element_text(size = 12),
+#         legend.key.size = unit(1.2, "lines")
+#       ) + xlim(min(grow_train$tmp_yr), max(grow_train$tmp_yr)) +
+#       ggtitle(
+#         paste(i)
+#       )
+#     print(p)
+#   }
+# }
+#
+# if (!file.exists(here::here("images", "tmp_year-animation.gif"))) {
+#
+#   gifski::save_gif(
+#     make_ppt_plot(),
+#     gif_file = here::here("images", "tmp_year-animation.gif"),
+#     progress = FALSE,
+#     delay = 0.5,
+#     height = 360, width = 640, units = "px"
+#   )
+# }
+
+
+#MCMC Intervals Plots--Keep these
+
+# figure 2 in the Manuscript
+pdf(here::here("images", "model_3", "plotdatainterval_mcmc_intervals.pdf"), height = 6, width = 10) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
+mcmc_intervals(plotdatainterval, prob = 0.5, prob_outer = 0.9) # put the code that makes one of the plots in here
+dev.off() # "device off" tells R to stop printing stuff to the pdf
+
+
+#MCMC Area Plot
+pdf(here::here("images", "model_3", "plotdatainterval_mcmc_areas.pdf"), height = 6, width = 10) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
+color_scheme_set("purple")
+mcmc_areas(plotdatainterval, prob = 0.8)
+dev.off() # "device off" tells R to stop printing stuff to the pdf
+
+#MCMC Traces
+
+pdf(here::here("images", "model_3", "plotdatainterval_mcmc_traces.pdf"), height = 12, width = 6) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
+color_scheme_set("viridis")
+mcmc_trace(plotdatainterval,
+           facet_args = list(nrow = 10, ncol = 3))
+dev.off() # "device off" tells R to stop printing stuff to the pdf
+
+#mcmcplot(As.mcmc.list(fit_grow))
+
+
+#### Paper figures below
+
+#Effects Plots--set a theme so we dont have to keep setting it
+mytheme<-theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+               panel.background = element_blank(), axis.line = element_line(colour = "black"),
+               legend.text=element_text(size=11),legend.title=element_text(size=12),
+               legend.key = element_rect(fill = "white"),axis.text=element_text(size=12),
+               axis.title.x=element_text(size=14),axis.title.y=element_text(size=14),
+               axis.line.x = element_line(color="black", linewidth = 0.3),
+               axis.line.y = element_line(color="black", linewidth = 0.3))
+
+
+
+
+
+
+#### Individual Response Plots
+
+#plotting individual tree responses to time-varying climate variables, holding tree size constant
+# we make these for:
+# Spring temperature, colored by MAP and with MAT bins (figure in main text)
+# Fall temperature, colored by MAP and with MAT bins (S4)
+# Winter Precipitation, colored by MAP and with MAT bins (S5)
+# Monsoon Precipitation, colored by MAP and iwth MAT bins (S6)
+
+#### Spring Temperature Tmean_AprMayJun
+grow.monsoon$LONbin <- ifelse(grow.monsoon$LON > -109, "-109 to -104", "-114 to -109")
+grow.monsoon$LATbin <- ifelse(grow.monsoon$LAT > 37, "37 to 41", "32 to 37")
+grow.monsoon$LATLONbin <- paste(grow.monsoon$LONbin, grow.monsoon$LATbin)
+
+grow.monsoon$tmp_norm_q <- ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.25), "0-25% quantile",
+                                  ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.50), "25-50% quantile",
+                                         ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.75), "50-75% quantile",
+                                                "75-100% quantile")))
+
+grow.monsoon$ppt_norm_q <- ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.25), "0-25% quantile",
+                                  ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.50), "25-50% quantile",
+                                         ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.75), "50-75% quantile",
+                                                "75-100% quantile")))
+
+ind.samples <- unique(grow.monsoon[,c("LATLONbin", "tmp_norm_q", "ppt_norm_q", "treeCD")])
+
+
+#map of LATLONbin
+all_states <- map_data("state")
+states <- subset(all_states, region %in% c("arizona", "colorado", "utah", "new mexico"))
+coordinates(states)<-~long+lat
+class(states)
+proj4string(states) <-CRS("+proj=longlat +datum=NAD83")
+mapdata<-states
+mapdata<-data.frame(mapdata)
+ggplot() + geom_polygon(data=mapdata, aes(x=long, y=lat, group = group), color ="darkgray", fill = "darkgray")+
+  geom_point(data = grow.monsoon, aes(x = LON, y = LAT, color = LATLONbin)) + theme_bw()
+
+
+colnames(plotdatainterval) <- c("MAP",
+"MAT",
+"monsoon precip",
+"winter precip",
+"spring temp",
+"fall temp",
+"tree size",
+"MAP*MAT",
+"MAP*monsoon precip",
+"tree size*MAP",
+"MAP*winter precip",
+"MAP*spring temp",
+"MAP*fall temp",
+"tree size*MAT",
+"MAT*monsoon precip",
+"MAT*winter precip",
+"MAT*spring temp",
+"MAT*fall temp",
+"tree size*Precip_JulAug",
+"tree size*winter precip",
+"tree size*spring temp",
+"tree size*fall temp",
+"monsoon precip*winter precip",
+"monsoon precip*spring temp",
+"monsoon precip*fall temp",
+"winter precip*spring temp",
+"winter precip*fall temp",
+"spring temp*fall temp")
+
+# colnames(plotdatainterval) <- c("MAP", "MAT","MAP*MAT", "monsoon precip", "winter precip", 
+#                                 "spring temp", "fall temp", "tree size",
+#                                 "tree size*MAP", "tree size*MAT", "tree size*Precip_JulAug",
+#                                 "tree size*winter precip", "tree size*spring temp",
+#                                 "tree size*fall temp", "MAP*monsoon precip", 
+#                                 "MAP*winter precip","MAP*spring temp", "MAP*fall temp",
+#                                 "MAT*monsoon precip", "MAT*winter precip", "MAT*spring temp",
+#                                 "MAT*fall temp",  "monsoon precip*winter precip",
+#                                 "monsoon precip*spring temp", "monsoon precip*fall temp",
+#                                 "winter precip*spring temp", "winter precip*fall temp",
+#                                 "spring temp*fall temp")
+
+
+#Tmean_AprMayJun individual response function by ppt_norm and tmp_norm bins
+grow.monsoon$LONbin <- ifelse(grow.monsoon$LON > -109, "-109 to -104", "-114 to -109")
+grow.monsoon$LATbin <- ifelse(grow.monsoon$LAT > 37, "37 to 41", "32 to 37")
+grow.monsoon$LATLONbin <- paste(grow.monsoon$LONbin, grow.monsoon$LATbin)
+ind.samples <- unique(grow.monsoon[,c("LATLONbin", "tmp_norm_q", "ppt_norm_q", "treeCD")])
+
+get.ind.tmp.response<- function(j){
+  tree.subset <- ind.samples[j,]
+  tree.grow <- grow.monsoon %>% filter(LATLONbin == tree.subset$LATLONbin & treeCD == tree.subset$treeCD)
+  
+  Tmean_AprMayJunrng <- range(tree.grow$Tmean_AprMayJun,na.rm = TRUE) #setting range for tmp_normrng
+  Tmean_AprMayJun <- seq(Tmean_AprMayJunrng[1], Tmean_AprMayJunrng[2], by = 0.1)
+  x <- 20#mean(tree.grow$DIA_prev)
+  ppt_norm <- mean(tree.grow$ppt_norm)
+  tmp_norm <- mean(tree.grow$tmp_norm)
+  Tmean_SepOct <- mean(tree.grow$Tmean_SepOct)
+  Precip_JulAug <- mean(tree.grow$Precip_JulAug)
+  Precip_NovDecJanFebMar <- mean(tree.grow$Precip_NovDecJanFebMar)
+  #ppt_norm_range <- quantile(tree.grow$ppt_norm, c(0.2, 0.8))
+  # growthpredictionTmeanAprMayJun_pnorm <- matrix(NA, length(plotdatainterval$MAP), length(Tmean_AprMayJun))
+  
+  # for(i in 1:length(plotdatainterval$MAP)){
+  #   growthpredictionTmeanAprMayJun_pnorm[i,] <- plotdatainterval[i,"MAP"]*ppt_norm +
+  #     plotdatainterval[i,"MAT"]*tmp_norm +
+  #     plotdatainterval[i, "MAP*MAT"]*tmp_norm*ppt_norm +
+  #     plotdatainterval[i,"monsoon precip"]*Precip_JulAug +
+  #     plotdatainterval[i,"winter precip"]*Precip_NovDecJanFebMar +
+  #     plotdatainterval[i,"spring temp"]*Tmean_AprMayJun +
+  #     plotdatainterval[i,"fall temp"]*Tmean_SepOct +
+  #     plotdatainterval[i,"tree size"]*x +
+  #     plotdatainterval[i,"MAP*monsoon precip"]*ppt_norm*Precip_JulAug +
+  #     plotdatainterval[i,"tree size*MAP"]*ppt_norm*x +
+  #     plotdatainterval[i,"MAP*winter precip"]*ppt_norm*Precip_NovDecJanFebMar +
+  #     plotdatainterval[i,"MAP*spring temp"]*ppt_norm*Tmean_AprMayJun +
+  #     plotdatainterval[i,"MAP*fall temp"]*ppt_norm*Tmean_SepOct +
+  #     plotdatainterval[i,"tree size*MAT"]*tmp_norm*x +
+  #     plotdatainterval[i,"MAT*monsoon precip"]*tmp_norm*Precip_JulAug +
+  #     plotdatainterval[i,"MAT*winter precip"]*tmp_norm*Precip_NovDecJanFebMar +
+  #     plotdatainterval[i,"MAT*spring temp"]*tmp_norm*Tmean_AprMayJun +
+  #     plotdatainterval[i,"MAT*fall temp"]*tmp_norm*Tmean_SepOct +
+  #     plotdatainterval[i,"tree size*Precip_JulAug"]*x*Precip_JulAug +
+  #     plotdatainterval[i,"tree size*winter precip"]*x*Precip_NovDecJanFebMar +
+  #     plotdatainterval[i,"tree size*spring temp"]*x*Tmean_AprMayJun +
+  #     plotdatainterval[i,"tree size*fall temp"]*x*Tmean_SepOct +
+  #     plotdatainterval[i,"monsoon precip*winter precip"]*Precip_JulAug*Precip_NovDecJanFebMar +
+  #     plotdatainterval[i,"monsoon precip*spring temp"]*Precip_JulAug*Tmean_AprMayJun +
+  #     plotdatainterval[i,"monsoon precip*fall temp"]*Precip_JulAug*Tmean_SepOct +
+  #     plotdatainterval[i,"winter precip*spring temp"]*Precip_NovDecJanFebMar*Tmean_AprMayJun +
+  #     plotdatainterval[i,"winter precip*fall temp"]*Precip_NovDecJanFebMar*Tmean_SepOct +
+  #     plotdatainterval[i,"spring temp*fall temp"]*Tmean_AprMayJun*Tmean_SepOct
+  # }
+  n_cols <- length(Tmean_AprMayJun)
+  n_rows <- length(plotdatainterval$MAP)
+  growthpredictionTmeanAprMayJun_pnorm <- matrix(plotdatainterval[["MAP"]], n_rows, n_cols) * ppt_norm +
+    
+    matrix(plotdatainterval[["MAT"]], n_rows, n_cols) * tmp_norm +
+    matrix(plotdatainterval[["MAP*MAT"]], n_rows, n_cols) * tmp_norm*ppt_norm +
+    matrix(plotdatainterval[["monsoon precip"]], n_rows, n_cols) * Precip_JulAug +
+    matrix(plotdatainterval[["winter precip"]], n_rows, n_cols) * Precip_NovDecJanFebMar +
+    matrix(plotdatainterval[["spring temp"]], n_rows, n_cols) * matrix(Tmean_AprMayJun, n_rows, n_cols, byrow = TRUE) +
+    matrix(plotdatainterval[["fall temp"]], n_rows, n_cols) * Tmean_SepOct +
+    matrix(plotdatainterval[["tree size"]], n_rows, n_cols) * x +
+    matrix(plotdatainterval[["MAP*monsoon precip"]], n_rows, n_cols) * ppt_norm*Precip_JulAug +
+    matrix(plotdatainterval[["tree size*MAP"]], n_rows, n_cols) * ppt_norm*x +
+    matrix(plotdatainterval[["MAP*winter precip"]], n_rows, n_cols) * ppt_norm*Precip_NovDecJanFebMar +
+    matrix(plotdatainterval[["MAP*spring temp"]], n_rows, n_cols) * ppt_norm*matrix(Tmean_AprMayJun, n_rows, n_cols, byrow = TRUE) +
+    matrix(plotdatainterval[["MAP*fall temp"]], n_rows, n_cols) * ppt_norm*Tmean_SepOct +
+    matrix(plotdatainterval[["tree size*MAT"]], n_rows, n_cols) * tmp_norm*x +
+    matrix(plotdatainterval[["MAT*monsoon precip"]], n_rows, n_cols) * tmp_norm*Precip_JulAug +
+    matrix(plotdatainterval[["MAT*winter precip"]], n_rows, n_cols) * tmp_norm*Precip_NovDecJanFebMar +
+    matrix(plotdatainterval[["MAT*spring temp"]], n_rows, n_cols) * tmp_norm*matrix(Tmean_AprMayJun, n_rows, n_cols, byrow = TRUE) +
+    matrix(plotdatainterval[["MAT*fall temp"]], n_rows, n_cols) * tmp_norm*Tmean_SepOct +
+    matrix(plotdatainterval[["tree size*Precip_JulAug"]], n_rows, n_cols) * x*Precip_JulAug +
+    matrix(plotdatainterval[["tree size*winter precip"]], n_rows, n_cols) * x*Precip_NovDecJanFebMar +
+    matrix(plotdatainterval[["tree size*spring temp"]], n_rows, n_cols) * x*matrix(Tmean_AprMayJun, n_rows, n_cols, byrow = TRUE) +
+    matrix(plotdatainterval[["tree size*fall temp"]], n_rows, n_cols) * x*Tmean_SepOct +
+    matrix(plotdatainterval[["monsoon precip*winter precip"]], n_rows, n_cols) * Precip_JulAug*Precip_NovDecJanFebMar +
+    matrix(plotdatainterval[["monsoon precip*spring temp"]], n_rows, n_cols) * Precip_JulAug*matrix(Tmean_AprMayJun, n_rows, n_cols, byrow = TRUE) +
+    matrix(plotdatainterval[["monsoon precip*fall temp"]], n_rows, n_cols) * Precip_JulAug*Tmean_SepOct +
+    matrix(plotdatainterval[["winter precip*spring temp"]], n_rows, n_cols) * Precip_NovDecJanFebMar*matrix(Tmean_AprMayJun, n_rows, n_cols, byrow = TRUE) +
+    matrix(plotdatainterval[["winter precip*fall temp"]], n_rows, n_cols) * Precip_NovDecJanFebMar*Tmean_SepOct +
+    matrix(plotdatainterval[["spring temp*fall temp"]], n_rows, n_cols) * matrix(Tmean_AprMayJun, n_rows, n_cols, byrow = TRUE)*Tmean_SepOct
+  Tmean_AprMayJun_prediction_trpnorm <- exp(growthpredictionTmeanAprMayJun_pnorm)
+  ci.Tmean_AprMayJunpnorm <- apply(Tmean_AprMayJun_prediction_trpnorm, 2, quantile, c(0.025, 0.5, 0.975))
+  ci.Tmean_AprMayJunpnorm.df <- data.frame(Tmean_AprMayJun = Tmean_AprMayJun, ppt_norm = ppt_norm, median = ci.Tmean_AprMayJunpnorm[2,], ci.low = ci.Tmean_AprMayJunpnorm[1,], ci.high = ci.Tmean_AprMayJunpnorm[3,], ci.group = tree.subset$treeCD)
+  Tmean_AprMayJun_pnormint <- rbind(ci.Tmean_AprMayJunpnorm.df)
+  print(ind.samples[j,])
+  return(Tmean_AprMayJun_pnormint)
+}
+
+#get.ind.tmp.response(i = 6)
+Tmean_AprMayJun_tree_response <- list()
+Tmean_AprMayJun_tree_response <- lapply(1:length(ind.samples$treeCD), FUN = get.ind.tmp.response)
+Tmean_AprMayJun_tree_response.df <- do.call(rbind, Tmean_AprMayJun_tree_response)
+merged.response.samples <- merge(Tmean_AprMayJun_tree_response.df, ind.samples, by.x = "ci.group", by.y = "treeCD")
+merged.response.samples$ci.group <- as.character(merged.response.samples$ci.group)
+# #color by group
+# ggplot(data = merged.response.samples, aes(x = Tmean_AprMayJun, y = median, color = ci.group)) + geom_ribbon(aes(x = Tmean_AprMayJun, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) +
+#   geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
+# #color by LATLONbin
+# ggplot(data = merged.response.samples, aes(x = Tmean_AprMayJun, y = median, color = LATLONbin, group = ci.group)) + geom_ribbon(aes(x = Tmean_AprMayJun, ymin = ci.low, ymax = ci.high, fill = LATLONbin, group = ci.group),color = NA, alpha = 0.5) +
+#   geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
+
+colnames(merged.response.samples)[3] <- "MAP"
+
+#color by ppt_norm & use tmp_norm bins
+png(here::here("images", "model_3", "individual_response_Tmean_APRMAYJUN_MAP.png"), height = 5, width = 6, units = "in", res = 300) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
+ggplot(data = merged.response.samples, aes(x = Tmean_AprMayJun, y = median, color = MAP, group = ci.group)) + 
+  geom_line(alpha = 0.5) +
+  mytheme + 
+  ylab("Predicted Growth") + 
+  scale_color_gradient2(low = "#b2182b", mid = "#fddbc7", high = "#4575b4") + 
+  facet_wrap(~tmp_norm_q) +
+  ylab("Predicted Growth (mm)") + 
+  xlab("Spring Temperature Anomaly" ) + 
+  ylim(0, 3)
+dev.off()
+
+
+
 # 
 # # # Commented out 03/10/2023 by JRT
 # 
