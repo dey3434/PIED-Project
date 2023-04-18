@@ -847,7 +847,7 @@ colnames(merged.response.samples)[10] <- "MAP"
 png(here::here("images", "model_4", "individual_response_Precip_JulAug_MAP.png"), height = 5, width = 6, units = "in", res = 300) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
 ggplot(data = merged.response.samples, aes(x = Precip_JulAug, y = median, color = MAP, group = ci.group)) + geom_line(alpha = 0.5) +
   mytheme + ylab("Predicted Growth") + scale_color_gradient2(low = "#b2182b", mid = "#fddbc7", high = "#4575b4")+ facet_wrap(~tmp_norm_q)+
-  ylab("Predicted Growth (mm)")+xlab("Scaled Monsoon Precipitation")+ylim(0, 3)
+  ylab("Predicted Growth (mm)")+xlab("Monsoon Precipitation Anomaly")+ylim(0, 3) 
 dev.off()
 
 
@@ -964,7 +964,7 @@ colnames(merged.response.samples)[10] <- "MAP"
 png(here::here("images", "model_4", "individual_response_Precip_NovDecJanFebMar_MAP.png"), height = 5, width = 6, units = "in", res = 300) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
 ggplot(data = merged.response.samples, aes(x = Precip_NovDecJanFebMar, y = median, color = MAP, group = ci.group)) + geom_line(alpha = 0.5) +
   mytheme + ylab("Predicted Growth") + scale_color_gradient2(low = "#b2182b", mid = "#fddbc7", high = "#4575b4")+ facet_wrap(~tmp_norm_q)+
-  ylab("Predicted Growth (mm)")+xlab("Scaled Winter Precipitation")+ylim(0, 3)
+  ylab("Predicted Growth (mm)")+xlab("Winter Precipitation Anomaly")+ylim(0, 3)
 dev.off()
 
 
@@ -1001,7 +1001,7 @@ get.ind.tmp.response<- function(j){
   Precip_JulAug <- mean(tree.grow$Precip_JulAug)
   Tmean_AprMayJun <- mean(tree.grow$Tmean_AprMayJun)
   tmp_norm_range <- quantile(tree.grow$tmp_norm, c(0.2, 0.8))
-  n_cols <- length(Precip_NovDecJanFebMar)
+  n_cols <- length(Tmean_SepOct)
   n_rows <- length(plotdatainterval$MAP)
   growthpredictionTmeanSepOct_tmpnorm <- matrix(plotdatainterval[["MAT"]], n_rows, n_cols) * tmp_norm +
     matrix(plotdatainterval[["MAP*MAT"]], n_rows, n_cols) * tmp_norm*ppt_norm +
@@ -1081,7 +1081,7 @@ colnames(merged.response.samples)[10]<- "MAP"
 png(here::here("images", "model_4", "individual_response_Tmean_SepOct_MAP.png"), height = 5, width = 6, units = "in", res = 300) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
 ggplot(data = merged.response.samples, aes(x = Tmean_SepOct, y = median, color = MAP, group = ci.group)) + geom_line(alpha = 0.5) +
   mytheme + ylab("Predicted Growth") + scale_color_gradient2(low = "#b2182b", mid = "#fddbc7", high = "#4575b4")+ facet_wrap(~tmp_norm_q)+
-  ylab("Predicted Growth (mm)")+xlab("Scaled Fall Temperature")+ylim(0, 3)
+  ylab("Predicted Growth (mm)")+xlab("Fall Temperature Anomaly")+ylim(0, 3)
 dev.off()
 
 
