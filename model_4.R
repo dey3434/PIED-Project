@@ -275,7 +275,7 @@ plotdatainterval<-select(fit_grow_df, "u_beta[1]":paste0("u_beta[", ncol(xG), "]
 # plotdatainterval<-dplyr::select(fit_grow_df, "u_beta[1]":"u_beta[28]")
 colnames(plotdatainterval) <- c("MAP", "MAT","MAP*MAT", "monsoon precip", "winter precip", 
                                 "spring temp", "fall temp", "tree size",
-                                "tree size*MAP", "tree size*MAT", "tree size*Precip_JulAug",
+                                "tree size*MAP", "tree size*MAT", "tree size*monsoon precip",
                                 "tree size*winter precip", "tree size*spring temp",
                                 "tree size*fall temp", "MAP*monsoon precip", 
                                 "MAP*winter precip","MAP*spring temp", "MAP*fall temp",
@@ -532,8 +532,12 @@ waic(ll)
 #MCMC Intervals Plots--Keep these
 
 # figure 2 in the Manuscript
-pdf(here::here("images", "model_4", "plotdatainterval_mcmc_intervals.pdf"), height = 6, width = 10) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
-mcmc_intervals(plotdatainterval, prob = 0.5, prob_outer = 0.9) # put the code that makes one of the plots in here
+pdf(here::here("images", "model_4", "plotdatainterval_mcmc_intervals.pdf"), height = 6, width = 5) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
+mcmc_intervals(plotdatainterval, prob = 0.5, prob_outer = 0.9, point_size = 2) # put the code that makes one of the plots in here
+dev.off() # "device off" tells R to stop printing stuff to the pdf
+
+pdf(here::here("images", "model_4", "plotdatainterval_mcmc_intervals_1.3.pdf"), height = 6, width = 4) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
+mcmc_intervals(plotdatainterval, prob = 0.5, prob_outer = 0.9, point_size = 2) # put the code that makes one of the plots in here
 dev.off() # "device off" tells R to stop printing stuff to the pdf
 
 
@@ -584,15 +588,15 @@ grow.monsoon$LONbin <- ifelse(grow.monsoon$LON > -109, "-109 to -104", "-114 to 
 grow.monsoon$LATbin <- ifelse(grow.monsoon$LAT > 37, "37 to 41", "32 to 37")
 grow.monsoon$LATLONbin <- paste(grow.monsoon$LONbin, grow.monsoon$LATbin)
 
-grow.monsoon$tmp_norm_q <- ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.25), "0-25% quantile",
-                                  ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.50), "25-50% quantile",
-                                         ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.75), "50-75% quantile",
-                                                "75-100% quantile")))
+grow.monsoon$tmp_norm_q <- ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.25), "0-25% quantile MAT",
+                                  ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.50), "25-50% quantile MAT",
+                                         ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.75), "50-75% quantile MAT",
+                                                "75-100% quantile MAT")))
 
-grow.monsoon$ppt_norm_q <- ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.25), "0-25% quantile",
-                                  ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.50), "25-50% quantile",
-                                         ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.75), "50-75% quantile",
-                                                "75-100% quantile")))
+grow.monsoon$ppt_norm_q <- ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.25), "0-25% quantile MAP",
+                                  ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.50), "25-50% quantile MAP",
+                                         ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.75), "50-75% quantile MAP",
+                                                "75-100% quantile MAP")))
 
 ind.samples <- unique(grow.monsoon[,c("LATLONbin", "tmp_norm_q", "ppt_norm_q", "treeCD")])
 
@@ -681,7 +685,7 @@ get.ind.tmp.response<- function(j){
     matrix(plotdatainterval[["MAT*winter precip"]], n_rows, n_cols) * tmp_norm*Precip_NovDecJanFebMar +
     matrix(plotdatainterval[["MAT*spring temp"]], n_rows, n_cols) * tmp_norm*matrix(Tmean_AprMayJun, n_rows, n_cols, byrow = TRUE) +
     matrix(plotdatainterval[["MAT*fall temp"]], n_rows, n_cols) * tmp_norm*Tmean_SepOct +
-    matrix(plotdatainterval[["tree size*Precip_JulAug"]], n_rows, n_cols) * x*Precip_JulAug +
+    matrix(plotdatainterval[["tree size*monsoon precip"]], n_rows, n_cols) * x*Precip_JulAug +
     matrix(plotdatainterval[["tree size*winter precip"]], n_rows, n_cols) * x*Precip_NovDecJanFebMar +
     matrix(plotdatainterval[["tree size*spring temp"]], n_rows, n_cols) * x*matrix(Tmean_AprMayJun, n_rows, n_cols, byrow = TRUE) +
     matrix(plotdatainterval[["tree size*fall temp"]], n_rows, n_cols) * x*Tmean_SepOct +
@@ -736,15 +740,15 @@ grow.monsoon$LONbin <- ifelse(grow.monsoon$LON > -109, "-109 to -104", "-114 to 
 grow.monsoon$LATbin <- ifelse(grow.monsoon$LAT > 37, "37 to 41", "32 to 37")
 grow.monsoon$LATLONbin <- paste(grow.monsoon$LONbin, grow.monsoon$LATbin)
 
-grow.monsoon$tmp_norm_q <- ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.25), "0-25% quantile",
-                                  ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.50), "25-50% quantile",
-                                         ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.75), "50-75% quantile",
-                                                "75-100% quantile")))
+grow.monsoon$tmp_norm_q <- ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.25), "0-25% quantile MAT",
+                                  ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.50), "25-50% quantile MAT",
+                                         ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.75), "50-75% quantile MAT",
+                                                "75-100% quantile MAT")))
 
-grow.monsoon$ppt_norm_q <- ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.25), "0-25% quantile",
-                                  ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.50), "25-50% quantile",
-                                         ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.75), "50-75% quantile",
-                                                "75-100% quantile")))
+grow.monsoon$ppt_norm_q <- ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.25), "0-25% quantile MAP",
+                                  ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.50), "25-50% quantile MAP",
+                                         ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.75), "50-75% quantile MAP",
+                                                "75-100% quantile MAP")))
 
 ind.samples <- unique(grow.monsoon[,c("LATLONbin", "tmp_norm_q", "ppt_norm_q", "treeCD", "ppt_norm")])
 
@@ -782,7 +786,7 @@ get.ind.tmp.response<- function(j){
     matrix(plotdatainterval[["MAT*winter precip"]], n_rows, n_cols) * tmp_norm*Precip_NovDecJanFebMar +
     matrix(plotdatainterval[["MAT*spring temp"]], n_rows, n_cols) * tmp_norm*Tmean_AprMayJun +
     matrix(plotdatainterval[["MAT*fall temp"]], n_rows, n_cols) * tmp_norm*Tmean_SepOct +
-    matrix(plotdatainterval[["tree size*Precip_JulAug"]], n_rows, n_cols) * x*matrix(Precip_JulAug, n_rows, n_cols, byrow = TRUE) +
+    matrix(plotdatainterval[["tree size*monsoon precip"]], n_rows, n_cols) * x*matrix(Precip_JulAug, n_rows, n_cols, byrow = TRUE) +
     matrix(plotdatainterval[["tree size*winter precip"]], n_rows, n_cols) * x*Precip_NovDecJanFebMar +
     matrix(plotdatainterval[["tree size*spring temp"]], n_rows, n_cols) * x*Tmean_AprMayJun +
     matrix(plotdatainterval[["tree size*fall temp"]], n_rows, n_cols) * x*Tmean_SepOct +
@@ -853,15 +857,15 @@ grow.monsoon$LONbin <- ifelse(grow.monsoon$LON > -109, "-109 to -104", "-114 to 
 grow.monsoon$LATbin <- ifelse(grow.monsoon$LAT > 37, "37 to 41", "32 to 37")
 grow.monsoon$LATLONbin <- paste(grow.monsoon$LONbin, grow.monsoon$LATbin)
 
-grow.monsoon$tmp_norm_q <- ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.25), "0-25% quantile",
-                                  ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.50), "25-50% quantile",
-                                         ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.75), "50-75% quantile",
-                                                "75-100% quantile")))
+grow.monsoon$tmp_norm_q <- ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.25), "0-25% quantile MAT",
+                                  ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.50), "25-50% quantile MAT",
+                                         ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.75), "50-75% quantile MAT",
+                                                "75-100% quantile MAT")))
 
-grow.monsoon$ppt_norm_q <- ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.25), "0-25% quantile",
-                                  ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.50), "25-50% quantile",
-                                         ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.75), "50-75% quantile",
-                                                "75-100% quantile")))
+grow.monsoon$ppt_norm_q <- ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.25), "0-25% quantile MAP",
+                                  ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.50), "25-50% quantile MAP",
+                                         ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.75), "50-75% quantile MAP",
+                                                "75-100% quantile MAP")))
 
 ind.samples <- unique(grow.monsoon[,c("LATLONbin", "tmp_norm_q", "ppt_norm_q", "treeCD", "ppt_norm")])
 
@@ -898,7 +902,7 @@ get.ind.tmp.response<- function(j){
     matrix(plotdatainterval[["MAT*winter precip"]], n_rows, n_cols) * tmp_norm*matrix(Precip_NovDecJanFebMar, n_rows, n_cols, byrow = TRUE) +
     matrix(plotdatainterval[["MAT*spring temp"]], n_rows, n_cols) * tmp_norm*Tmean_AprMayJun +
     matrix(plotdatainterval[["MAT*fall temp"]], n_rows, n_cols) * tmp_norm*Tmean_SepOct +
-    matrix(plotdatainterval[["tree size*Precip_JulAug"]], n_rows, n_cols) * x*Precip_JulAug +
+    matrix(plotdatainterval[["tree size*monsoon precip"]], n_rows, n_cols) * x*Precip_JulAug +
     matrix(plotdatainterval[["tree size*winter precip"]], n_rows, n_cols) * x*matrix(Precip_NovDecJanFebMar, n_rows, n_cols, byrow = TRUE) +
     matrix(plotdatainterval[["tree size*spring temp"]], n_rows, n_cols) * x*Tmean_AprMayJun +
     matrix(plotdatainterval[["tree size*fall temp"]], n_rows, n_cols) * x*Tmean_SepOct +
@@ -971,15 +975,15 @@ grow.monsoon$LATbin <- ifelse(grow.monsoon$LAT > 37, "37 to 41", "32 to 37")
 grow.monsoon$LATLONbin <- paste(grow.monsoon$LONbin, grow.monsoon$LATbin)
 ind.samples <- unique(grow.monsoon[,c("LATLONbin", "treeCD")]) %>% group_by(LATLONbin)
 
-grow.monsoon$tmp_norm_q <- ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.25), "0-25% quantile",
-                                  ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.50), "25-50% quantile",
-                                         ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.75), "50-75% quantile",
-                                                "75-100% quantile")))
+grow.monsoon$tmp_norm_q <- ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.25), "0-25% quantile MAT",
+                                  ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.50), "25-50% quantile MAT",
+                                         ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.75), "50-75% quantile MAT",
+                                                "75-100% quantile MAT")))
 
-grow.monsoon$ppt_norm_q <- ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.25), "0-25% quantile",
-                                  ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.50), "25-50% quantile",
-                                         ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.75), "50-75% quantile",
-                                                "75-100% quantile")))
+grow.monsoon$ppt_norm_q <- ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.25), "0-25% quantile MAP",
+                                  ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.50), "25-50% quantile MAP",
+                                         ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.75), "50-75% quantile MAP",
+                                                "75-100% quantile MAP")))
 
 ind.samples <- unique(grow.monsoon[,c("LATLONbin", "tmp_norm_q", "ppt_norm_q", "treeCD", "ppt_norm")])
 
@@ -1016,7 +1020,7 @@ get.ind.tmp.response<- function(j){
     matrix(plotdatainterval[["MAT*winter precip"]], n_rows, n_cols) * tmp_norm*Precip_NovDecJanFebMar +
     matrix(plotdatainterval[["MAT*spring temp"]], n_rows, n_cols) * tmp_norm*Tmean_AprMayJun +
     matrix(plotdatainterval[["MAT*fall temp"]], n_rows, n_cols) * tmp_norm*matrix(Tmean_SepOct, n_rows, n_cols, byrow = TRUE) +
-    matrix(plotdatainterval[["tree size*Precip_JulAug"]], n_rows, n_cols) * x*Precip_JulAug +
+    matrix(plotdatainterval[["tree size*monsoon precip"]], n_rows, n_cols) * x*Precip_JulAug +
     matrix(plotdatainterval[["tree size*winter precip"]], n_rows, n_cols) * x*Precip_NovDecJanFebMar +
     matrix(plotdatainterval[["tree size*spring temp"]], n_rows, n_cols) * x*Tmean_AprMayJun +
     matrix(plotdatainterval[["tree size*fall temp"]], n_rows, n_cols) * x*matrix(Tmean_SepOct, n_rows, n_cols, byrow = TRUE) +
