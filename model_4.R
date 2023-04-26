@@ -275,7 +275,7 @@ plotdatainterval<-select(fit_grow_df, "u_beta[1]":paste0("u_beta[", ncol(xG), "]
 # plotdatainterval<-dplyr::select(fit_grow_df, "u_beta[1]":"u_beta[28]")
 colnames(plotdatainterval) <- c("MAP", "MAT","MAP*MAT", "monsoon precip", "winter precip", 
                                 "spring temp", "fall temp", "tree size",
-                                "tree size*MAP", "tree size*MAT", "tree size*Precip_JulAug",
+                                "tree size*MAP", "tree size*MAT", "tree size*monsoon precip",
                                 "tree size*winter precip", "tree size*spring temp",
                                 "tree size*fall temp", "MAP*monsoon precip", 
                                 "MAP*winter precip","MAP*spring temp", "MAP*fall temp",
@@ -532,8 +532,12 @@ waic(ll)
 #MCMC Intervals Plots--Keep these
 
 # figure 2 in the Manuscript
-pdf(here::here("images", "model_4", "plotdatainterval_mcmc_intervals.pdf"), height = 6, width = 10) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
-mcmc_intervals(plotdatainterval, prob = 0.5, prob_outer = 0.9) # put the code that makes one of the plots in here
+pdf(here::here("images", "model_4", "plotdatainterval_mcmc_intervals.pdf"), height = 6, width = 5) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
+mcmc_intervals(plotdatainterval, prob = 0.5, prob_outer = 0.9, point_size = 2) # put the code that makes one of the plots in here
+dev.off() # "device off" tells R to stop printing stuff to the pdf
+
+pdf(here::here("images", "model_4", "plotdatainterval_mcmc_intervals_1.3.pdf"), height = 6, width = 4) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
+mcmc_intervals(plotdatainterval, prob = 0.5, prob_outer = 0.9, point_size = 2) # put the code that makes one of the plots in here
 dev.off() # "device off" tells R to stop printing stuff to the pdf
 
 
@@ -681,7 +685,7 @@ get.ind.tmp.response<- function(j){
     matrix(plotdatainterval[["MAT*winter precip"]], n_rows, n_cols) * tmp_norm*Precip_NovDecJanFebMar +
     matrix(plotdatainterval[["MAT*spring temp"]], n_rows, n_cols) * tmp_norm*matrix(Tmean_AprMayJun, n_rows, n_cols, byrow = TRUE) +
     matrix(plotdatainterval[["MAT*fall temp"]], n_rows, n_cols) * tmp_norm*Tmean_SepOct +
-    matrix(plotdatainterval[["tree size*Precip_JulAug"]], n_rows, n_cols) * x*Precip_JulAug +
+    matrix(plotdatainterval[["tree size*monsoon precip"]], n_rows, n_cols) * x*Precip_JulAug +
     matrix(plotdatainterval[["tree size*winter precip"]], n_rows, n_cols) * x*Precip_NovDecJanFebMar +
     matrix(plotdatainterval[["tree size*spring temp"]], n_rows, n_cols) * x*matrix(Tmean_AprMayJun, n_rows, n_cols, byrow = TRUE) +
     matrix(plotdatainterval[["tree size*fall temp"]], n_rows, n_cols) * x*Tmean_SepOct +
@@ -782,7 +786,7 @@ get.ind.tmp.response<- function(j){
     matrix(plotdatainterval[["MAT*winter precip"]], n_rows, n_cols) * tmp_norm*Precip_NovDecJanFebMar +
     matrix(plotdatainterval[["MAT*spring temp"]], n_rows, n_cols) * tmp_norm*Tmean_AprMayJun +
     matrix(plotdatainterval[["MAT*fall temp"]], n_rows, n_cols) * tmp_norm*Tmean_SepOct +
-    matrix(plotdatainterval[["tree size*Precip_JulAug"]], n_rows, n_cols) * x*matrix(Precip_JulAug, n_rows, n_cols, byrow = TRUE) +
+    matrix(plotdatainterval[["tree size*monsoon precip"]], n_rows, n_cols) * x*matrix(Precip_JulAug, n_rows, n_cols, byrow = TRUE) +
     matrix(plotdatainterval[["tree size*winter precip"]], n_rows, n_cols) * x*Precip_NovDecJanFebMar +
     matrix(plotdatainterval[["tree size*spring temp"]], n_rows, n_cols) * x*Tmean_AprMayJun +
     matrix(plotdatainterval[["tree size*fall temp"]], n_rows, n_cols) * x*Tmean_SepOct +
@@ -898,7 +902,7 @@ get.ind.tmp.response<- function(j){
     matrix(plotdatainterval[["MAT*winter precip"]], n_rows, n_cols) * tmp_norm*matrix(Precip_NovDecJanFebMar, n_rows, n_cols, byrow = TRUE) +
     matrix(plotdatainterval[["MAT*spring temp"]], n_rows, n_cols) * tmp_norm*Tmean_AprMayJun +
     matrix(plotdatainterval[["MAT*fall temp"]], n_rows, n_cols) * tmp_norm*Tmean_SepOct +
-    matrix(plotdatainterval[["tree size*Precip_JulAug"]], n_rows, n_cols) * x*Precip_JulAug +
+    matrix(plotdatainterval[["tree size*monsoon precip"]], n_rows, n_cols) * x*Precip_JulAug +
     matrix(plotdatainterval[["tree size*winter precip"]], n_rows, n_cols) * x*matrix(Precip_NovDecJanFebMar, n_rows, n_cols, byrow = TRUE) +
     matrix(plotdatainterval[["tree size*spring temp"]], n_rows, n_cols) * x*Tmean_AprMayJun +
     matrix(plotdatainterval[["tree size*fall temp"]], n_rows, n_cols) * x*Tmean_SepOct +
@@ -1016,7 +1020,7 @@ get.ind.tmp.response<- function(j){
     matrix(plotdatainterval[["MAT*winter precip"]], n_rows, n_cols) * tmp_norm*Precip_NovDecJanFebMar +
     matrix(plotdatainterval[["MAT*spring temp"]], n_rows, n_cols) * tmp_norm*Tmean_AprMayJun +
     matrix(plotdatainterval[["MAT*fall temp"]], n_rows, n_cols) * tmp_norm*matrix(Tmean_SepOct, n_rows, n_cols, byrow = TRUE) +
-    matrix(plotdatainterval[["tree size*Precip_JulAug"]], n_rows, n_cols) * x*Precip_JulAug +
+    matrix(plotdatainterval[["tree size*monsoon precip"]], n_rows, n_cols) * x*Precip_JulAug +
     matrix(plotdatainterval[["tree size*winter precip"]], n_rows, n_cols) * x*Precip_NovDecJanFebMar +
     matrix(plotdatainterval[["tree size*spring temp"]], n_rows, n_cols) * x*Tmean_AprMayJun +
     matrix(plotdatainterval[["tree size*fall temp"]], n_rows, n_cols) * x*matrix(Tmean_SepOct, n_rows, n_cols, byrow = TRUE) +
