@@ -1,9 +1,12 @@
 # prep code to recalculate presence abserce of PIED FIA data from Emily Schultz's code
-library(raster)
+#library(raster)
 library(tidyverse)
 library(dplyr)
 library(arm)
 library(mgcv)
+library(terra)
+library(sf)
+library(stars)
 
 fiadb <- readRDS("data/InWeUS_FIAdb.rds") # this was pulled using the fiadb package
 TREE <- fiadb$TREE
@@ -103,6 +106,7 @@ pptFiles.old <- list.files(path = ppt.path, pattern = glob2rx("*ppt*.bil"), full
 pptFiles.new <- list.files(path = ppt.path.new, pattern = glob2rx("*ppt*.bil"), full.names = TRUE)
 pptFiles <- c(pptFiles.old, pptFiles.new)
 
+
 temp.path <-  "PRISM_data/PRISM_tmean_stable_4kmM3_189501_198012_bil/"
 temp.path.new <-  "PRISM_data/PRISM_tmean_stable_4kmM3_198101_202002_bil/"
 list.files(temp.path)
@@ -142,18 +146,20 @@ tempStack <- stack(tempStacklist)
 #  vpdStack <- stack(vpdStack, rast)
 #}
 
-
+ppt1 <- raster::raster(pptFiles.old[1])
 # extract by plot lat and lon:
 PApied <- raster("data/presenceAbsenceRasterNA.tif")
 plot(PApied)
 
-crs(pptStack)
+crs(ppt1)
 crs(PApied)
 
-PApied <- projectRaster(PApied, crs = crs(pptStack))
+#PApied <- projectRaster(PApied, crs = crs(ppt1))
 
 FIA_PApied <- as.data.frame(PApied,xy=TRUE)
 names(FIA_PApied )<-c("lon","lat","PApied")
+write.csv(FIA_PApied, "data/PresenceAbsence_PIEDFIA_v2.csv")
+
 
 ppt.extracted <- data.frame(raster::extract(pptStack, FIA_PApied[,c("lon", "lat")]))
 ppt.extracted$lon <- FIA_PApied$lon
@@ -355,20 +361,66 @@ NORMALS <- full.ppt.tmean2 %>% group_by(lon, lat) %>% dplyr::summarise(MAP = mea
 # very simple maps of cliamte
 ggplot(NORMALS, aes(x = lon, y = lat, fill = MAP))+geom_raster()
 ggplot(NORMALS, aes(x = lon, y = lat, fill = MATfall))+geom_raster()
-ggplot(NORMALS, aes(x = lon, y = lat, fill = MATspring))+geom_raster()
+ggplot()+geom_raster(data = NORMALS, aes(x = lon, y = lat, fill = MATfall))+
+  geom_point(data = FIA_PApied, aes(x = lon, y = lat))
 
 
+#FIA_PApied[duplicated(FIA_PApied),2:3]
+# PApied <- raster("data/presenceAbsenceRasterNA.tif")
+# plot(PApied)
+# 
+# crs(ppt1)
+# crs(PApied)
+PApied <- terra::rast("data/presenceAbsenceRasterNA.tif")
 
-
+library(terra)
+library(stars)
+library(sf)
+# FIA_PApied <- as.data.frame(PApied,xy=TRUE)
+# names(FIA_PApied )<-c("lon","lat","PApied")
+# write.csv(FIA_PApied, "data/PresenceAbsence_PIEDFIA_v2.csv")
 # now merge with the PApied data:
-FIA_PApied <- read.csv( "data/PresenceAbsernce_PIEDFIA.csv")
-climate.PApied <- left_join(FIA_PApied, NORMALS, by = c("lat", "lon"))
-write.csv(climate.PApied, "data/Normals_PA_PIED.csv", row.names = FALSE)
-summary(climate.PApied)
-length(climate.PApied$PApied)
+#FIA_PApied <- read.csv( "data/PresenceAbsence_PIEDFIA_v2.csv")
+NORMALS.sf <- sf::st_as_sf(NORMALS, coords = c("lon", "lat"))
+NORMALS.sf <- sf::st_set_crs(NORMALS.sf, 4269) # crs was +proj=longlat +datum=NAD83 +no_defs for prism data
+#str_extract()
+NORMALS.sf.new <- st_transform(NORMALS.sf, crs = sf::st_crs(PApied))
+# +proj=longlat +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +no_defs
+PAclim.extract <- terra::extract(PApied, st_coordinates(NORMALS.sf)) %>%data.frame()
+NORMALS.sf$PApied <- PAclim.extract$layer
+#sf::st_crs(PApied)
+# Extract geometry as text
+geom <- st_coordinates(st_sfc(NORMALS.sf$geometry))
+NORMALS.df <- st_drop_geometry(NORMALS.sf)
 
-FIA_PApied <- read.csv("data/Normals_PA_PIED.csv")
+# Joining feature + geometry (this is so inefficient, why can't you just easily convert back and forth?)
+NORMALS.df  <- cbind(NORMALS.df , geom)
+
+
+ggplot(data = NORMALS.df, aes(MAT, PApied))+geom_point()
+head(NORMALS.df)
+
+#PApied <- projectRaster(PApied, crs = crs(ppt1))
+# rsp <- terra::vect(FIA_PApied.sf)
+# vals <- extract(r, rsp)
+# 
+# 
+# extracted_values <- terra::extract(PApied, st_coordinates(FIA_PApied.sf)) %>% 
+#   data.frame()
+# 
+# trans.FIA <- spTransform(FIA_PApied.sf, sf::st_crs(ppt1))
+# 
+# transclimate.PApied <- left_join(FIA_PApied, NORMALS, by = c("lat", "lon"))
+
+write.csv(NORMALS.df, "data/Normals_PA_PIED_v2.csv", row.names = FALSE)
+
+
+FIA_PApied <- read.csv("data/Normals_PA_PIED_v2.csv")
 FIA_PApied <- FIA_PApied[!is.na(FIA_PApied$PApied),]
+
+
+ggplot(na.omit(FIA_PApied), aes(x = X, y = Y, color = MAT))+geom_point()
+ggplot(na.omit(FIA_PApied), aes(x = X, y = Y, color = PApied))+geom_point()
 ## Logistic models (lambda vs occurrence)
 k=5
 pa_monsoonp <- gam(PApied~s(MAPmonsoon,k=k),family=binomial(link = cloglog),
@@ -456,7 +508,7 @@ pres_plot_monsoonp <- ggplot(data=subset(pres_binned,model=="monsoonp"),aes(x=la
   #          hjust = 0, vjust = 1, size=5)+
   guides(size=guide_legend(title="Count")) +
   mytheme+labs(x = "Monsoon Precipitation (mm)", y = "Probability of occurrence")
-
+pres_plot_monsoonp
 
 pres_plot_winterp <- ggplot(data=subset(pres_binned,model=="winterp"),aes(x=lam,y=pres))+
   geom_point(aes(size=count_lam))+
@@ -467,7 +519,7 @@ pres_plot_winterp <- ggplot(data=subset(pres_binned,model=="winterp"),aes(x=lam,
   #          hjust = 0, vjust = 1, size=5)+
   guides(size=guide_legend(title="Count")) +
   mytheme+labs(x = "Winter Precipitation (mm)", y = "Probability of occurrence")
-
+pres_plot_winterp
 
 pres_plot_springt <- ggplot()+
   geom_rect(data=NULL,aes(xmin=0,xmax=13.5,ymin=-Inf,ymax=Inf),
