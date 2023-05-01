@@ -596,7 +596,7 @@ dev.off()
 
 png(height = 4, width = 6, units = "in", res = 300, "PAfigures/MONSOONp_occurance_probability.png")
 pres_plot_monsoonp
-dev.off()
+# dev.off()
 
 
 png(height = 4, width = 6, units = "in", res = 300, "PAfigures/WINTERp_occurance_probability.png")

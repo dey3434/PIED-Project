@@ -770,6 +770,7 @@ get.ind.tmp.response<- function(j){
   n_cols <- length(Precip_JulAug)
   n_rows <- length(plotdatainterval$MAP)
   growthpredictionPrecipJulAug_tmpnorm <- matrix(plotdatainterval[["MAT"]], n_rows, n_cols) * tmp_norm +
+    matrix(plotdatainterval[["MAP"]], n_rows, n_cols) * ppt_norm +
     matrix(plotdatainterval[["MAP*MAT"]], n_rows, n_cols) * tmp_norm*ppt_norm +
     matrix(plotdatainterval[["monsoon precip"]], n_rows, n_cols) * matrix(Precip_JulAug, n_rows, n_cols, byrow = TRUE) +
     matrix(plotdatainterval[["winter precip"]], n_rows, n_cols) * Precip_NovDecJanFebMar +
@@ -796,35 +797,7 @@ get.ind.tmp.response<- function(j){
     matrix(plotdatainterval[["winter precip*spring temp"]], n_rows, n_cols) * Precip_NovDecJanFebMar*Tmean_AprMayJun +
     matrix(plotdatainterval[["winter precip*fall temp"]], n_rows, n_cols) * Precip_NovDecJanFebMar*Tmean_SepOct +
     matrix(plotdatainterval[["spring temp*fall temp"]], n_rows, n_cols) * Tmean_AprMayJun*Tmean_SepOct
-  # for(i in 1:length(plotdatainterval$MAP)){
-  #   growthpredictionPrecipJulAug_tmpnorm[i,] <- plotdatainterval[i,"MAP"]*ppt_norm +
-  #     plotdatainterval[i,"MAT"]*tmp_norm +
-  #     plotdatainterval[i, "MAP*MAT"]*tmp_norm*ppt_norm +
-  #     plotdatainterval[i,"monsoon precip"]*Precip_JulAug +
-  #     plotdatainterval[i,"winter precip"]*Precip_NovDecJanFebMar +
-  #     plotdatainterval[i,"spring temp"]*Tmean_AprMayJun +
-  #     plotdatainterval[i,"fall temp"]*Tmean_SepOct +
-  #     plotdatainterval[i,"tree size"]*x +
-  #     plotdatainterval[i,"MAP*monsoon precip"]*ppt_norm*Precip_JulAug +
-  #     plotdatainterval[i,"tree size*MAP"]*ppt_norm*x +
-  #     plotdatainterval[i,"MAP*winter precip"]*ppt_norm*Precip_NovDecJanFebMar +
-  #     plotdatainterval[i,"MAP*spring temp"]*ppt_norm*Tmean_AprMayJun +
-  #     plotdatainterval[i,"MAP*fall temp"]*ppt_norm*Tmean_SepOct +
-  #     plotdatainterval[i,"tree size*MAT"]*tmp_norm*x +
-  #     plotdatainterval[i,"MAT*monsoon precip"]*tmp_norm*Precip_JulAug +
-  #     plotdatainterval[i,"MAT*winter precip"]*tmp_norm*Precip_NovDecJanFebMar +
-  #     plotdatainterval[i,"MAT*spring temp"]*tmp_norm*Tmean_AprMayJun +
-  #     plotdatainterval[i,"MAT*fall temp"]*tmp_norm*Tmean_SepOct +
-  #     plotdatainterval[i,"tree size*Precip_JulAug"]*x*Precip_JulAug +
-  #     plotdatainterval[i,"tree size*winter precip"]*x*Precip_NovDecJanFebMar +
-  #     plotdatainterval[i,"tree size*spring temp"]*x*Tmean_AprMayJun +
-  #     plotdatainterval[i,"tree size*fall temp"]*x*Tmean_SepOct +
-  #     plotdatainterval[i,"monsoon precip*winter precip"]*Precip_JulAug*Precip_NovDecJanFebMar +
-  #     plotdatainterval[i,"monsoon precip*spring temp"]*Precip_JulAug*Tmean_AprMayJun +
-  #     plotdatainterval[i,"monsoon precip*fall temp"]*Precip_JulAug*Tmean_SepOct +
-  #     plotdatainterval[i,"winter precip*spring temp"]*Precip_NovDecJanFebMar*Tmean_AprMayJun +
-  #     plotdatainterval[i,"winter precip*fall temp"]*Precip_NovDecJanFebMar*Tmean_SepOct +
-  #     plotdatainterval[i,"spring temp*fall temp"]*Tmean_AprMayJun*Tmean_SepOct
+  
   # }
   Precip_JulAug_prediction_trtmpnorm <- exp(growthpredictionPrecipJulAug_tmpnorm)
   ci.Precip_JulAugtmpnorm <- apply(Precip_JulAug_prediction_trtmpnorm, 2, quantile, c(0.025, 0.5, 0.975))
@@ -885,7 +858,8 @@ get.ind.tmp.response<- function(j){
   tmp_norm_range <- quantile(tree.grow$tmp_norm, c(0.2, 0.8))
   n_cols <- length(Precip_NovDecJanFebMar)
   n_rows <- length(plotdatainterval$MAP)
-  growthpredictionPrecipNovDecJanFebMar_tmpnorm <- matrix(plotdatainterval[["MAT"]], n_rows, n_cols) * tmp_norm +
+  growthpredictionPrecipNovDecJanFebMar_tmpnorm <- matrix(plotdatainterval[["MAP"]], n_rows, n_cols) * ppt_norm +
+    matrix(plotdatainterval[["MAT"]], n_rows, n_cols) * tmp_norm +
     matrix(plotdatainterval[["MAP*MAT"]], n_rows, n_cols) * tmp_norm*ppt_norm +
     matrix(plotdatainterval[["monsoon precip"]], n_rows, n_cols) * Precip_JulAug +
     matrix(plotdatainterval[["winter precip"]], n_rows, n_cols) * matrix(Precip_NovDecJanFebMar, n_rows, n_cols, byrow = TRUE) +
@@ -1003,7 +977,8 @@ get.ind.tmp.response<- function(j){
   tmp_norm_range <- quantile(tree.grow$tmp_norm, c(0.2, 0.8))
   n_cols <- length(Tmean_SepOct)
   n_rows <- length(plotdatainterval$MAP)
-  growthpredictionTmeanSepOct_tmpnorm <- matrix(plotdatainterval[["MAT"]], n_rows, n_cols) * tmp_norm +
+  growthpredictionTmeanSepOct_tmpnorm <- matrix(plotdatainterval[["MAP"]], n_rows, n_cols) * ppt_norm +
+    matrix(plotdatainterval[["MAT"]], n_rows, n_cols) * tmp_norm +
     matrix(plotdatainterval[["MAP*MAT"]], n_rows, n_cols) * tmp_norm*ppt_norm +
     matrix(plotdatainterval[["monsoon precip"]], n_rows, n_cols) * Precip_JulAug +
     matrix(plotdatainterval[["winter precip"]], n_rows, n_cols) * Precip_NovDecJanFebMar +
@@ -1084,6 +1059,454 @@ ggplot(data = merged.response.samples, aes(x = Tmean_SepOct, y = median, color =
   ylab("Predicted Growth (mm)")+xlab("Fall Temperature Anomaly")+ylim(0, 3)
 dev.off()
 
+
+
+# ----------------------------------Make Ind response plots with old method of median dbh------------
+
+#### Spring Temperature Tmean_AprMayJun
+grow.monsoon$LONbin <- ifelse(grow.monsoon$LON > -109, "-109 to -104", "-114 to -109")
+grow.monsoon$LATbin <- ifelse(grow.monsoon$LAT > 37, "37 to 41", "32 to 37")
+grow.monsoon$LATLONbin <- paste(grow.monsoon$LONbin, grow.monsoon$LATbin)
+
+grow.monsoon$tmp_norm_q <- ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.25), "0-25% quantile MAT",
+                                  ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.50), "25-50% quantile MAT",
+                                         ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.75), "50-75% quantile MAT",
+                                                "75-100% quantile MAT")))
+
+grow.monsoon$ppt_norm_q <- ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.25), "0-25% quantile MAP",
+                                  ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.50), "25-50% quantile MAP",
+                                         ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.75), "50-75% quantile MAP",
+                                                "75-100% quantile MAP")))
+
+ind.samples <- unique(grow.monsoon[,c("LATLONbin", "tmp_norm_q", "ppt_norm_q", "treeCD")])
+
+
+#map of LATLONbin
+all_states <- map_data("state")
+states <- subset(all_states, region %in% c("arizona", "colorado", "utah", "new mexico"))
+coordinates(states)<-~long+lat
+class(states)
+proj4string(states) <-CRS("+proj=longlat +datum=NAD83")
+mapdata<-states
+mapdata<-data.frame(mapdata)
+ggplot() + geom_polygon(data=mapdata, aes(x=long, y=lat, group = group), color ="darkgray", fill = "darkgray")+
+  geom_point(data = grow.monsoon, aes(x = LON, y = LAT, color = LATLONbin)) + theme_bw()
+
+
+#Tmean_AprMayJun individual response function by ppt_norm and tmp_norm bins
+grow.monsoon$LONbin <- ifelse(grow.monsoon$LON > -109, "-109 to -104", "-114 to -109")
+grow.monsoon$LATbin <- ifelse(grow.monsoon$LAT > 37, "37 to 41", "32 to 37")
+grow.monsoon$LATLONbin <- paste(grow.monsoon$LONbin, grow.monsoon$LATbin)
+ind.samples <- unique(grow.monsoon[,c("LATLONbin", "tmp_norm_q", "ppt_norm_q", "treeCD")])
+
+get.ind.tmp.response<- function(j){
+  tree.subset <- ind.samples[j,]
+  tree.grow <- grow.monsoon %>% filter(LATLONbin == tree.subset$LATLONbin & treeCD == tree.subset$treeCD)
+  
+  Tmean_AprMayJunrng <- range(tree.grow$Tmean_AprMayJun,na.rm = TRUE) #setting range for tmp_normrng
+  Tmean_AprMayJun <- seq(Tmean_AprMayJunrng[1], Tmean_AprMayJunrng[2], by = 0.1)
+  x <- mean(tree.grow$DIA_prev)
+  ppt_norm <- mean(tree.grow$ppt_norm)
+  tmp_norm <- mean(tree.grow$tmp_norm)
+  Tmean_SepOct <- mean(tree.grow$Tmean_SepOct)
+  Precip_JulAug <- mean(tree.grow$Precip_JulAug)
+  Precip_NovDecJanFebMar <- mean(tree.grow$Precip_NovDecJanFebMar)
+  #ppt_norm_range <- quantile(tree.grow$ppt_norm, c(0.2, 0.8))
+  # growthpredictionTmeanAprMayJun_pnorm <- matrix(NA, length(plotdatainterval$MAP), length(Tmean_AprMayJun))
+  
+  # for(i in 1:length(plotdatainterval$MAP)){
+  #   growthpredictionTmeanAprMayJun_pnorm[i,] <- plotdatainterval[i,"MAP"]*ppt_norm +
+  #     plotdatainterval[i,"MAT"]*tmp_norm +
+  #     plotdatainterval[i, "MAP*MAT"]*tmp_norm*ppt_norm +
+  #     plotdatainterval[i,"monsoon precip"]*Precip_JulAug +
+  #     plotdatainterval[i,"winter precip"]*Precip_NovDecJanFebMar +
+  #     plotdatainterval[i,"spring temp"]*Tmean_AprMayJun +
+  #     plotdatainterval[i,"fall temp"]*Tmean_SepOct +
+  #     plotdatainterval[i,"tree size"]*x +
+  #     plotdatainterval[i,"MAP*monsoon precip"]*ppt_norm*Precip_JulAug +
+  #     plotdatainterval[i,"tree size*MAP"]*ppt_norm*x +
+  #     plotdatainterval[i,"MAP*winter precip"]*ppt_norm*Precip_NovDecJanFebMar +
+  #     plotdatainterval[i,"MAP*spring temp"]*ppt_norm*Tmean_AprMayJun +
+  #     plotdatainterval[i,"MAP*fall temp"]*ppt_norm*Tmean_SepOct +
+  #     plotdatainterval[i,"tree size*MAT"]*tmp_norm*x +
+  #     plotdatainterval[i,"MAT*monsoon precip"]*tmp_norm*Precip_JulAug +
+  #     plotdatainterval[i,"MAT*winter precip"]*tmp_norm*Precip_NovDecJanFebMar +
+  #     plotdatainterval[i,"MAT*spring temp"]*tmp_norm*Tmean_AprMayJun +
+  #     plotdatainterval[i,"MAT*fall temp"]*tmp_norm*Tmean_SepOct +
+  #     plotdatainterval[i,"tree size*Precip_JulAug"]*x*Precip_JulAug +
+  #     plotdatainterval[i,"tree size*winter precip"]*x*Precip_NovDecJanFebMar +
+  #     plotdatainterval[i,"tree size*spring temp"]*x*Tmean_AprMayJun +
+  #     plotdatainterval[i,"tree size*fall temp"]*x*Tmean_SepOct +
+  #     plotdatainterval[i,"monsoon precip*winter precip"]*Precip_JulAug*Precip_NovDecJanFebMar +
+  #     plotdatainterval[i,"monsoon precip*spring temp"]*Precip_JulAug*Tmean_AprMayJun +
+  #     plotdatainterval[i,"monsoon precip*fall temp"]*Precip_JulAug*Tmean_SepOct +
+  #     plotdatainterval[i,"winter precip*spring temp"]*Precip_NovDecJanFebMar*Tmean_AprMayJun +
+  #     plotdatainterval[i,"winter precip*fall temp"]*Precip_NovDecJanFebMar*Tmean_SepOct +
+  #     plotdatainterval[i,"spring temp*fall temp"]*Tmean_AprMayJun*Tmean_SepOct
+  # }
+  n_cols <- length(Tmean_AprMayJun)
+  n_rows <- length(plotdatainterval$MAP)
+  growthpredictionTmeanAprMayJun_pnorm <- matrix(plotdatainterval[["MAP"]], n_rows, n_cols) * ppt_norm +
+    
+    matrix(plotdatainterval[["MAT"]], n_rows, n_cols) * tmp_norm +
+    matrix(plotdatainterval[["MAP*MAT"]], n_rows, n_cols) * tmp_norm*ppt_norm +
+    matrix(plotdatainterval[["monsoon precip"]], n_rows, n_cols) * Precip_JulAug +
+    matrix(plotdatainterval[["winter precip"]], n_rows, n_cols) * Precip_NovDecJanFebMar +
+    matrix(plotdatainterval[["spring temp"]], n_rows, n_cols) * matrix(Tmean_AprMayJun, n_rows, n_cols, byrow = TRUE) +
+    matrix(plotdatainterval[["fall temp"]], n_rows, n_cols) * Tmean_SepOct +
+    matrix(plotdatainterval[["tree size"]], n_rows, n_cols) * x +
+    matrix(plotdatainterval[["MAP*monsoon precip"]], n_rows, n_cols) * ppt_norm*Precip_JulAug +
+    matrix(plotdatainterval[["tree size*MAP"]], n_rows, n_cols) * ppt_norm*x +
+    matrix(plotdatainterval[["MAP*winter precip"]], n_rows, n_cols) * ppt_norm*Precip_NovDecJanFebMar +
+    matrix(plotdatainterval[["MAP*spring temp"]], n_rows, n_cols) * ppt_norm*matrix(Tmean_AprMayJun, n_rows, n_cols, byrow = TRUE) +
+    matrix(plotdatainterval[["MAP*fall temp"]], n_rows, n_cols) * ppt_norm*Tmean_SepOct +
+    matrix(plotdatainterval[["tree size*MAT"]], n_rows, n_cols) * tmp_norm*x +
+    matrix(plotdatainterval[["MAT*monsoon precip"]], n_rows, n_cols) * tmp_norm*Precip_JulAug +
+    matrix(plotdatainterval[["MAT*winter precip"]], n_rows, n_cols) * tmp_norm*Precip_NovDecJanFebMar +
+    matrix(plotdatainterval[["MAT*spring temp"]], n_rows, n_cols) * tmp_norm*matrix(Tmean_AprMayJun, n_rows, n_cols, byrow = TRUE) +
+    matrix(plotdatainterval[["MAT*fall temp"]], n_rows, n_cols) * tmp_norm*Tmean_SepOct +
+    matrix(plotdatainterval[["tree size*monsoon precip"]], n_rows, n_cols) * x*Precip_JulAug +
+    matrix(plotdatainterval[["tree size*winter precip"]], n_rows, n_cols) * x*Precip_NovDecJanFebMar +
+    matrix(plotdatainterval[["tree size*spring temp"]], n_rows, n_cols) * x*matrix(Tmean_AprMayJun, n_rows, n_cols, byrow = TRUE) +
+    matrix(plotdatainterval[["tree size*fall temp"]], n_rows, n_cols) * x*Tmean_SepOct +
+    matrix(plotdatainterval[["monsoon precip*winter precip"]], n_rows, n_cols) * Precip_JulAug*Precip_NovDecJanFebMar +
+    matrix(plotdatainterval[["monsoon precip*spring temp"]], n_rows, n_cols) * Precip_JulAug*matrix(Tmean_AprMayJun, n_rows, n_cols, byrow = TRUE) +
+    matrix(plotdatainterval[["monsoon precip*fall temp"]], n_rows, n_cols) * Precip_JulAug*Tmean_SepOct +
+    matrix(plotdatainterval[["winter precip*spring temp"]], n_rows, n_cols) * Precip_NovDecJanFebMar*matrix(Tmean_AprMayJun, n_rows, n_cols, byrow = TRUE) +
+    matrix(plotdatainterval[["winter precip*fall temp"]], n_rows, n_cols) * Precip_NovDecJanFebMar*Tmean_SepOct +
+    matrix(plotdatainterval[["spring temp*fall temp"]], n_rows, n_cols) * matrix(Tmean_AprMayJun, n_rows, n_cols, byrow = TRUE)*Tmean_SepOct
+  Tmean_AprMayJun_prediction_trpnorm <- exp(growthpredictionTmeanAprMayJun_pnorm)
+  ci.Tmean_AprMayJunpnorm <- apply(Tmean_AprMayJun_prediction_trpnorm, 2, quantile, c(0.025, 0.5, 0.975))
+  ci.Tmean_AprMayJunpnorm.df <- data.frame(Tmean_AprMayJun = Tmean_AprMayJun, ppt_norm = ppt_norm, median = ci.Tmean_AprMayJunpnorm[2,], ci.low = ci.Tmean_AprMayJunpnorm[1,], ci.high = ci.Tmean_AprMayJunpnorm[3,], ci.group = tree.subset$treeCD)
+  Tmean_AprMayJun_pnormint <- rbind(ci.Tmean_AprMayJunpnorm.df)
+  print(ind.samples[j,])
+  return(Tmean_AprMayJun_pnormint)
+}
+
+#get.ind.tmp.response(i = 6)
+Tmean_AprMayJun_tree_response <- list()
+Tmean_AprMayJun_tree_response <- lapply(1:length(ind.samples$treeCD), FUN = get.ind.tmp.response)
+Tmean_AprMayJun_tree_response.df <- do.call(rbind, Tmean_AprMayJun_tree_response)
+merged.response.samples <- merge(Tmean_AprMayJun_tree_response.df, ind.samples, by.x = "ci.group", by.y = "treeCD")
+merged.response.samples$ci.group <- as.character(merged.response.samples$ci.group)
+# #color by group
+# ggplot(data = merged.response.samples, aes(x = Tmean_AprMayJun, y = median, color = ci.group)) + geom_ribbon(aes(x = Tmean_AprMayJun, ymin = ci.low, ymax = ci.high, fill = ci.group),color = NA, alpha = 0.5) +
+#   geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
+# #color by LATLONbin
+# ggplot(data = merged.response.samples, aes(x = Tmean_AprMayJun, y = median, color = LATLONbin, group = ci.group)) + geom_ribbon(aes(x = Tmean_AprMayJun, ymin = ci.low, ymax = ci.high, fill = LATLONbin, group = ci.group),color = NA, alpha = 0.5) +
+#   geom_line() + mytheme + ylab("Predicted Growth") + ylim(0, 2)
+
+colnames(merged.response.samples)[3] <- "MAP"
+
+#color by ppt_norm & use tmp_norm bins
+png(here::here("images", "model_4", "individual_response_Tmean_APRMAYJUN_MAP_median_dbh.png"), height = 5, width = 6, units = "in", res = 300) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
+ggplot(data = merged.response.samples, aes(x = Tmean_AprMayJun, y = median, color = MAP, group = ci.group)) + 
+  geom_line(alpha = 0.5) +
+  mytheme + 
+  ylab("Predicted Growth") + 
+  scale_color_gradient2(low = "#b2182b", mid = "#fddbc7", high = "#4575b4") + 
+  facet_wrap(~tmp_norm_q) +
+  ylab("Predicted Growth (mm)") + 
+  xlab("Spring Temperature Anomaly" ) + 
+  ylim(0, 3)
+dev.off()
+
+
+
+
+#### monsoon precip
+#Precip_JulAug and tmp_norm
+grow.monsoon$LONbin <- ifelse(grow.monsoon$LON > -109, "-109 to -104", "-114 to -109")
+grow.monsoon$LATbin <- ifelse(grow.monsoon$LAT > 37, "37 to 41", "32 to 37")
+grow.monsoon$LATLONbin <- paste(grow.monsoon$LONbin, grow.monsoon$LATbin)
+
+grow.monsoon$tmp_norm_q <- ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.25), "0-25% quantile MAT",
+                                  ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.50), "25-50% quantile MAT",
+                                         ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.75), "50-75% quantile MAT",
+                                                "75-100% quantile MAT")))
+
+grow.monsoon$ppt_norm_q <- ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.25), "0-25% quantile MAP",
+                                  ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.50), "25-50% quantile MAP",
+                                         ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.75), "50-75% quantile MAP",
+                                                "75-100% quantile MAP")))
+
+ind.samples <- unique(grow.monsoon[,c("LATLONbin", "tmp_norm_q", "ppt_norm_q", "treeCD", "ppt_norm")])
+
+
+get.ind.tmp.response<- function(j){
+  tree.subset <- ind.samples[j,]
+  tree.grow <- grow.monsoon %>% filter(LATLONbin == tree.subset$LATLONbin & treeCD == tree.subset$treeCD)
+  
+  Precip_JulAugrng <- range(tree.grow$Precip_JulAug,na.rm = TRUE) #setting range for tmp_normrng
+  Precip_JulAug <- seq(Precip_JulAugrng[1], Precip_JulAugrng[2], by = 0.1)
+  x <- mean(tree.grow$DIA_prev)
+  ppt_norm <- mean(tree.grow$ppt_norm)
+  tmp_norm <- mean(tree.grow$tmp_norm)
+  Tmean_SepOct <- mean(tree.grow$Tmean_SepOct)
+  Tmean_AprMayJun <- mean(tree.grow$Tmean_AprMayJun)
+  Precip_NovDecJanFebMar <- mean(tree.grow$Precip_NovDecJanFebMar)
+  tmp_norm_range <- quantile(tree.grow$tmp_norm, c(0.2, 0.8))
+  # growthpredictionPrecipJulAug_tmpnorm <- matrix(NA, length(plotdatainterval$`monsoon precip`), length(Precip_JulAug))
+  n_cols <- length(Precip_JulAug)
+  n_rows <- length(plotdatainterval$MAP)
+  growthpredictionPrecipJulAug_tmpnorm <- matrix(plotdatainterval[["MAP"]], n_rows, n_cols) * ppt_norm +
+    matrix(plotdatainterval[["MAT"]], n_rows, n_cols) * tmp_norm +
+    matrix(plotdatainterval[["MAP*MAT"]], n_rows, n_cols) * tmp_norm*ppt_norm +
+    matrix(plotdatainterval[["monsoon precip"]], n_rows, n_cols) * matrix(Precip_JulAug, n_rows, n_cols, byrow = TRUE) +
+    matrix(plotdatainterval[["winter precip"]], n_rows, n_cols) * Precip_NovDecJanFebMar +
+    matrix(plotdatainterval[["spring temp"]], n_rows, n_cols) * Tmean_AprMayJun +
+    matrix(plotdatainterval[["fall temp"]], n_rows, n_cols) * Tmean_SepOct +
+    matrix(plotdatainterval[["tree size"]], n_rows, n_cols) * x +
+    matrix(plotdatainterval[["MAP*monsoon precip"]], n_rows, n_cols) * ppt_norm*matrix(Precip_JulAug, n_rows, n_cols, byrow = TRUE) +
+    matrix(plotdatainterval[["tree size*MAP"]], n_rows, n_cols) * ppt_norm*x +
+    matrix(plotdatainterval[["MAP*winter precip"]], n_rows, n_cols) * ppt_norm*Precip_NovDecJanFebMar +
+    matrix(plotdatainterval[["MAP*spring temp"]], n_rows, n_cols) * ppt_norm*Tmean_AprMayJun +
+    matrix(plotdatainterval[["MAP*fall temp"]], n_rows, n_cols) * ppt_norm*Tmean_SepOct +
+    matrix(plotdatainterval[["tree size*MAT"]], n_rows, n_cols) * tmp_norm*x +
+    matrix(plotdatainterval[["MAT*monsoon precip"]], n_rows, n_cols) * tmp_norm*matrix(Precip_JulAug, n_rows, n_cols, byrow = TRUE) +
+    matrix(plotdatainterval[["MAT*winter precip"]], n_rows, n_cols) * tmp_norm*Precip_NovDecJanFebMar +
+    matrix(plotdatainterval[["MAT*spring temp"]], n_rows, n_cols) * tmp_norm*Tmean_AprMayJun +
+    matrix(plotdatainterval[["MAT*fall temp"]], n_rows, n_cols) * tmp_norm*Tmean_SepOct +
+    matrix(plotdatainterval[["tree size*monsoon precip"]], n_rows, n_cols) * x*matrix(Precip_JulAug, n_rows, n_cols, byrow = TRUE) +
+    matrix(plotdatainterval[["tree size*winter precip"]], n_rows, n_cols) * x*Precip_NovDecJanFebMar +
+    matrix(plotdatainterval[["tree size*spring temp"]], n_rows, n_cols) * x*Tmean_AprMayJun +
+    matrix(plotdatainterval[["tree size*fall temp"]], n_rows, n_cols) * x*Tmean_SepOct +
+    matrix(plotdatainterval[["monsoon precip*winter precip"]], n_rows, n_cols) * matrix(Precip_JulAug, n_rows, n_cols, byrow = TRUE)*Precip_NovDecJanFebMar +
+    matrix(plotdatainterval[["monsoon precip*spring temp"]], n_rows, n_cols) * matrix(Precip_JulAug, n_rows, n_cols, byrow = TRUE)*Tmean_AprMayJun +
+    matrix(plotdatainterval[["monsoon precip*fall temp"]], n_rows, n_cols) * matrix(Precip_JulAug, n_rows, n_cols, byrow = TRUE)*Tmean_SepOct +
+    matrix(plotdatainterval[["winter precip*spring temp"]], n_rows, n_cols) * Precip_NovDecJanFebMar*Tmean_AprMayJun +
+    matrix(plotdatainterval[["winter precip*fall temp"]], n_rows, n_cols) * Precip_NovDecJanFebMar*Tmean_SepOct +
+    matrix(plotdatainterval[["spring temp*fall temp"]], n_rows, n_cols) * Tmean_AprMayJun*Tmean_SepOct
+  # for(i in 1:length(plotdatainterval$MAP)){
+  #   growthpredictionPrecipJulAug_tmpnorm[i,] <- plotdatainterval[i,"MAP"]*ppt_norm +
+  #     plotdatainterval[i,"MAT"]*tmp_norm +
+  #     plotdatainterval[i, "MAP*MAT"]*tmp_norm*ppt_norm +
+  #     plotdatainterval[i,"monsoon precip"]*Precip_JulAug +
+  #     plotdatainterval[i,"winter precip"]*Precip_NovDecJanFebMar +
+  #     plotdatainterval[i,"spring temp"]*Tmean_AprMayJun +
+  #     plotdatainterval[i,"fall temp"]*Tmean_SepOct +
+  #     plotdatainterval[i,"tree size"]*x +
+  #     plotdatainterval[i,"MAP*monsoon precip"]*ppt_norm*Precip_JulAug +
+  #     plotdatainterval[i,"tree size*MAP"]*ppt_norm*x +
+  #     plotdatainterval[i,"MAP*winter precip"]*ppt_norm*Precip_NovDecJanFebMar +
+  #     plotdatainterval[i,"MAP*spring temp"]*ppt_norm*Tmean_AprMayJun +
+  #     plotdatainterval[i,"MAP*fall temp"]*ppt_norm*Tmean_SepOct +
+  #     plotdatainterval[i,"tree size*MAT"]*tmp_norm*x +
+  #     plotdatainterval[i,"MAT*monsoon precip"]*tmp_norm*Precip_JulAug +
+  #     plotdatainterval[i,"MAT*winter precip"]*tmp_norm*Precip_NovDecJanFebMar +
+  #     plotdatainterval[i,"MAT*spring temp"]*tmp_norm*Tmean_AprMayJun +
+  #     plotdatainterval[i,"MAT*fall temp"]*tmp_norm*Tmean_SepOct +
+  #     plotdatainterval[i,"tree size*Precip_JulAug"]*x*Precip_JulAug +
+  #     plotdatainterval[i,"tree size*winter precip"]*x*Precip_NovDecJanFebMar +
+  #     plotdatainterval[i,"tree size*spring temp"]*x*Tmean_AprMayJun +
+  #     plotdatainterval[i,"tree size*fall temp"]*x*Tmean_SepOct +
+  #     plotdatainterval[i,"monsoon precip*winter precip"]*Precip_JulAug*Precip_NovDecJanFebMar +
+  #     plotdatainterval[i,"monsoon precip*spring temp"]*Precip_JulAug*Tmean_AprMayJun +
+  #     plotdatainterval[i,"monsoon precip*fall temp"]*Precip_JulAug*Tmean_SepOct +
+  #     plotdatainterval[i,"winter precip*spring temp"]*Precip_NovDecJanFebMar*Tmean_AprMayJun +
+  #     plotdatainterval[i,"winter precip*fall temp"]*Precip_NovDecJanFebMar*Tmean_SepOct +
+  #     plotdatainterval[i,"spring temp*fall temp"]*Tmean_AprMayJun*Tmean_SepOct
+  # }
+  Precip_JulAug_prediction_trtmpnorm <- exp(growthpredictionPrecipJulAug_tmpnorm)
+  ci.Precip_JulAugtmpnorm <- apply(Precip_JulAug_prediction_trtmpnorm, 2, quantile, c(0.025, 0.5, 0.975))
+  ci.Precip_JulAugtmpnorm.df <- data.frame(Precip_JulAug = Precip_JulAug, tmp_norm = tmp_norm, median = ci.Precip_JulAugtmpnorm[2,], ci.low = ci.Precip_JulAugtmpnorm[1,], ci.high = ci.Precip_JulAugtmpnorm[3,], ci.group = tree.subset$treeCD)
+  Precip_JulAug_tmpnormint <- rbind(ci.Precip_JulAugtmpnorm.df)
+  print(ind.samples[j,])
+  Precip_JulAug_tmpnormint
+}
+#get.ind.tmp.response(i = 6)
+Precip_JulAug_tree_response <- list()
+Precip_JulAug_tree_response <- lapply(1:length(ind.samples$treeCD), FUN = get.ind.tmp.response)
+Precip_JulAug_tree_response.df <- do.call(rbind, Precip_JulAug_tree_response)
+merged.response.samples <- merge(Precip_JulAug_tree_response.df, ind.samples, by.x = "ci.group", by.y = "treeCD")
+merged.response.samples$ci.group <- as.character(merged.response.samples$ci.group)
+#color by group
+colnames(merged.response.samples)[3] <- "MAT"
+colnames(merged.response.samples)[10] <- "MAP"
+
+#color by ppt_norm & use tmp_norm bins
+png(here::here("images", "model_4", "individual_response_Precip_JulAug_MAP_median_dbh.png"), height = 5, width = 6, units = "in", res = 300) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
+ggplot(data = merged.response.samples, aes(x = Precip_JulAug, y = median, color = MAP, group = ci.group)) + geom_line(alpha = 0.5) +
+  mytheme + ylab("Predicted Growth") + scale_color_gradient2(low = "#b2182b", mid = "#fddbc7", high = "#4575b4")+ facet_wrap(~tmp_norm_q)+
+  ylab("Predicted Growth (mm)")+xlab("Monsoon Precipitation Anomaly")+ylim(0, 3) 
+dev.off()
+
+
+#### winter precip:
+#Precip_NovDecJanFebMar and tmp_norm
+grow.monsoon$LONbin <- ifelse(grow.monsoon$LON > -109, "-109 to -104", "-114 to -109")
+grow.monsoon$LATbin <- ifelse(grow.monsoon$LAT > 37, "37 to 41", "32 to 37")
+grow.monsoon$LATLONbin <- paste(grow.monsoon$LONbin, grow.monsoon$LATbin)
+
+grow.monsoon$tmp_norm_q <- ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.25), "0-25% quantile MAT",
+                                  ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.50), "25-50% quantile MAT",
+                                         ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.75), "50-75% quantile MAT",
+                                                "75-100% quantile MAT")))
+
+grow.monsoon$ppt_norm_q <- ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.25), "0-25% quantile MAP",
+                                  ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.50), "25-50% quantile MAP",
+                                         ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.75), "50-75% quantile MAP",
+                                                "75-100% quantile MAP")))
+
+ind.samples <- unique(grow.monsoon[,c("LATLONbin", "tmp_norm_q", "ppt_norm_q", "treeCD", "ppt_norm")])
+
+
+get.ind.tmp.response<- function(j){
+  tree.subset <- ind.samples[j,]
+  tree.grow <- grow.monsoon %>% filter(LATLONbin == tree.subset$LATLONbin & treeCD == tree.subset$treeCD)
+  
+  Precip_NovDecJanFebMarrng <- range(tree.grow$Precip_NovDecJanFebMar,na.rm = TRUE) #setting range for tmp_normrng
+  Precip_NovDecJanFebMar <- seq(Precip_NovDecJanFebMarrng[1], Precip_NovDecJanFebMarrng[2], by = 0.1)
+  x <- mean(tree.grow$DIA_prev)
+  ppt_norm <- mean(tree.grow$ppt_norm)
+  tmp_norm <- mean(tree.grow$tmp_norm)
+  Tmean_SepOct <- mean(tree.grow$Tmean_SepOct)
+  Tmean_AprMayJun <- mean(tree.grow$Tmean_AprMayJun)
+  Precip_JulAug <- mean(tree.grow$Precip_JulAug)
+  tmp_norm_range <- quantile(tree.grow$tmp_norm, c(0.2, 0.8))
+  n_cols <- length(Precip_NovDecJanFebMar)
+  n_rows <- length(plotdatainterval$MAP)
+  growthpredictionPrecipNovDecJanFebMar_tmpnorm <- matrix(plotdatainterval[["MAP"]], n_rows, n_cols) * ppt_norm +
+    matrix(plotdatainterval[["MAT"]], n_rows, n_cols) * tmp_norm +
+    matrix(plotdatainterval[["MAP*MAT"]], n_rows, n_cols) * tmp_norm*ppt_norm +
+    matrix(plotdatainterval[["monsoon precip"]], n_rows, n_cols) * Precip_JulAug +
+    matrix(plotdatainterval[["winter precip"]], n_rows, n_cols) * matrix(Precip_NovDecJanFebMar, n_rows, n_cols, byrow = TRUE) +
+    matrix(plotdatainterval[["spring temp"]], n_rows, n_cols) * Tmean_AprMayJun +
+    matrix(plotdatainterval[["fall temp"]], n_rows, n_cols) * Tmean_SepOct +
+    matrix(plotdatainterval[["tree size"]], n_rows, n_cols) * x +
+    matrix(plotdatainterval[["MAP*monsoon precip"]], n_rows, n_cols) * ppt_norm*Precip_JulAug +
+    matrix(plotdatainterval[["tree size*MAP"]], n_rows, n_cols) * ppt_norm*x +
+    matrix(plotdatainterval[["MAP*winter precip"]], n_rows, n_cols) * ppt_norm*matrix(Precip_NovDecJanFebMar, n_rows, n_cols, byrow = TRUE) +
+    matrix(plotdatainterval[["MAP*spring temp"]], n_rows, n_cols) * ppt_norm*Tmean_AprMayJun +
+    matrix(plotdatainterval[["MAP*fall temp"]], n_rows, n_cols) * ppt_norm*Tmean_SepOct +
+    matrix(plotdatainterval[["tree size*MAT"]], n_rows, n_cols) * tmp_norm*x +
+    matrix(plotdatainterval[["MAT*monsoon precip"]], n_rows, n_cols) * tmp_norm*Precip_JulAug +
+    matrix(plotdatainterval[["MAT*winter precip"]], n_rows, n_cols) * tmp_norm*matrix(Precip_NovDecJanFebMar, n_rows, n_cols, byrow = TRUE) +
+    matrix(plotdatainterval[["MAT*spring temp"]], n_rows, n_cols) * tmp_norm*Tmean_AprMayJun +
+    matrix(plotdatainterval[["MAT*fall temp"]], n_rows, n_cols) * tmp_norm*Tmean_SepOct +
+    matrix(plotdatainterval[["tree size*monsoon precip"]], n_rows, n_cols) * x*Precip_JulAug +
+    matrix(plotdatainterval[["tree size*winter precip"]], n_rows, n_cols) * x*matrix(Precip_NovDecJanFebMar, n_rows, n_cols, byrow = TRUE) +
+    matrix(plotdatainterval[["tree size*spring temp"]], n_rows, n_cols) * x*Tmean_AprMayJun +
+    matrix(plotdatainterval[["tree size*fall temp"]], n_rows, n_cols) * x*Tmean_SepOct +
+    matrix(plotdatainterval[["monsoon precip*winter precip"]], n_rows, n_cols) * Precip_JulAug*matrix(Precip_NovDecJanFebMar, n_rows, n_cols, byrow = TRUE) +
+    matrix(plotdatainterval[["monsoon precip*spring temp"]], n_rows, n_cols) * Precip_JulAug*Tmean_AprMayJun +
+    matrix(plotdatainterval[["monsoon precip*fall temp"]], n_rows, n_cols) * Precip_JulAug*Tmean_SepOct +
+    matrix(plotdatainterval[["winter precip*spring temp"]], n_rows, n_cols) * matrix(Precip_NovDecJanFebMar, n_rows, n_cols, byrow = TRUE)*Tmean_AprMayJun +
+    matrix(plotdatainterval[["winter precip*fall temp"]], n_rows, n_cols) * matrix(Precip_NovDecJanFebMar, n_rows, n_cols, byrow = TRUE)*Tmean_SepOct +
+    matrix(plotdatainterval[["spring temp*fall temp"]], n_rows, n_cols) * Tmean_AprMayJun*Tmean_SepOct
+  
+  
+
+  # }
+  Precip_NovDecJanFebMar_prediction_trtmpnorm <- exp(growthpredictionPrecipNovDecJanFebMar_tmpnorm)
+  ci.Precip_NovDecJanFebMartmpnorm <- apply(Precip_NovDecJanFebMar_prediction_trtmpnorm, 2, quantile, c(0.025, 0.5, 0.975))
+  ci.Precip_NovDecJanFebMartmpnorm.df <- data.frame(Precip_NovDecJanFebMar = Precip_NovDecJanFebMar, tmp_norm = tmp_norm, median = ci.Precip_NovDecJanFebMartmpnorm[2,], ci.low = ci.Precip_NovDecJanFebMartmpnorm[1,], ci.high = ci.Precip_NovDecJanFebMartmpnorm[3,], ci.group = tree.subset$treeCD)
+  Precip_NovDecJanFebMar_tmpnormint <- rbind(ci.Precip_NovDecJanFebMartmpnorm.df)
+  print(ind.samples[j,])
+  Precip_NovDecJanFebMar_tmpnormint
+}
+#get.ind.tmp.response(i = 6)
+Precip_NovDecJanFebMar_tree_response <- list()
+Precip_NovDecJanFebMar_tree_response <- lapply(1:length(ind.samples$treeCD), FUN = get.ind.tmp.response)
+Precip_NovDecJanFebMar_tree_response.df <- do.call(rbind, Precip_NovDecJanFebMar_tree_response)
+merged.response.samples <- merge(Precip_NovDecJanFebMar_tree_response.df, ind.samples, by.x = "ci.group", by.y = "treeCD")
+merged.response.samples$ci.group <- as.character(merged.response.samples$ci.group)
+
+colnames(merged.response.samples)[10] <- "MAP"
+#color by ppt_norm & use tmp_norm bins
+png(here::here("images", "model_4", "individual_response_Precip_NovDecJanFebMar_MAP_median_dbh.png"), height = 5, width = 6, units = "in", res = 300) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
+ggplot(data = merged.response.samples, aes(x = Precip_NovDecJanFebMar, y = median, color = MAP, group = ci.group)) + geom_line(alpha = 0.5) +
+  mytheme + ylab("Predicted Growth") + scale_color_gradient2(low = "#b2182b", mid = "#fddbc7", high = "#4575b4")+ facet_wrap(~tmp_norm_q)+
+  ylab("Predicted Growth (mm)")+xlab("Winter Precipitation Anomaly")+ylim(0, 3)
+dev.off()
+
+
+#### Fall temperature
+#Tmean_SepOct and tmp_norm
+grow.monsoon$LONbin <- ifelse(grow.monsoon$LON > -109, "-109 to -104", "-114 to -109")
+grow.monsoon$LATbin <- ifelse(grow.monsoon$LAT > 37, "37 to 41", "32 to 37")
+grow.monsoon$LATLONbin <- paste(grow.monsoon$LONbin, grow.monsoon$LATbin)
+ind.samples <- unique(grow.monsoon[,c("LATLONbin", "treeCD")]) %>% group_by(LATLONbin)
+
+grow.monsoon$tmp_norm_q <- ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.25), "0-25% quantile MAT",
+                                  ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.50), "25-50% quantile MAT",
+                                         ifelse(grow.monsoon$tmp_norm <= quantile(grow.monsoon$tmp_norm, 0.75), "50-75% quantile MAT",
+                                                "75-100% quantile MAT")))
+
+grow.monsoon$ppt_norm_q <- ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.25), "0-25% quantile MAP",
+                                  ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.50), "25-50% quantile MAP",
+                                         ifelse(grow.monsoon$ppt_norm <= quantile(grow.monsoon$ppt_norm, 0.75), "50-75% quantile MAP",
+                                                "75-100% quantile MAP")))
+
+ind.samples <- unique(grow.monsoon[,c("LATLONbin", "tmp_norm_q", "ppt_norm_q", "treeCD", "ppt_norm")])
+
+
+get.ind.tmp.response<- function(j){
+  tree.subset <- ind.samples[j,]
+  tree.grow <- grow.monsoon %>% filter(LATLONbin == tree.subset$LATLONbin & treeCD == tree.subset$treeCD)
+  
+  Tmean_SepOctrng <- range(tree.grow$Tmean_SepOct,na.rm = TRUE) #setting range for tmp_normrng
+  Tmean_SepOct <- seq(Tmean_SepOctrng[1], Tmean_SepOctrng[2], by = 0.1)
+  x <- mean(tree.grow$DIA_prev)
+  ppt_norm <- mean(tree.grow$ppt_norm)
+  tmp_norm <- mean(tree.grow$tmp_norm)
+  Precip_NovDecJanFebMar <- mean(tree.grow$Precip_NovDecJanFebMar)
+  Precip_JulAug <- mean(tree.grow$Precip_JulAug)
+  Tmean_AprMayJun <- mean(tree.grow$Tmean_AprMayJun)
+  tmp_norm_range <- quantile(tree.grow$tmp_norm, c(0.2, 0.8))
+  n_cols <- length(Tmean_SepOct)
+  n_rows <- length(plotdatainterval$MAP)
+  growthpredictionTmeanSepOct_tmpnorm <- matrix(plotdatainterval[["MAP"]], n_rows, n_cols) * ppt_norm +
+    matrix(plotdatainterval[["MAT"]], n_rows, n_cols) * tmp_norm +
+    matrix(plotdatainterval[["MAP*MAT"]], n_rows, n_cols) * tmp_norm*ppt_norm +
+    matrix(plotdatainterval[["monsoon precip"]], n_rows, n_cols) * Precip_JulAug +
+    matrix(plotdatainterval[["winter precip"]], n_rows, n_cols) * Precip_NovDecJanFebMar +
+    matrix(plotdatainterval[["spring temp"]], n_rows, n_cols) * Tmean_AprMayJun +
+    matrix(plotdatainterval[["fall temp"]], n_rows, n_cols) * matrix(Tmean_SepOct, n_rows, n_cols, byrow = TRUE) +
+    matrix(plotdatainterval[["tree size"]], n_rows, n_cols) * x +
+    matrix(plotdatainterval[["MAP*monsoon precip"]], n_rows, n_cols) * ppt_norm*Precip_JulAug +
+    matrix(plotdatainterval[["tree size*MAP"]], n_rows, n_cols) * ppt_norm*x +
+    matrix(plotdatainterval[["MAP*winter precip"]], n_rows, n_cols) * ppt_norm*Precip_NovDecJanFebMar +
+    matrix(plotdatainterval[["MAP*spring temp"]], n_rows, n_cols) * ppt_norm*Tmean_AprMayJun +
+    matrix(plotdatainterval[["MAP*fall temp"]], n_rows, n_cols) * ppt_norm*matrix(Tmean_SepOct, n_rows, n_cols, byrow = TRUE) +
+    matrix(plotdatainterval[["tree size*MAT"]], n_rows, n_cols) * tmp_norm*x +
+    matrix(plotdatainterval[["MAT*monsoon precip"]], n_rows, n_cols) * tmp_norm*Precip_JulAug +
+    matrix(plotdatainterval[["MAT*winter precip"]], n_rows, n_cols) * tmp_norm*Precip_NovDecJanFebMar +
+    matrix(plotdatainterval[["MAT*spring temp"]], n_rows, n_cols) * tmp_norm*Tmean_AprMayJun +
+    matrix(plotdatainterval[["MAT*fall temp"]], n_rows, n_cols) * tmp_norm*matrix(Tmean_SepOct, n_rows, n_cols, byrow = TRUE) +
+    matrix(plotdatainterval[["tree size*monsoon precip"]], n_rows, n_cols) * x*Precip_JulAug +
+    matrix(plotdatainterval[["tree size*winter precip"]], n_rows, n_cols) * x*Precip_NovDecJanFebMar +
+    matrix(plotdatainterval[["tree size*spring temp"]], n_rows, n_cols) * x*Tmean_AprMayJun +
+    matrix(plotdatainterval[["tree size*fall temp"]], n_rows, n_cols) * x*matrix(Tmean_SepOct, n_rows, n_cols, byrow = TRUE) +
+    matrix(plotdatainterval[["monsoon precip*winter precip"]], n_rows, n_cols) * Precip_JulAug*Precip_NovDecJanFebMar +
+    matrix(plotdatainterval[["monsoon precip*spring temp"]], n_rows, n_cols) * Precip_JulAug*Tmean_AprMayJun +
+    matrix(plotdatainterval[["monsoon precip*fall temp"]], n_rows, n_cols) * Precip_JulAug*matrix(Tmean_SepOct, n_rows, n_cols, byrow = TRUE) +
+    matrix(plotdatainterval[["winter precip*spring temp"]], n_rows, n_cols) * Precip_NovDecJanFebMar*Tmean_AprMayJun +
+    matrix(plotdatainterval[["winter precip*fall temp"]], n_rows, n_cols) * Precip_NovDecJanFebMar*matrix(Tmean_SepOct, n_rows, n_cols, byrow = TRUE) +
+    matrix(plotdatainterval[["spring temp*fall temp"]], n_rows, n_cols) * Tmean_AprMayJun*matrix(Tmean_SepOct, n_rows, n_cols, byrow = TRUE)
+  
+  # }
+  Tmean_SepOct_prediction_trtmpnorm <- exp(growthpredictionTmeanSepOct_tmpnorm)
+  ci.Tmean_SepOcttmpnorm <- apply(Tmean_SepOct_prediction_trtmpnorm, 2, quantile, c(0.025, 0.5, 0.975))
+  ci.Tmean_SepOcttmpnorm.df <- data.frame(Tmean_SepOct = Tmean_SepOct, tmp_norm = tmp_norm, median = ci.Tmean_SepOcttmpnorm[2,], ci.low = ci.Tmean_SepOcttmpnorm[1,], ci.high = ci.Tmean_SepOcttmpnorm[3,], ci.group = tree.subset$treeCD)
+  Tmean_SepOct_tmpnormint <- rbind(ci.Tmean_SepOcttmpnorm.df)
+  print(ind.samples[j,])
+  Tmean_SepOct_tmpnormint
+}
+#get.ind.tmp.response(i = 6)
+Tmean_SepOct_tree_response <- list()
+Tmean_SepOct_tree_response <- lapply(1:length(ind.samples$treeCD), FUN = get.ind.tmp.response)
+Tmean_SepOct_tree_response.df <- do.call(rbind, Tmean_SepOct_tree_response)
+merged.response.samples <- merge(Tmean_SepOct_tree_response.df, ind.samples, by.x = "ci.group", by.y = "treeCD")
+merged.response.samples$ci.group <- as.character(merged.response.samples$ci.group)
+
+colnames(merged.response.samples)[10]<- "MAP"
+#color by ppt_norm & use tmp_norm bins
+png(here::here("images", "model_4", "individual_response_Tmean_SepOct_MAP_median_dbh.png"), height = 5, width = 6, units = "in", res = 300) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
+ggplot(data = merged.response.samples, aes(x = Tmean_SepOct, y = median, color = MAP, group = ci.group)) + geom_line(alpha = 0.5) +
+  mytheme + ylab("Predicted Growth") + scale_color_gradient2(low = "#b2182b", mid = "#fddbc7", high = "#4575b4")+ facet_wrap(~tmp_norm_q)+
+  ylab("Predicted Growth (mm)")+xlab("Fall Temperature Anomaly")+ylim(0, 3)
+dev.off()
 
 #####  Extra plots ####
 # mapping out MAP and MAT in space
