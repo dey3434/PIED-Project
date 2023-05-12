@@ -511,6 +511,9 @@ pres_plot_monsoonp <- ggplot(data=subset(pres_binned,model=="monsoonp"),aes(x=la
 pres_plot_monsoonp
 
 pres_plot_winterp <- ggplot(data=subset(pres_binned,model=="winterp"),aes(x=lam,y=pres))+
+  geom_rect(data=NULL,aes(xmin=31,xmax=190,ymin=-Inf,ymax=Inf),
+            fill="lightgrey")+
+  
   geom_point(aes(size=count_lam))+
   geom_line(aes(y=pred),size=1)+
   # annotate("label", x = 100, y = 0.75, 
@@ -549,8 +552,8 @@ pres_plot_fallt
 
 
 pres_plot_map <- ggplot()+
-  # geom_rect(data=NULL,aes(xmin=0,xmax=13.5,ymin=-Inf,ymax=Inf),
-  #           fill="lightgrey")+
+  geom_rect(data=NULL,aes(xmin=35,xmax=140,ymin=-Inf,ymax=Inf),
+            fill="lightgrey")+
 
   geom_point(data=subset(pres_binned,model=="map"),aes(x=lam,y=pres, size=count_lam))+
   geom_line(data=subset(pres_binned,model=="map"),aes(x=lam,y=pred),size=1)+
@@ -596,7 +599,7 @@ dev.off()
 
 png(height = 4, width = 6, units = "in", res = 300, "PAfigures/MONSOONp_occurance_probability.png")
 pres_plot_monsoonp
-# dev.off()
+dev.off()
 
 
 png(height = 4, width = 6, units = "in", res = 300, "PAfigures/WINTERp_occurance_probability.png")
