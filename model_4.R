@@ -89,7 +89,7 @@ grow.monsoon<-na.omit(grow.new) %>%
 #          growth2=ifelse(growth==0,0.001,growth),loggrowth=log(growth2)) 
 
 
-
+library(caret)
 set.seed(2023)
 split=0.20
 trainIndex <- createDataPartition(grow.monsoon$name, p=split, list=FALSE)
@@ -562,7 +562,7 @@ dev.off() # "device off" tells R to stop printing stuff to the pdf
 #### Paper figures below
 
 #Effects Plots--set a theme so we dont have to keep setting it
-mytheme<-theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+mytheme <- theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
                panel.background = element_blank(), axis.line = element_line(colour = "black"),
                legend.text=element_text(size=11),legend.title=element_text(size=12),
                legend.key = element_rect(fill = "white"),axis.text=element_text(size=12),
@@ -751,13 +751,13 @@ summary(slopes.unique)
 
 png(here::here("images", "model_4", "individual_response_histogram_Tmean_APRMAYJUN_MAP_byMAT.png"), height = 5, width = 6.5, units = "in", res = 300) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
 ggplot()+geom_histogram(data = slopes.unique, aes(slope), bins = 45)+geom_vline(xintercept = 0, color = "red", linetype = "dashed")+
-  facet_wrap(~tmp_norm_q)+xlim(-0.1, 0.1)+mytheme + ylab("# of trees")+
+  facet_wrap(~tmp_norm_q)+xlim(-0.16, 0.1)+mytheme + ylab("# of trees")+
   xlab("Estimated slope:  log(median predicted growth) ~ Spring Temperature ")
 dev.off()
 
 png(here::here("images", "model_4", "individual_response_histogram_Tmean_APRMAYJUN_MAP.png"), height = 5, width = 6.5, units = "in", res = 300) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
 ggplot()+geom_histogram(data = slopes.unique, aes(slope), bins = 45)+geom_vline(xintercept = 0, color = "red", linetype = "dashed")+
-  xlim(-0.1, 0.1)+mytheme+ylab("# of trees")+xlab("Estimated slope:  log(median predicted growth) ~ Spring Temperature ")
+  xlim(-0.16, 0.1)+mytheme+ylab("# of trees")+xlab("Estimated slope:  log(median predicted growth) ~ Spring Temperature ")
 dev.off()
 
 #### monsoon precip
@@ -1009,6 +1009,7 @@ tree.slopes <- data.frame(ci.group = unique(merged.response.samples$ci.group),
 
 slopes.responses <- left_join(merged.response.samples, tree.slopes)
 slopes.unique <- slopes.responses %>% select(tmp_norm_q, slope, ci.group, MAP) %>% distinct()
+summary(slopes.unique)
 
 png(here::here("images", "model_4", "individual_response_histogram_Precip_NovDecJanFebMar_MAP_byMAT.png"), height = 5, width = 6, units = "in", res = 300) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
 ggplot()+geom_histogram(data = slopes.unique, aes(slope), bins = 45)+geom_vline(xintercept = 0, color = "red", linetype = "dashed")+
