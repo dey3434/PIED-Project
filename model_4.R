@@ -49,7 +49,8 @@ if (file.exists(here::here("data", "climate_data.csv"))) {
   write.csv(full.ppt.tmean.norms, file = here::here("data", "climate_data.csv"), row.names = FALSE)
 }
 
-grow.new <- left_join(PIED.all, full.ppt.tmean.norms, by.x = c("name", "year","LAT", "LON"),by.y = c("name", "year","lat", "lon"))
+#grow.new <- left_join(PIED.all, full.ppt.tmean.norms, by.x = c("name", "year","LAT", "LON"),by.y = c("name", "year","lat", "lon"))
+grow.new <- left_join(PIED.all, full.ppt.tmean.norms, by = c("name", "year")) # only need to join by name and year
 
 hist(full.ppt.tmean.norms$tmp_norm)
 hist(grow.new$tmp_norm)
@@ -622,7 +623,7 @@ ind.samples <- unique(grow.monsoon[,c("LATLONbin", "tmp_norm_q", "ppt_norm_q", "
 get.ind.tmp.response<- function(j){
   tree.subset <- ind.samples[j,]
   tree.grow <- grow.monsoon %>% filter(LATLONbin == tree.subset$LATLONbin & treeCD == tree.subset$treeCD)
-
+  
   Tmean_AprMayJunrng <- range(tree.grow$Tmean_AprMayJun,na.rm = TRUE) #setting range for tmp_normrng
   Tmean_AprMayJun <- seq(Tmean_AprMayJunrng[1], Tmean_AprMayJunrng[2], by = 0.1)
   x <- 20#mean(tree.grow$DIA_prev)
@@ -633,7 +634,7 @@ get.ind.tmp.response<- function(j){
   Precip_NovDecJanFebMar <- mean(tree.grow$Precip_NovDecJanFebMar)
   #ppt_norm_range <- quantile(tree.grow$ppt_norm, c(0.2, 0.8))
   # growthpredictionTmeanAprMayJun_pnorm <- matrix(NA, length(plotdatainterval$MAP), length(Tmean_AprMayJun))
-
+  
   # for(i in 1:length(plotdatainterval$MAP)){
   #   growthpredictionTmeanAprMayJun_pnorm[i,] <- plotdatainterval[i,"MAP"]*ppt_norm +
   #     plotdatainterval[i,"MAT"]*tmp_norm +
@@ -732,7 +733,32 @@ ggplot(data = merged.response.samples, aes(x = Tmean_AprMayJun, y = median, colo
 dev.off()
 
 
+# generate histograms of approximated slopes for each tree:
+get.slope.Tmean_AprMayJun <- function(treeid){
+  df <- merged.response.samples %>% filter(ci.group == treeid)
+  lm.results <- lm(log(median) ~ Tmean_AprMayJun , data = df)
+  slope <- lm.results$coefficients[2]
+  slope
+}
+slopes.list <- lapply(unique(merged.response.samples$ci.group), FUN = function(x){get.slope.Tmean_AprMayJun(x)})
+slopes.df <- do.call(rbind, slopes.list)
+tree.slopes <- data.frame(ci.group = unique(merged.response.samples$ci.group), 
+                          slope = slopes.df[,1])
 
+slopes.responses <- left_join(merged.response.samples, tree.slopes)
+slopes.unique <- slopes.responses %>% select(tmp_norm_q, slope, ci.group, MAP) %>% distinct()
+summary(slopes.unique)
+
+png(here::here("images", "model_4", "individual_response_histogram_Tmean_APRMAYJUN_MAP_byMAT.png"), height = 5, width = 6.5, units = "in", res = 300) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
+ggplot()+geom_histogram(data = slopes.unique, aes(slope), bins = 45)+geom_vline(xintercept = 0, color = "red", linetype = "dashed")+
+  facet_wrap(~tmp_norm_q)+xlim(-0.1, 0.1)+mytheme + ylab("# of trees")+
+  xlab("Estimated slope:  log(median predicted growth) ~ Spring Temperature ")
+dev.off()
+
+png(here::here("images", "model_4", "individual_response_histogram_Tmean_APRMAYJUN_MAP.png"), height = 5, width = 6.5, units = "in", res = 300) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
+ggplot()+geom_histogram(data = slopes.unique, aes(slope), bins = 45)+geom_vline(xintercept = 0, color = "red", linetype = "dashed")+
+  xlim(-0.1, 0.1)+mytheme+ylab("# of trees")+xlab("Estimated slope:  log(median predicted growth) ~ Spring Temperature ")
+dev.off()
 
 #### monsoon precip
 #Precip_JulAug and tmp_norm
@@ -756,7 +782,7 @@ ind.samples <- unique(grow.monsoon[,c("LATLONbin", "tmp_norm_q", "ppt_norm_q", "
 get.ind.tmp.response<- function(j){
   tree.subset <- ind.samples[j,]
   tree.grow <- grow.monsoon %>% filter(LATLONbin == tree.subset$LATLONbin & treeCD == tree.subset$treeCD)
-
+  
   Precip_JulAugrng <- range(tree.grow$Precip_JulAug,na.rm = TRUE) #setting range for tmp_normrng
   Precip_JulAug <- seq(Precip_JulAugrng[1], Precip_JulAugrng[2], by = 0.1)
   x <- 20
@@ -824,6 +850,33 @@ ggplot(data = merged.response.samples, aes(x = Precip_JulAug, y = median, color 
 dev.off()
 
 
+# generate histograms of approximated slopes for each tree:
+get.slope.Precip_JulAug <- function(treeid){
+  df <- merged.response.samples %>% filter(ci.group == treeid)
+  lm.results <- lm(log(median) ~ Precip_JulAug , data = df)
+  slope <- lm.results$coefficients[2]
+  slope
+}
+slopes.list <- lapply(unique(merged.response.samples$ci.group), FUN = function(x){get.slope.Precip_JulAug(x)})
+slopes.df <- do.call(rbind, slopes.list)
+tree.slopes <- data.frame(ci.group = unique(merged.response.samples$ci.group), 
+                          slope = slopes.df[,1])
+
+slopes.responses <- left_join(merged.response.samples, tree.slopes)
+slopes.unique <- slopes.responses %>% select(tmp_norm_q, slope, ci.group, MAP) %>% distinct()
+summary(slopes.unique)
+png(here::here("images", "model_4", "individual_response_histogram_Precip_JulAug_MAP_byMAT.png"), height = 5, width = 6.5, units = "in", res = 300) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
+ggplot()+geom_histogram(data = slopes.unique, aes(slope), bins = 45)+geom_vline(xintercept = 0, color = "red", linetype = "dashed")+
+  facet_wrap(~tmp_norm_q)+xlim(-0.1, 0.1)+mytheme + ylab("# of trees")+
+  xlab("Estimated slope: \n log(median predicted growth) ~ Monsoon Precipitation ")
+dev.off()
+
+png(here::here("images", "model_4", "individual_response_histogram_Precip_JulAug_MAP.png"), height = 5, width = 6.5, units = "in", res = 300) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
+ggplot()+geom_histogram(data = slopes.unique, aes(slope), bins = 45)+geom_vline(xintercept = 0, color = "red", linetype = "dashed")+
+  xlim(-0.1, 0.1)+mytheme+ylab("# of trees")+xlab("Estimated slope: \n log(median predicted growth) ~ Monsoon Precipitation")
+dev.off()
+
+
 #### winter precip:
 #Precip_NovDecJanFebMar and tmp_norm
 grow.monsoon$LONbin <- ifelse(grow.monsoon$LON > -109, "-109 to -104", "-114 to -109")
@@ -846,7 +899,7 @@ ind.samples <- unique(grow.monsoon[,c("LATLONbin", "tmp_norm_q", "ppt_norm_q", "
 get.ind.tmp.response<- function(j){
   tree.subset <- ind.samples[j,]
   tree.grow <- grow.monsoon %>% filter(LATLONbin == tree.subset$LATLONbin & treeCD == tree.subset$treeCD)
-
+  
   Precip_NovDecJanFebMarrng <- range(tree.grow$Precip_NovDecJanFebMar,na.rm = TRUE) #setting range for tmp_normrng
   Precip_NovDecJanFebMar <- seq(Precip_NovDecJanFebMarrng[1], Precip_NovDecJanFebMarrng[2], by = 0.1)
   x <- 20
@@ -942,6 +995,35 @@ ggplot(data = merged.response.samples, aes(x = Precip_NovDecJanFebMar, y = media
 dev.off()
 
 
+# generate histograms of approximated slopes for each tree:
+get.slope.Precip_NovDecJanFebMar <- function(treeid){
+  df <- merged.response.samples %>% filter(ci.group == treeid)
+  lm.results <- lm( log(median) ~ Precip_NovDecJanFebMar, data = df)
+  slope <- lm.results$coefficients[2]
+  slope
+}
+slopes.list <- lapply(unique(merged.response.samples$ci.group), FUN = function(x){get.slope.Precip_NovDecJanFebMar (x)})
+slopes.df <- do.call(rbind, slopes.list)
+tree.slopes <- data.frame(ci.group = unique(merged.response.samples$ci.group), 
+                          slope = slopes.df[,1])
+
+slopes.responses <- left_join(merged.response.samples, tree.slopes)
+slopes.unique <- slopes.responses %>% select(tmp_norm_q, slope, ci.group, MAP) %>% distinct()
+
+png(here::here("images", "model_4", "individual_response_histogram_Precip_NovDecJanFebMar_MAP_byMAT.png"), height = 5, width = 6, units = "in", res = 300) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
+ggplot()+geom_histogram(data = slopes.unique, aes(slope), bins = 45)+geom_vline(xintercept = 0, color = "red", linetype = "dashed")+
+  facet_wrap(~tmp_norm_q)+xlim(-0.1, 0.4)+mytheme + ylab("# of trees")+
+  xlab("Estimated slope: 
+       \n log(median predicted growth) ~ Winter Precipitation ")
+dev.off()
+
+png(here::here("images", "model_4", "individual_response_histogram_Precip_NovDecJanFebMar_MAP.png"), height = 5, width = 6, units = "in", res = 300) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
+ggplot()+geom_histogram(data = slopes.unique, aes(slope), bins = 45)+geom_vline(xintercept = 0, color = "red", linetype = "dashed")+
+  xlim(-0.1, 0.4)+mytheme+ylab("# of trees")+xlab("Estimated slope: \n log(median predicted growth) ~ Winter Precipitation ")
+dev.off()
+
+
+
 #### Fall temperature
 #Tmean_SepOct and tmp_norm
 grow.monsoon$LONbin <- ifelse(grow.monsoon$LON > -109, "-109 to -104", "-114 to -109")
@@ -965,7 +1047,7 @@ ind.samples <- unique(grow.monsoon[,c("LATLONbin", "tmp_norm_q", "ppt_norm_q", "
 get.ind.tmp.response<- function(j){
   tree.subset <- ind.samples[j,]
   tree.grow <- grow.monsoon %>% filter(LATLONbin == tree.subset$LATLONbin & treeCD == tree.subset$treeCD)
-
+  
   Tmean_SepOctrng <- range(tree.grow$Tmean_SepOct,na.rm = TRUE) #setting range for tmp_normrng
   Tmean_SepOct <- seq(Tmean_SepOctrng[1], Tmean_SepOctrng[2], by = 0.1)
   x <- 20
@@ -1059,7 +1141,32 @@ ggplot(data = merged.response.samples, aes(x = Tmean_SepOct, y = median, color =
   ylab("Predicted Growth (mm)")+xlab("Fall Temperature Anomaly")+ylim(0, 3)
 dev.off()
 
+# generate histograms of approximated slopes for each tree:
+get.slope.Tmean_SepOct <- function(treeid){
+  df <- merged.response.samples %>% filter(ci.group == treeid)
+  lm.results <- lm(log(median) ~ Tmean_SepOct , data = df)
+  slope <- lm.results$coefficients[2]
+  slope
+}
+slopes.list <- lapply(unique(merged.response.samples$ci.group), FUN = function(x){get.slope.Tmean_SepOct(x)})
+slopes.df <- do.call(rbind, slopes.list)
+tree.slopes <- data.frame(ci.group = unique(merged.response.samples$ci.group), 
+                          slope = slopes.df[,1])
 
+slopes.responses <- left_join(merged.response.samples, tree.slopes)
+slopes.unique <- slopes.responses %>% select(tmp_norm_q, slope, ci.group, MAP) %>% distinct()
+summary(slopes.unique)
+
+png(here::here("images", "model_4", "individual_response_histogram_Tmean_SepOct_MAP_byMAT.png"), height = 5, width = 6.5, units = "in", res = 300) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
+ggplot()+geom_histogram(data = slopes.unique, aes(slope), bins = 45)+geom_vline(xintercept = 0, color = "red", linetype = "dashed")+
+  facet_wrap(~tmp_norm_q)+xlim(-0.1, 0.1)+mytheme + ylab("# of trees")+
+  xlab("Estimated slope: log(median predicted growth) ~ Fall Temperature")
+dev.off()
+
+png(here::here("images", "model_4", "individual_response_histogram_Tmean_SepOct_MAP.png"), height = 5, width = 6.5, units = "in", res = 300) # tells R to save the following plots to a pdf named "filename.pdf" that is 6 inches wide and 6 inches width
+ggplot()+geom_histogram(data = slopes.unique, aes(slope), bins = 45)+geom_vline(xintercept = 0, color = "red", linetype = "dashed")+
+  xlim(-0.1, 0.1)+mytheme+ylab("# of trees")+  xlab("Estimated slope: log(median predicted growth) ~ Fall Temperature")
+dev.off()
 
 # ----------------------------------Make Ind response plots with old method of median dbh------------
 
@@ -1396,7 +1503,7 @@ get.ind.tmp.response<- function(j){
     matrix(plotdatainterval[["spring temp*fall temp"]], n_rows, n_cols) * Tmean_AprMayJun*Tmean_SepOct
   
   
-
+  
   # }
   Precip_NovDecJanFebMar_prediction_trtmpnorm <- exp(growthpredictionPrecipNovDecJanFebMar_tmpnorm)
   ci.Precip_NovDecJanFebMartmpnorm <- apply(Precip_NovDecJanFebMar_prediction_trtmpnorm, 2, quantile, c(0.025, 0.5, 0.975))
