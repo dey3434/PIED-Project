@@ -36,16 +36,16 @@ for (i in 1:10) {
 
 # Run the models with RStudioAPI
 library(rstudioapi)
-rstudioapi::jobRunScript("model_0.R")
-rstudioapi::jobRunScript("model_1.R")
-rstudioapi::jobRunScript("model_2.R")
-rstudioapi::jobRunScript("model_3.R")
-rstudioapi::jobRunScript("model_4.R")
-rstudioapi::jobRunScript("model_5.R")
-rstudioapi::jobRunScript("model_6.R")
-rstudioapi::jobRunScript("model_7.R")
-rstudioapi::jobRunScript("model_8.R")
-rstudioapi::jobRunScript("model_9.R")
+rstudioapi::jobRunScript("R/model_0.R")
+rstudioapi::jobRunScript("R/model_1.R")
+rstudioapi::jobRunScript("R/model_2.R")
+rstudioapi::jobRunScript("R/model_3.R")
+rstudioapi::jobRunScript("R/model_4.R")
+rstudioapi::jobRunScript("R/model_5.R")
+rstudioapi::jobRunScript("R/model_6.R")
+rstudioapi::jobRunScript("R/model_7.R")
+rstudioapi::jobRunScript("R/model_8.R")
+rstudioapi::jobRunScript("R/model_9.R")
 
 
 
