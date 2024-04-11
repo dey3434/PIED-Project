@@ -89,7 +89,7 @@ plotfortree<-grow_train %>%
 plotfortree<-plotfortree$Plot
 
 
-sink("model_6.stan")
+sink("stancode/model_6.stan")
 cat("
     data {
     
@@ -208,7 +208,7 @@ csvfiles <- here::here("results", paste0("ppt_tmp_springfall_sizefix_scale_", 1:
 if (all(file.exists(csvfiles))) {
   fit_grow <- read_stan_csv(csvfiles, col_major = TRUE) 
 } else {
-  fit_grow <- stan(file = 'model_6.stan', data = pied_dat, 
+  fit_grow <- stan(file = 'stancode/model_6.stan', data = pied_dat, 
                    iter = 5000,
                    warmup = 1000,
                    chains = 3, cores = 8, 
