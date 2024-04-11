@@ -113,7 +113,7 @@ plotfortree<-grow_train %>%
 plotfortree<-plotfortree$Plot
 
 
-sink("model_9.stan")
+sink("stancode/model_9.stan")
 cat("
     data {
     
@@ -224,7 +224,7 @@ csvfiles <- here::here("results", paste0("model_9_", 1:3, ".csv"))
 if (all(file.exists(csvfiles))) {
   fit_grow <- read_stan_csv(csvfiles, col_major = TRUE) 
 } else {
-  fit_grow <- stan(file = 'model_9.stan', data = pied_dat, 
+  fit_grow <- stan(file = 'stancode/model_9.stan', data = pied_dat, 
                    iter = 5000,
                    warmup = 1000,
                    chains = 3, cores = 8, 
