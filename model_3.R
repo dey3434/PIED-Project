@@ -100,7 +100,7 @@ plotfortree<-grow_train %>%
 plotfortree<-plotfortree$Plot
 
 
-sink("model_3.stan")
+sink("stancode/model_3.stan")
 cat("
     data {
 
@@ -213,7 +213,7 @@ if (all(file.exists(csvfiles))) {
   fit_grow <- read_stan_csv(csvfiles, col_major = TRUE)
 } else {
   message("Starting new MCMC run")
-  fit_grow <- stan(file = 'model_3.stan', data = pied_dat,
+  fit_grow <- stan(file = 'stancode/model_3.stan', data = pied_dat,
                    iter = 5000,
                    warmup = 1000,
                    chains = 3, cores = 8,
